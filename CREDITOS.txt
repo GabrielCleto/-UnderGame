@@ -1,0 +1,26 @@
+CRÉDITOS DE ARTE E ÁUDIO (Licenças Livres)
+===========================================
+
+1. Liberated Pixel Cup (LPC) Base Assets
+   - Autores: Lanea Zimmerman (Sharm), Stephen Challener (Redshrike), Charles Sanchez (CharlesGabriel), Manuel Riecke (MrBeast), Daniel Armstrong (HughSpectrum)
+   - Fonte: https://opengameart.org/content/liberated-pixel-cup-lpc-base-assets-sprites-map-tiles
+   - Licença: CC-BY-SA 3.0 / GPL 3.0 / OGA-BY 3.0 (veja assets/lpc/CREDITS-LPC.TXT)
+
+2. 496 Pixel Art Icons for Medieval/Fantasy RPG
+   - Autor: Henrique Lazarini (7Soul1)
+   - Fonte: https://opengameart.org/content/496-pixel-art-icons-for-medievalfantasy-rpg
+   - Licença: CC0 (Domínio Público)
+
+3. Battle Theme A
+   - Autor: cynicmusic (pixelsphere.org)
+   - Fonte: https://opengameart.org/content/battle-theme-a
+   - Licença: CC0 (Domínio Público)
+
+4. RPG Sound Pack
+   - Autor: artisticdude
+   - Fonte: https://opengameart.org/content/rpg-sound-pack
+   - Licença: CC0 (Domínio Público)
+
+5. Fonte Press Start 2P
+   - Autor: CodeMan38
+   - Licença: SIL Open Font License (OFL)
