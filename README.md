@@ -1,4 +1,4 @@
-# ⚔️ UnderGame (Gabriel: Saber Arena)
+# ⚔️ Underground Game
 
 > **Jogo de sobrevivência em arena 2D Roguelite / Hack & Slash em Pixel Art.**  
 > Desenvolvido com HTML5 Canvas e JavaScript puro (Vanilla JS), com suporte total a controles de videogame (Plug & Play), múltiplos personagens jogáveis, sistema de upgrades, loja de itens e ondas crescentes de inimigos.

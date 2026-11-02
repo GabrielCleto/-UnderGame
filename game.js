@@ -1,5 +1,5 @@
 // =====================================================================
-//  GABRIEL: SABER ARENA  —  Ação Roguelite Top-Down no Navegador
+//  UNDERGROUND GAME  —  Ação Roguelite Top-Down no Navegador
 //  Personagens: Manguinha, Amxral e Tuiuba
 // =====================================================================
 const canvas = document.getElementById('game');
@@ -2958,8 +2958,8 @@ let menuPlayRect = null, menuCharRect = null;
 function drawMenu() {
   overlay(0.52);
   const t = performance.now() / 1000;
-  txt('GABRIEL', W / 2, H * 0.15, Math.min(60, W / 12), '#ffd23f');
-  txt('SABER ARENA', W / 2, H * 0.15 + 42, Math.min(26, W / 28), '#6fc3ff');
+  txt('UNDERGROUND', W / 2, H * 0.14, Math.min(48, W / 14), '#ffd23f');
+  txt('GAME', W / 2, H * 0.14 + 38, Math.min(26, W / 26), '#6fc3ff');
 
   const curChar = CHARACTERS[selectedCharIndex];
   const fr = curChar.anim.idle;
@@ -2970,9 +2970,9 @@ function drawMenu() {
 
   const gp = gamepadInfo.connected;
   if (gp) {
-    txt('🎮 ' + gamepadInfo.toastName.toUpperCase() + ' CONECTADO!', W / 2, H * 0.15 + 62, 8, '#4fe3ff');
+    txt('🎮 ' + gamepadInfo.toastName.toUpperCase() + ' CONECTADO!', W / 2, H * 0.14 + 66, 8, '#4fe3ff');
   } else {
-    txt('🎮 SUPORTE A CONTROLE PLUG & PLAY ATIVO (XBOX, PS, GENÉRICOS)', W / 2, H * 0.15 + 62, 7, '#6788a5');
+    txt('🎮 SUPORTE A CONTROLE PLUG & PLAY ATIVO (XBOX, PS, GENÉRICOS)', W / 2, H * 0.14 + 66, 7, '#6788a5');
   }
 
   if (curChar.weaponType === 'saber') {
