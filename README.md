@@ -39,6 +39,17 @@ Em **UnderGame**, você entra na arena enfrentando hordas de monstros, acumuland
 
 ## 🕹️ Comandos & Controles
 
+### 📱 No Celular / Tablet (Touchscreen)
+| Ação | Botão / Gesto |
+| :--- | :--- |
+| **Movimentação** | **Joystick Virtual Dinâmico** (lado esquerdo da tela) |
+| **Atacar (com Mira Automática)** | Botão **⚔️ ATACAR** (ou toque na metade direita) |
+| **Giro / Esquiva com Invencibilidade** | Botão **💨 GIRO** (com anel de recarga) |
+| **Especial (Ultimate)** | Botão **⚡ FÚRIA / ULT** (com anel de carga e pulso) |
+| **Pausar / Retomar** | Botão **⏸** no topo direito (ou toque na tela) |
+| **Tela Cheia** | Botão **⛶** no topo direito |
+| **Navegação nos Menus** | Toque direto nas cartas e botões |
+
 ### 🎮 No Controle (Gamepad)
 | Ação | Botão |
 | :--- | :--- |

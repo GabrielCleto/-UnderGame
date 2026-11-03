@@ -6,11 +6,13 @@ const canvas = document.getElementById('game');
 const ctx = canvas.getContext('2d');
 let W = 0, H = 0;
 function resize() {
-  W = canvas.width = innerWidth;
-  H = canvas.height = innerHeight;
+  W = canvas.width = window.innerWidth || document.documentElement.clientWidth;
+  H = canvas.height = window.innerHeight || document.documentElement.clientHeight;
   ctx.imageSmoothingEnabled = false;
+  if (typeof updateTouchLayout === 'function') updateTouchLayout();
 }
 addEventListener('resize', resize);
+addEventListener('orientationchange', () => setTimeout(resize, 100));
 resize();
 
 const FONT = '"Press Start 2P", monospace';
@@ -316,40 +318,245 @@ addEventListener('mouseup', e => { if (e.button === 0) mouse.down = false; });
 canvas.addEventListener('mousemove', e => { mouse.x = e.clientX; mouse.y = e.clientY; mouse.moved = true; });
 canvas.addEventListener('contextmenu', e => e.preventDefault());
 
-const touch = { active: false, joyX: 0, joyY: 0, joyDist: 0, joyAngle: 0, touchId: null, btnAttack: false, btnDash: false, btnUlt: false };
-canvas.addEventListener('touchstart', handleTouch, { passive: false });
-canvas.addEventListener('touchmove', handleTouch, { passive: false });
-canvas.addEventListener('touchend', handleTouchEnd, { passive: false });
-canvas.addEventListener('touchcancel', handleTouchEnd, { passive: false });
+// =====================================================================
+//  CONTROLES TOUCH / MOBILE RESPONSIVO & MULTITOUCH ERGONÔMICO
+// =====================================================================
+const isTouchDevice = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0) || /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
 
-function handleTouch(e) {
+const touch = {
+  active: isTouchDevice,
+  isMobile: isTouchDevice,
+
+  // Joystick Virtual (Analógico Dinâmico na Esquerda)
+  joyId: null,
+  joyBaseX: 95,
+  joyBaseY: 0,
+  joyCurrX: 95,
+  joyCurrY: 0,
+  joyX: 0,
+  joyY: 0,
+  joyDist: 0,
+  joyAngle: 0,
+  joyBaseRadius: 62,
+  joyStickRadius: 26,
+
+  // Botões de Ação na Direita
+  atkId: null,
+  dashId: null,
+  ultId: null,
+  isAtkDown: false,
+  justAtk: false,
+  justDash: false,
+  justUlt: false,
+
+  // Retângulos e Círculos Dinâmicos
+  atkBtn: { x: 0, y: 0, r: 44 },
+  dashBtn: { x: 0, y: 0, r: 32 },
+  ultBtn: { x: 0, y: 0, r: 34 },
+  pauseBtn: { x: 0, y: 0, w: 42, h: 42 },
+  fullBtn: { x: 0, y: 0, w: 42, h: 42 },
+};
+
+function updateTouchLayout() {
+  const minDim = Math.min(W, H);
+  const isPortrait = H > W;
+
+  // Joystick Base
+  const jR = clamp(minDim * 0.12, 54, 72);
+  touch.joyBaseRadius = jR;
+  touch.joyStickRadius = clamp(jR * 0.44, 22, 30);
+  const defJoyX = clamp(W * 0.13, jR + 18, 120);
+  const defJoyY = H - clamp(H * 0.18, jR + 24, 130);
+  if (touch.joyId === null) {
+    touch.joyBaseX = defJoyX;
+    touch.joyBaseY = defJoyY;
+    touch.joyCurrX = defJoyX;
+    touch.joyCurrY = defJoyY;
+  }
+
+  // Botão Atacar (Grande, no arco natural do polegar direito)
+  const atkR = clamp(minDim * 0.105, 38, 52);
+  const atkX = W - atkR - clamp(W * 0.05, 18, 38);
+  const atkY = H - atkR - clamp(H * 0.09, 20, 44);
+  touch.atkBtn = { x: atkX, y: atkY, r: atkR };
+
+  // Botão Giro / Esquiva (À esquerda do ataque)
+  const dashR = clamp(atkR * 0.74, 28, 36);
+  const dashX = atkX - atkR - dashR - 14;
+  const dashY = atkY + (isPortrait ? -6 : 10);
+  touch.dashBtn = { x: dashX, y: dashY, r: dashR };
+
+  // Botão Ultimate (Acima do ataque)
+  const ultR = clamp(atkR * 0.78, 30, 38);
+  const ultX = atkX - (isPortrait ? 8 : 18);
+  const ultY = atkY - atkR - ultR - 16;
+  touch.ultBtn = { x: ultX, y: ultY, r: ultR };
+
+  // Botões de Topo: Pausa e Tela Cheia
+  const topSize = clamp(minDim * 0.075, 36, 42);
+  touch.pauseBtn = { x: W - topSize - 12, y: 12, w: topSize, h: topSize };
+  touch.fullBtn = { x: W - topSize * 2 - 20, y: 12, w: topSize, h: topSize };
+}
+updateTouchLayout();
+
+function toggleFullscreen() {
+  const doc = document;
+  const el = doc.documentElement;
+  try {
+    if (!doc.fullscreenElement && !doc.webkitFullscreenElement) {
+      if (el.requestFullscreen) el.requestFullscreen().catch(() => {});
+      else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen();
+    } else {
+      if (doc.exitFullscreen) doc.exitFullscreen().catch(() => {});
+      else if (doc.webkitExitFullscreen) doc.webkitExitFullscreen();
+    }
+  } catch (e) {}
+}
+
+function unlockAudio() {
+  try {
+    if (!actx) actx = new (window.AudioContext || window.webkitAudioContext)();
+    if (actx && actx.state === 'suspended') actx.resume().catch(() => {});
+    startMusic();
+  } catch (e) {}
+}
+
+function getTouchPos(t) {
+  const rect = canvas.getBoundingClientRect();
+  return {
+    x: (t.clientX - rect.left) * (canvas.width / rect.width),
+    y: (t.clientY - rect.top) * (canvas.height / rect.height),
+  };
+}
+
+function inCircle(x, y, cx, cy, r) {
+  return Math.hypot(x - cx, y - cy) <= r;
+}
+
+canvas.addEventListener('touchstart', onTouchStart, { passive: false });
+canvas.addEventListener('touchmove', onTouchMove, { passive: false });
+canvas.addEventListener('touchend', onTouchEnd, { passive: false });
+canvas.addEventListener('touchcancel', onTouchEnd, { passive: false });
+
+function onTouchStart(e) {
   e.preventDefault();
   touch.active = true;
-  startMusic();
-  const rect = canvas.getBoundingClientRect();
-  for (let i = 0; i < e.touches.length; i++) {
-    const t = e.touches[i];
-    const tx = t.clientX - rect.left, ty = t.clientY - rect.top;
-    if (tx < W * 0.45 && ty > H * 0.4) {
-      const jBaseX = 90, jBaseY = H - 90;
-      const dx = tx - jBaseX, dy = ty - jBaseY;
-      const d = Math.hypot(dx, dy);
-      touch.joyDist = Math.min(1, d / 60);
-      touch.joyAngle = Math.atan2(dy, dx);
-      touch.joyX = Math.cos(touch.joyAngle) * touch.joyDist;
-      touch.joyY = Math.sin(touch.joyAngle) * touch.joyDist;
-    } else {
-      if (Math.hypot(tx - (W - 80), ty - (H - 90)) < 45) { mouse.down = true; mouse.click = true; }
-      if (Math.hypot(tx - (W - 160), ty - (H - 70)) < 35) { pressed['shift'] = true; }
-      if (Math.hypot(tx - (W - 90), ty - (H - 170)) < 35) { pressed['e'] = true; }
-      mouse.x = tx; mouse.y = ty;
+  unlockAudio();
+
+  for (let i = 0; i < e.changedTouches.length; i++) {
+    const t = e.changedTouches[i];
+    const { x, y } = getTouchPos(t);
+    const id = t.identifier;
+
+    // Se estiver em menus ou escolha de poderes, repassa o toque como clique direto
+    if (state !== 'play') {
+      mouse.x = x; mouse.y = y; mouse.click = true; mouse.down = true; mouse.moved = true;
+      continue;
+    }
+
+    // 1. Pausa no topo
+    if (inRect(x, y, touch.pauseBtn)) {
+      state = 'pause'; SFX.select();
+      continue;
+    }
+
+    // 2. Tela Cheia no topo
+    if (inRect(x, y, touch.fullBtn)) {
+      toggleFullscreen();
+      continue;
+    }
+
+    // 3. Botão ATACAR
+    if (inCircle(x, y, touch.atkBtn.x, touch.atkBtn.y, touch.atkBtn.r + 12)) {
+      touch.atkId = id;
+      touch.isAtkDown = true;
+      touch.justAtk = true;
+      continue;
+    }
+
+    // 4. Botão GIRO / ESQUIVA
+    if (inCircle(x, y, touch.dashBtn.x, touch.dashBtn.y, touch.dashBtn.r + 10)) {
+      touch.dashId = id;
+      touch.justDash = true;
+      continue;
+    }
+
+    // 5. Botão ULTIMATE
+    if (inCircle(x, y, touch.ultBtn.x, touch.ultBtn.y, touch.ultBtn.r + 10)) {
+      touch.ultId = id;
+      touch.justUlt = true;
+      continue;
+    }
+
+    // 6. Joystick Virtual na metade esquerda (Floating)
+    if (x < W * 0.52 && touch.joyId === null) {
+      touch.joyId = id;
+      touch.joyBaseX = x;
+      touch.joyBaseY = y;
+      touch.joyCurrX = x;
+      touch.joyCurrY = y;
+      touch.joyDist = 0;
+      touch.joyX = 0;
+      touch.joyY = 0;
+      continue;
+    }
+
+    // Toques livres na metade direita disparam ataque
+    if (x >= W * 0.52 && touch.atkId === null) {
+      touch.atkId = id;
+      touch.isAtkDown = true;
+      touch.justAtk = true;
     }
   }
 }
-function handleTouchEnd(e) {
-  if (e.touches.length === 0) {
-    touch.joyDist = 0; touch.joyX = 0; touch.joyY = 0;
-    mouse.down = false;
+
+function onTouchMove(e) {
+  e.preventDefault();
+  for (let i = 0; i < e.changedTouches.length; i++) {
+    const t = e.changedTouches[i];
+    const { x, y } = getTouchPos(t);
+    const id = t.identifier;
+
+    if (id === touch.joyId) {
+      touch.joyCurrX = x;
+      touch.joyCurrY = y;
+      const dx = x - touch.joyBaseX, dy = y - touch.joyBaseY;
+      const d = Math.hypot(dx, dy);
+      touch.joyAngle = Math.atan2(dy, dx);
+      touch.joyDist = Math.min(1, d / touch.joyBaseRadius);
+      touch.joyX = Math.cos(touch.joyAngle) * touch.joyDist;
+      touch.joyY = Math.sin(touch.joyAngle) * touch.joyDist;
+    }
+  }
+}
+
+function onTouchEnd(e) {
+  e.preventDefault();
+  for (let i = 0; i < e.changedTouches.length; i++) {
+    const t = e.changedTouches[i];
+    const id = t.identifier;
+
+    if (id === touch.joyId) {
+      touch.joyId = null;
+      touch.joyDist = 0;
+      touch.joyX = 0;
+      touch.joyY = 0;
+      const minDim = Math.min(W, H);
+      touch.joyBaseX = clamp(W * 0.13, touch.joyBaseRadius + 18, 120);
+      touch.joyBaseY = H - clamp(H * 0.18, touch.joyBaseRadius + 24, 130);
+      touch.joyCurrX = touch.joyBaseX;
+      touch.joyCurrY = touch.joyBaseY;
+    }
+    if (id === touch.atkId) {
+      touch.atkId = null;
+      touch.isAtkDown = false;
+    }
+    if (id === touch.dashId) {
+      touch.dashId = null;
+    }
+    if (id === touch.ultId) {
+      touch.ultId = null;
+    }
   }
 }
 const anyPressed = (...ks) => ks.some(k => pressed[k]);
@@ -1129,9 +1336,32 @@ function spreadAngles(base, count, step = 0.17) {
   return arr;
 }
 
-function startAttack(fromMouse) {
+function getNearestEnemyAngle(p, maxDist = 520) {
+  let closest = null, minDist = maxDist;
+  for (const m of enemies) {
+    if (m.dead || m.hp <= 0) continue;
+    const d = Math.hypot(m.x - p.x, m.y - p.y);
+    if (d < minDist) {
+      minDist = d;
+      closest = m;
+    }
+  }
+  if (closest) {
+    return Math.atan2(closest.y - (p.y - 36), closest.x - p.x);
+  }
+  return null;
+}
+
+function startAttack(fromMouse, fromTouch) {
   const p = player;
-  if (fromMouse) {
+  if (fromTouch) {
+    const autoAng = getNearestEnemyAngle(p, 520);
+    if (autoAng !== null) {
+      p.aim = autoAng;
+    } else if (touch.joyDist > 0.08) {
+      p.aim = touch.joyAngle;
+    }
+  } else if (fromMouse) {
     const wx = mouse.x - W / 2 + cam.x, wy = mouse.y - H / 2 + cam.y;
     p.aim = Math.atan2(wy - (p.y - 40), wx - p.x);
   }
@@ -1325,7 +1555,7 @@ function update(dt) {
   if (keys['d'] || keys['arrowright']) mx += 1;
   if (keys['w'] || keys['arrowup']) my -= 1;
   if (keys['s'] || keys['arrowdown']) my += 1;
-  if (touch.joyDist > 0.15) { mx = touch.joyX; my = touch.joyY; }
+  if (touch.joyDist > 0.08) { mx = touch.joyX; my = touch.joyY; }
 
   // Entrada de Controle (Analógico Esquerdo / D-Pad)
   if (gpState && (Math.abs(gpState.moveX) > 0.05 || Math.abs(gpState.moveY) > 0.05)) {
@@ -1352,8 +1582,8 @@ function update(dt) {
     particles.push({ x: p.x + rand(-14, 14), y: p.y - rand(5, 55), vx: rand(-20, 20), vy: -50, life: 0.32, max: 0.32, color: pick(['#ffd23f', '#ff6438', '#ffffff']), size: rand(3, 5) });
   }
 
-  // Ultimate (Teclado E/L/Q ou Gatilho/Botão Y/X no Controle)
-  const trigUlt = anyPressed('e', 'l', 'q') || (gpState && gpState.ultJust);
+  // Ultimate (Teclado E/L/Q, Gatilho/Botão Y/X no Controle, ou Botão Touch ULT)
+  const trigUlt = anyPressed('e', 'l', 'q') || (gpState && gpState.ultJust) || touch.justUlt;
   if (trigUlt && p.ultMeter >= 100 && !p.ult) {
     p.ult = { t: 0, dur: 2.6, tick: 0 };
     p.ultMeter = 0; p.attack = null; p.dash = null;
@@ -1363,17 +1593,17 @@ function update(dt) {
     banner = { txt: p.char.ultName + '!', life: 1.4, max: 1.4, small: true };
   }
 
-  // Ataque (Teclado Espaço/J, Mouse Clique, ou EXCLUSIVO nos Gatilhos Traseiros RT / RB do Controle)
+  // Ataque (Teclado Espaço/J, Mouse Clique, Gatilhos RT / RB no Controle, ou Botão Touch ATACAR)
   const gpAtkHold = gpState ? gpState.attackHold : false;
   const gpAtkJust = gpState ? gpState.attackJust : false;
-  const holdAttack = keys[' '] || keys['j'] || mouse.down || gpAtkHold;
-  if ((holdAttack || mouse.click || gpAtkJust) && !p.attack && !p.dash && !p.ult && p.attackCd <= 0) {
-    startAttack(mouse.down || mouse.click);
+  const holdAttack = keys[' '] || keys['j'] || mouse.down || gpAtkHold || touch.isAtkDown;
+  if ((holdAttack || mouse.click || gpAtkJust || touch.justAtk) && !p.attack && !p.dash && !p.ult && p.attackCd <= 0) {
+    startAttack(mouse.down || mouse.click, touch.isAtkDown || touch.justAtk);
   }
 
-  // Giro / Esquiva (Teclado Shift/K, Botão Dir do Mouse, ou Gatilho Traseiro LT / LB / B no Controle)
+  // Giro / Esquiva (Teclado Shift/K, Botão Dir do Mouse, Gatilho LT / LB / B no Controle, ou Botão Touch GIRO)
   const gpDash = gpState ? gpState.dashJust : false;
-  if ((anyPressed('shift', 'k') || mouse.rclick || gpDash) && !p.dash && !p.ult && p.dashCd <= 0) {
+  if ((anyPressed('shift', 'k') || mouse.rclick || gpDash || touch.justDash) && !p.dash && !p.ult && p.dashCd <= 0) {
     let dx = mx, dy = my;
     if (!dx && !dy) { dx = Math.cos(p.aim); dy = Math.sin(p.aim); }
     if (Math.abs(dx) > 0.05) p.flip = dx < 0;
@@ -2725,14 +2955,16 @@ function drawHUD() {
 
   drawMinimap();
 
-  if (p.char.weaponType === 'saber') {
-    txt('SABRE ' + (gamepadInfo.connected ? '[GATILHO RT]' : '[C / ESPAÇO]'), W - 220, H - 20, 9, '#aaa', 'left');
-    ctx.fillStyle = SABER_COLORS[saberColorIndex].hex;
-    ctx.fillRect(W - 40, H - 30, 20, 14);
-  } else if (p.char.weaponType === 'orange') {
-    txt('LARANJAS ' + (gamepadInfo.connected ? '[GATILHO RT]' : '[ESPAÇO / CLIQUE]'), W - 220, H - 20, 9, '#ff9214', 'left');
-  } else {
-    txt('ESTRELAS ' + (gamepadInfo.connected ? '[GATILHO RT]' : '[ESPAÇO / CLIQUE]'), W - 220, H - 20, 9, '#ffe042', 'left');
+  if (!touch.active) {
+    if (p.char.weaponType === 'saber') {
+      txt('SABRE ' + (gamepadInfo.connected ? '[GATILHO RT]' : '[C / ESPAÇO]'), W - 220, H - 20, 9, '#aaa', 'left');
+      ctx.fillStyle = SABER_COLORS[saberColorIndex].hex;
+      ctx.fillRect(W - 40, H - 30, 20, 14);
+    } else if (p.char.weaponType === 'orange') {
+      txt('LARANJAS ' + (gamepadInfo.connected ? '[GATILHO RT]' : '[ESPAÇO / CLIQUE]'), W - 220, H - 20, 9, '#ff9214', 'left');
+    } else {
+      txt('ESTRELAS ' + (gamepadInfo.connected ? '[GATILHO RT]' : '[ESPAÇO / CLIQUE]'), W - 220, H - 20, 9, '#ffe042', 'left');
+    }
   }
 
   if (p.combo >= 3) {
@@ -2753,15 +2985,16 @@ function drawHUD() {
     ctx.globalAlpha = 1;
   }
   let ix = 16;
+  const upY = touch.active ? 122 : H - 50;
   for (const u of UPGRADES) {
     if (!ups[u.id]) continue;
-    ctx.fillStyle = 'rgba(18,10,16,0.7)'; ctx.fillRect(ix - 2, H - 50, 38, 38);
-    ctx.drawImage(IMG['i_' + u.icon], ix, H - 48, 34, 34);
-    txt('' + ups[u.id], ix + 32, H - 14, 9, '#fff36b', 'right');
-    ix += 42;
+    ctx.fillStyle = 'rgba(18,10,16,0.7)'; ctx.fillRect(ix - 2, upY, 34, 34);
+    ctx.drawImage(IMG['i_' + u.icon], ix, upY + 2, 30, 30);
+    txt('' + ups[u.id], ix + 30, upY + 30, 8, '#fff36b', 'right');
+    ix += 38;
   }
   const left = enemies.length + toSpawn;
-  if (left > 0) txt('INIMIGOS: ' + left, W - 20, H - 45, 10, '#ddd', 'right');
+  if (!touch.active && left > 0) txt('INIMIGOS: ' + left, W - 20, H - 45, 10, '#ddd', 'right');
 
   // Setas indicadoras fora da tela (Chefões, Últimos Inimigos e Santuários)
   const poi = [];
@@ -2781,18 +3014,178 @@ function drawHUD() {
     ctx.restore();
   }
 
-  if (touch.active) {
-    ctx.fillStyle = 'rgba(255,255,255,0.1)'; ctx.beginPath(); ctx.arc(90, H - 90, 60, 0, Math.PI * 2); ctx.fill();
-    ctx.fillStyle = 'rgba(255,255,255,0.3)'; ctx.beginPath(); ctx.arc(90 + touch.joyX * 45, H - 90 + touch.joyY * 45, 25, 0, Math.PI * 2); ctx.fill();
-    ctx.fillStyle = 'rgba(255,80,80,0.35)'; ctx.beginPath(); ctx.arc(W - 80, H - 90, 40, 0, Math.PI * 2); ctx.fill();
-    txt('ATK', W - 80, H - 85, 10, '#fff');
-    ctx.fillStyle = 'rgba(80,180,255,0.35)'; ctx.beginPath(); ctx.arc(W - 160, H - 70, 30, 0, Math.PI * 2); ctx.fill();
-    txt('GIRO', W - 160, H - 65, 8, '#fff');
-    if (full) {
-      ctx.fillStyle = 'rgba(255,210,0,0.5)'; ctx.beginPath(); ctx.arc(W - 90, H - 170, 30, 0, Math.PI * 2); ctx.fill();
-      txt('ULT', W - 90, H - 165, 9, '#fff');
-    }
+  drawTouchControls();
+}
+
+function drawTouchControls() {
+  if (!touch.active || state !== 'play') return;
+  const t = performance.now() / 1000;
+  ctx.save();
+
+  // 1. BOTÕES DE TOPO (Pausa e Tela Cheia)
+  const pb = touch.pauseBtn, fb = touch.fullBtn;
+  ctx.fillStyle = 'rgba(18, 24, 38, 0.72)';
+  ctx.strokeStyle = '#4fe3ff';
+  ctx.lineWidth = 1.5;
+  ctx.fillRect(fb.x, fb.y, fb.w, fb.h);
+  ctx.strokeRect(fb.x, fb.y, fb.w, fb.h);
+  txt('⛶', fb.x + fb.w / 2, fb.y + fb.h / 2 + 5, 12, '#4fe3ff');
+
+  ctx.fillStyle = 'rgba(18, 24, 38, 0.72)';
+  ctx.strokeStyle = '#ffd23f';
+  ctx.fillRect(pb.x, pb.y, pb.w, pb.h);
+  ctx.strokeRect(pb.x, pb.y, pb.w, pb.h);
+  txt('⏸', pb.x + pb.w / 2, pb.y + pb.h / 2 + 5, 12, '#ffd23f');
+
+  // 2. JOYSTICK VIRTUAL (Analógico Dinâmico na Esquerda)
+  const bx = touch.joyBaseX, by = touch.joyBaseY, br = touch.joyBaseRadius;
+  const jActive = touch.joyId !== null;
+
+  ctx.beginPath();
+  ctx.arc(bx, by, br, 0, Math.PI * 2);
+  ctx.fillStyle = jActive ? 'rgba(14, 22, 38, 0.55)' : 'rgba(14, 22, 38, 0.32)';
+  ctx.fill();
+  ctx.strokeStyle = jActive ? '#4fe3ff' : 'rgba(79, 227, 255, 0.38)';
+  ctx.lineWidth = 2;
+  ctx.stroke();
+
+  // Marcas nos 4 cantos
+  ctx.fillStyle = 'rgba(79, 227, 255, 0.55)';
+  for (let a = 0; a < Math.PI * 2; a += Math.PI / 2) {
+    ctx.beginPath();
+    ctx.arc(bx + Math.cos(a) * (br - 8), by + Math.sin(a) * (br - 8), 2.5, 0, Math.PI * 2);
+    ctx.fill();
   }
+
+  // Thumbstick móvel
+  const kx = touch.joyId !== null ? touch.joyCurrX : bx;
+  const ky = touch.joyId !== null ? touch.joyCurrY : by;
+  const kdx = kx - bx, kdy = ky - by;
+  const kd = Math.hypot(kdx, kdy);
+  const maxK = br - touch.joyStickRadius + 4;
+  const visKx = kd > maxK ? bx + (kdx / kd) * maxK : kx;
+  const visKy = kd > maxK ? by + (kdy / kd) * maxK : ky;
+
+  ctx.beginPath();
+  ctx.arc(visKx, visKy, touch.joyStickRadius, 0, Math.PI * 2);
+  const joyGrad = ctx.createRadialGradient(visKx - 4, visKy - 4, 2, visKx, visKy, touch.joyStickRadius);
+  joyGrad.addColorStop(0, '#5be8ff');
+  joyGrad.addColorStop(0.6, '#0f527c');
+  joyGrad.addColorStop(1, '#08253b');
+  ctx.fillStyle = joyGrad;
+  ctx.fill();
+  ctx.strokeStyle = '#ffffff';
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+
+  // 3. BOTÃO ATACAR (⚔️ Grande)
+  const ab = touch.atkBtn;
+  const atkPress = touch.isAtkDown;
+  const atkCurR = atkPress ? ab.r * 0.92 : ab.r;
+
+  ctx.beginPath();
+  ctx.arc(ab.x, ab.y, atkCurR, 0, Math.PI * 2);
+  const atkGrad = ctx.createRadialGradient(ab.x - 6, ab.y - 6, 4, ab.x, ab.y, atkCurR);
+  if (atkPress) {
+    atkGrad.addColorStop(0, '#ff9e6b');
+    atkGrad.addColorStop(0.7, '#e03a1b');
+    atkGrad.addColorStop(1, '#7a1103');
+  } else {
+    atkGrad.addColorStop(0, '#ff6e40');
+    atkGrad.addColorStop(0.7, '#c92a10');
+    atkGrad.addColorStop(1, '#5e0d02');
+  }
+  ctx.fillStyle = atkGrad;
+  ctx.fill();
+  ctx.strokeStyle = atkPress ? '#ffffff' : '#ffb885';
+  ctx.lineWidth = atkPress ? 3 : 2;
+  ctx.stroke();
+
+  txt('⚔️', ab.x, ab.y - 4, 15, '#ffffff');
+  txt('ATACAR', ab.x, ab.y + 14, 7, '#ffe7d6');
+
+  // 4. BOTÃO GIRO / ESQUIVA (💨)
+  const db = touch.dashBtn;
+  const dashReady = player.dashCd <= 0;
+  ctx.beginPath();
+  ctx.arc(db.x, db.y, db.r, 0, Math.PI * 2);
+  const dashGrad = ctx.createRadialGradient(db.x - 4, db.y - 4, 3, db.x, db.y, db.r);
+  if (dashReady) {
+    dashGrad.addColorStop(0, '#7fe0ff');
+    dashGrad.addColorStop(0.7, '#0084b4');
+    dashGrad.addColorStop(1, '#003e54');
+  } else {
+    dashGrad.addColorStop(0, '#4a606b');
+    dashGrad.addColorStop(1, '#1b262c');
+  }
+  ctx.fillStyle = dashGrad;
+  ctx.fill();
+  ctx.strokeStyle = dashReady ? '#b8f2ff' : '#455a64';
+  ctx.lineWidth = 2;
+  ctx.stroke();
+
+  if (!dashReady) {
+    const cdAngle = (player.dashCd / stats.dashCd) * Math.PI * 2;
+    ctx.beginPath();
+    ctx.moveTo(db.x, db.y);
+    ctx.arc(db.x, db.y, db.r + 2, -Math.PI / 2, -Math.PI / 2 + cdAngle, false);
+    ctx.closePath();
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.55)';
+    ctx.fill();
+  }
+
+  txt('💨', db.x, db.y - 3, 12, '#ffffff');
+  txt('GIRO', db.x, db.y + 11, 6.5, dashReady ? '#e0f7fa' : '#8899a6');
+
+  // 5. BOTÃO ULTIMATE / FÚRIA (⚡)
+  const ub = touch.ultBtn;
+  const ultReady = player.ultMeter >= 100;
+  const ultPulse = ultReady ? Math.sin(t * 8) * 2.5 : 0;
+  const ultCurR = ub.r + ultPulse;
+
+  ctx.beginPath();
+  ctx.arc(ub.x, ub.y, ultCurR, 0, Math.PI * 2);
+  const ultGrad = ctx.createRadialGradient(ub.x - 4, ub.y - 4, 3, ub.x, ub.y, ultCurR);
+  if (ultReady) {
+    ultGrad.addColorStop(0, '#fff47d');
+    ultGrad.addColorStop(0.6, '#ffaa00');
+    ultGrad.addColorStop(1, '#b85c00');
+  } else {
+    ultGrad.addColorStop(0, '#9a59b5');
+    ultGrad.addColorStop(0.7, '#4a154b');
+    ultGrad.addColorStop(1, '#1e0521');
+  }
+  ctx.fillStyle = ultGrad;
+  ctx.fill();
+  ctx.strokeStyle = ultReady ? '#ffffff' : '#8e44ad';
+  ctx.lineWidth = ultReady ? 2.8 : 1.5;
+  ctx.stroke();
+
+  if (!ultReady) {
+    const rageFrac = clamp(player.ultMeter / 100, 0, 1);
+    ctx.beginPath();
+    ctx.arc(ub.x, ub.y, ub.r + 3, -Math.PI / 2, -Math.PI / 2 + rageFrac * Math.PI * 2, false);
+    ctx.strokeStyle = '#ffd23f';
+    ctx.lineWidth = 3;
+    ctx.stroke();
+  }
+
+  txt('⚡', ub.x, ub.y - 3, 13, '#ffffff');
+  txt(ultReady ? 'PRONTO!' : Math.floor(player.ultMeter) + '%', ub.x, ub.y + 11, 6, ultReady ? '#fffbe0' : '#d9b8ff');
+
+  // 6. DICA DE ORIENTAÇÃO (Se o celular estiver em modo retrato)
+  if (H > W) {
+    const hintW = Math.min(380, W - 20), hintH = 24;
+    const hx = W / 2 - hintW / 2, hy = 58;
+    ctx.fillStyle = 'rgba(12, 18, 30, 0.85)';
+    ctx.strokeStyle = '#ffd23f';
+    ctx.lineWidth = 1;
+    ctx.fillRect(hx, hy, hintW, hintH);
+    ctx.strokeRect(hx, hy, hintW, hintH);
+    txt('📱 GIRE O CELULAR P/ MODO PAISAGEM', W / 2, hy + 16, 7, '#ffe042');
+  }
+
+  ctx.restore();
 }
 
 function overlay(alpha = 0.6) { ctx.fillStyle = `rgba(8,5,12,${alpha})`; ctx.fillRect(0, 0, W, H); }
@@ -2800,141 +3193,273 @@ function overlay(alpha = 0.6) { ctx.fillStyle = `rgba(8,5,12,${alpha})`; ctx.fil
 let cardRects = [];
 function drawLevelUp() {
   overlay(0.65);
-  txt('SUBIU DE NÍVEL!', W / 2, H * 0.18, 30, '#ffd23f');
-  txt(gamepadInfo.connected ? 'Use D-Pad / Analógico e aperte [A] para escolher (ou botões X, Y, B)' : 'Escolha um poder  (1, 2, 3 ou clique)', W / 2, H * 0.18 + 34, 10, '#cfe8ff');
-  const cw = Math.min(250, (W - 80) / 3), ch = 300, gap = 24;
-  const x0 = W / 2 - (cw * 3 + gap * 2) / 2, y0 = H * 0.18 + 60;
-  cardRects = [];
-  levelChoices.forEach((u, i) => {
-    const x = x0 + i * (cw + gap);
-    if (mouse.moved) {
-      const hov = mouse.x > x && mouse.x < x + cw && mouse.y > y0 && mouse.y < y0 + ch;
-      if (hov) levelSel = i;
-    }
-    const sel = levelSel === i;
-    const lift = sel ? -10 : 0;
-    panel(x, y0 + lift, cw, ch, sel);
-    const lvl = ups[u.id] || 0;
-    txt(lvl ? 'NV ' + (lvl + 1) : 'NOVO!', x + cw / 2, y0 + lift + 26, 10, lvl ? '#9fd0ff' : '#7dff7d');
-    ctx.drawImage(IMG['i_' + u.icon], x + cw / 2 - 51, y0 + lift + 40, 102, 102);
-    const nameLines = wrap(u.name, cw - 20, 12);
-    nameLines.forEach((l, j) => txt(l, x + cw / 2, y0 + lift + 170 + j * 18, 12, '#ffd23f'));
-    wrap(u.desc(lvl), cw - 28, 9).forEach((l, j) => txt(l, x + cw / 2, y0 + lift + 176 + nameLines.length * 18 + j * 16, 9, '#e8eefc'));
+  const isPortrait = H > W || W < 680;
+  txt('SUBIU DE NÍVEL!', W / 2, isPortrait ? H * 0.11 : H * 0.18, isPortrait ? 22 : 30, '#ffd23f');
+  txt(touch.active ? 'Toque em um poder para escolher' : (gamepadInfo.connected ? 'Use D-Pad / Analógico e aperte [A] (ou botões X, Y, B)' : 'Escolha um poder  (1, 2, 3 ou clique)'), W / 2, (isPortrait ? H * 0.11 : H * 0.18) + (isPortrait ? 26 : 34), isPortrait ? 7.5 : 10, '#cfe8ff');
 
-    const directBtn = i === 0 ? '[X]' : i === 1 ? '[Y]' : '[B]';
-    const hint = gamepadInfo.connected ? (sel ? '✓ ESCOLHER [A]' : directBtn) : '[' + (i + 1) + ']';
-    txt(hint, x + cw / 2, y0 + lift + ch - 14, 10, sel ? '#7dff7d' : '#a98');
-    cardRects.push({ x, y: y0, w: cw, h: ch });
-  });
+  cardRects = [];
+  if (isPortrait) {
+    const cw = Math.min(390, W - 28);
+    const y0 = H * 0.11 + 42;
+    const availH = Math.min(430, H - y0 - 18);
+    const ch = Math.min(110, (availH - 16) / 3);
+    const gap = 8;
+    const x = W / 2 - cw / 2;
+    levelChoices.forEach((u, i) => {
+      const y = y0 + i * (ch + gap);
+      const sel = levelSel === i;
+      panel(x, y, cw, ch, sel);
+      const lvl = ups[u.id] || 0;
+      const iconSize = clamp(ch - 22, 44, 58);
+      ctx.drawImage(IMG['i_' + u.icon], x + 10, y + ch / 2 - iconSize / 2, iconSize, iconSize);
+      txt(u.name.toUpperCase(), x + iconSize + 18, y + 22, 9, '#ffd23f', 'left');
+      txt(lvl ? 'NV ' + (lvl + 1) : 'NOVO!', x + cw - 12, y + 22, 7.5, lvl ? '#9fd0ff' : '#7dff7d', 'right');
+      const dLines = wrap(u.desc(lvl), cw - iconSize - 32, 7);
+      dLines.slice(0, 3).forEach((l, j) => txt(l, x + iconSize + 18, y + 38 + j * 13, 7, '#e8eefc', 'left'));
+      txt(sel ? '✓ ESCOLHIDO' : 'TOQUE P/ ESCOLHER', x + cw - 10, y + ch - 10, 6.5, sel ? '#7dff7d' : '#889', 'right');
+      cardRects.push({ x, y, w: cw, h: ch, index: i });
+    });
+  } else {
+    const cw = Math.min(250, (W - 80) / 3), ch = Math.min(300, H * 0.65), gap = 24;
+    const x0 = W / 2 - (cw * 3 + gap * 2) / 2, y0 = H * 0.18 + 60;
+    levelChoices.forEach((u, i) => {
+      const x = x0 + i * (cw + gap);
+      if (mouse.moved) {
+        const hov = mouse.x > x && mouse.x < x + cw && mouse.y > y0 && mouse.y < y0 + ch;
+        if (hov) levelSel = i;
+      }
+      const sel = levelSel === i;
+      const lift = sel ? -10 : 0;
+      panel(x, y0 + lift, cw, ch, sel);
+      const lvl = ups[u.id] || 0;
+      txt(lvl ? 'NV ' + (lvl + 1) : 'NOVO!', x + cw / 2, y0 + lift + 26, 10, lvl ? '#9fd0ff' : '#7dff7d');
+      ctx.drawImage(IMG['i_' + u.icon], x + cw / 2 - 51, y0 + lift + 40, 102, 102);
+      const nameLines = wrap(u.name, cw - 20, 12);
+      nameLines.forEach((l, j) => txt(l, x + cw / 2, y0 + lift + 170 + j * 18, 12, '#ffd23f'));
+      wrap(u.desc(lvl), cw - 28, 9).forEach((l, j) => txt(l, x + cw / 2, y0 + lift + 176 + nameLines.length * 18 + j * 16, 9, '#e8eefc'));
+
+      const directBtn = i === 0 ? '[X]' : i === 1 ? '[Y]' : '[B]';
+      const hint = gamepadInfo.connected ? (sel ? '✓ ESCOLHER [A]' : directBtn) : (touch.active ? '✓ TOQUE P/ ESCOLHER' : '[' + (i + 1) + ']');
+      txt(hint, x + cw / 2, y0 + lift + ch - 14, 10, sel ? '#7dff7d' : '#a98');
+      cardRects.push({ x, y: y0, w: cw, h: ch, index: i });
+    });
+  }
 }
 
 let shopRects = [], shopExitRect = null;
 function drawShop() {
   overlay(0.7);
-  txt('MERCADO DA ARENA', W / 2, H * 0.16, 28, '#ffd23f');
-  txt(gamepadInfo.connected ? 'Moedas: ' + coins + '   •   [A] Comprar selecionado   •   [START / B] Continuar' : 'Moedas: ' + coins + '   •   (Clique para comprar ou ENTER para continuar)', W / 2, H * 0.16 + 34, 10, '#cfe8ff');
-  const cw = Math.min(230, (W - 80) / 4), ch = 280, gap = 18;
-  const x0 = W / 2 - (cw * 4 + gap * 3) / 2, y0 = H * 0.16 + 66;
+  const isSmallShop = W < 760;
+  txt('MERCADO DA ARENA', W / 2, isSmallShop ? H * 0.10 : H * 0.16, isSmallShop ? 22 : 28, '#ffd23f');
+  txt(touch.active ? 'Moedas: ' + coins + '   •   Toque para comprar itens' : (gamepadInfo.connected ? 'Moedas: ' + coins + '   •   [A] Comprar selecionado   •   [START / B] Continuar' : 'Moedas: ' + coins + '   •   (Clique para comprar ou ENTER para continuar)'), W / 2, (isSmallShop ? H * 0.10 : H * 0.16) + (isSmallShop ? 24 : 34), isSmallShop ? 8 : 10, '#cfe8ff');
+  const y0 = (isSmallShop ? H * 0.10 : H * 0.16) + (isSmallShop ? 42 : 66);
 
   if (shopToast && shopToast.time > 0) {
     shopToast.time -= 0.016;
-    txt(shopToast.txt, W / 2, y0 - 10, 12, shopToast.col);
+    txt(shopToast.txt, W / 2, y0 - 10, 11, shopToast.col);
   }
 
   shopRects = [];
-  SHOP_ITEMS.forEach((it, i) => {
-    const x = x0 + i * (cw + gap);
+  if (isSmallShop) {
+    // Grade 2x2 para celular
+    const gapX = 10, gapY = 8;
+    const cw = Math.min(200, (W - 32 - gapX) / 2);
+    const ch = clamp((H * 0.54) / 2, 110, 135);
+    const x0 = W / 2 - (cw * 2 + gapX) / 2;
+    SHOP_ITEMS.forEach((it, i) => {
+      const col = i % 2, row = Math.floor(i / 2);
+      const x = x0 + col * (cw + gapX);
+      const y = y0 + row * (ch + gapY);
+      const sel = shopSel === i;
+      panel(x, y, cw, ch, sel);
+      ctx.drawImage(IMG['i_' + it.icon], x + 8, y + 10, 36, 36);
+      txt(it.name, x + 48, y + 20, 7.5, '#ffd23f', 'left');
+      txt(it.cost + ' MOEDAS', x + 48, y + 36, 7.5, coins >= it.cost ? '#7dff7d' : '#ff6b6b', 'left');
+      const dLines = wrap(it.desc, cw - 14, 6.5);
+      dLines.slice(0, 2).forEach((l, j) => txt(l, x + cw / 2, y + 60 + j * 12, 6.5, '#e8eefc'));
+      txt(coins >= it.cost ? '✓ COMPRAR' : 'SEM MOEDAS', x + cw / 2, y + ch - 10, 7, coins >= it.cost ? '#7dff7d' : '#ff5d5d');
+      shopRects.push({ x, y, w: cw, h: ch, index: i });
+    });
+    const bw = Math.min(340, W - 32), bh = 40;
+    const bx = W / 2 - bw / 2, by = y0 + 2 * (ch + gapY) + 8;
+    const bsel = shopSel === SHOP_ITEMS.length;
+    panel(bx, by, bw, bh, bsel);
+    txt('▶ CONTINUAR BATALHA', W / 2, by + 25, 10, bsel ? '#ffd23f' : '#ffffff');
+    shopExitRect = { x: bx, y: by, w: bw, h: bh };
+  } else {
+    const cw = Math.min(230, (W - 80) / 4), ch = 280, gap = 18;
+    const x0 = W / 2 - (cw * 4 + gap * 3) / 2;
+    SHOP_ITEMS.forEach((it, i) => {
+      const x = x0 + i * (cw + gap);
+      if (mouse.moved) {
+        const hov = mouse.x > x && mouse.x < x + cw && mouse.y > y0 && mouse.y < y0 + ch;
+        if (hov) shopSel = i;
+      }
+      const sel = shopSel === i;
+      const lift = sel ? -8 : 0;
+      panel(x, y0 + lift, cw, ch, sel);
+      ctx.drawImage(IMG['i_' + it.icon], x + cw / 2 - 40, y0 + lift + 30, 80, 80);
+      const nameLines = wrap(it.name, cw - 20, 11);
+      nameLines.forEach((l, j) => txt(l, x + cw / 2, y0 + lift + 140 + j * 16, 11, '#ffd23f'));
+      wrap(it.desc, cw - 24, 8).forEach((l, j) => txt(l, x + cw / 2, y0 + lift + 145 + nameLines.length * 16 + j * 15, 8, '#e8eefc'));
+      txt(it.cost + ' MOEDAS', x + cw / 2, y0 + lift + ch - 26, 10, coins >= it.cost ? '#7dff7d' : '#ff6b6b');
+
+      const cardHint = gamepadInfo.connected ? (sel ? '✓ [A] COMPRAR' : '[' + (i + 1) + ']') : (touch.active ? '✓ COMPRAR' : '[' + (i + 1) + ']');
+      txt(cardHint, x + cw / 2, y0 + lift + ch - 10, 9, sel ? '#ffd23f' : '#778');
+      shopRects.push({ x, y: y0, w: cw, h: ch, index: i });
+    });
+
+    const bw = 380, bh = 42, bx = W / 2 - bw / 2, by = Math.min(H - 60, y0 + ch + 28);
     if (mouse.moved) {
-      const hov = mouse.x > x && mouse.x < x + cw && mouse.y > y0 && mouse.y < y0 + ch;
-      if (hov) shopSel = i;
+      const bhov = mouse.x > bx && mouse.x < bx + bw && mouse.y > by && mouse.y < by + bh;
+      if (bhov) shopSel = SHOP_ITEMS.length;
     }
-    const sel = shopSel === i;
-    const lift = sel ? -8 : 0;
-    panel(x, y0 + lift, cw, ch, sel);
-    ctx.drawImage(IMG['i_' + it.icon], x + cw / 2 - 40, y0 + lift + 30, 80, 80);
-    const nameLines = wrap(it.name, cw - 20, 11);
-    nameLines.forEach((l, j) => txt(l, x + cw / 2, y0 + lift + 140 + j * 16, 11, '#ffd23f'));
-    wrap(it.desc, cw - 24, 8).forEach((l, j) => txt(l, x + cw / 2, y0 + lift + 145 + nameLines.length * 16 + j * 15, 8, '#e8eefc'));
-    txt(it.cost + ' MOEDAS', x + cw / 2, y0 + lift + ch - 26, 10, coins >= it.cost ? '#7dff7d' : '#ff6b6b');
-
-    const cardHint = gamepadInfo.connected ? (sel ? '✓ [A] COMPRAR' : '[' + (i + 1) + ']') : '[' + (i + 1) + ']';
-    txt(cardHint, x + cw / 2, y0 + lift + ch - 10, 9, sel ? '#ffd23f' : '#778');
-    shopRects.push({ x, y: y0, w: cw, h: ch });
-  });
-
-  const bw = 380, bh = 42, bx = W / 2 - bw / 2, by = Math.min(H - 60, y0 + ch + 28);
-  if (mouse.moved) {
-    const bhov = mouse.x > bx && mouse.x < bx + bw && mouse.y > by && mouse.y < by + bh;
-    if (bhov) shopSel = SHOP_ITEMS.length;
+    const bsel = shopSel === SHOP_ITEMS.length;
+    panel(bx, by, bw, bh, bsel);
+    txt(gamepadInfo.connected ? '▶ CONTINUAR BATALHA [START / B / A]' : '▶ CONTINUAR BATALHA [ENTER]', W / 2, by + 27, 11, bsel ? '#ffd23f' : '#ffffff');
+    shopExitRect = { x: bx, y: by, w: bw, h: bh };
   }
-  const bsel = shopSel === SHOP_ITEMS.length;
-  panel(bx, by, bw, bh, bsel);
-  txt(gamepadInfo.connected ? '▶ CONTINUAR BATALHA [START / B / A]' : '▶ CONTINUAR BATALHA [ENTER]', W / 2, by + 27, 11, bsel ? '#ffd23f' : '#ffffff');
-  shopExitRect = { x: bx, y: by, w: bw, h: bh };
 }
 
 // =====================================================================
 //  MENU DE SELEÇÃO DE PERSONAGENS
 // =====================================================================
 let charCardRects = [], charPlayRect = null, charBackRect = null;
+let charPrevRect = null, charNextRect = null, charTabRects = [];
 function drawCharacterSelect() {
   overlay(0.75);
   const t = performance.now() / 1000;
-  txt('SELEÇÃO DE PERSONAGEM', W / 2, H * 0.11, 26, '#ffd23f');
-  txt('Escolha seu lutador para entrar na Arena', W / 2, H * 0.11 + 30, 10, '#cfe8ff');
+  const isMobileView = W < 700 || H > W;
 
-  const cw = Math.min(270, (W - 80) / 3), ch = Math.min(410, H * 0.62), gap = 20;
-  const x0 = W / 2 - (cw * CHARACTERS.length + gap * (CHARACTERS.length - 1)) / 2, y0 = H * 0.11 + 55;
+  txt('SELEÇÃO DE PERSONAGEM', W / 2, isMobileView ? H * 0.08 : H * 0.11, isMobileView ? 20 : 26, '#ffd23f');
+  txt('Escolha seu lutador para entrar na Arena', W / 2, (isMobileView ? H * 0.08 : H * 0.11) + (isMobileView ? 22 : 30), isMobileView ? 8 : 10, '#cfe8ff');
+
   charCardRects = [];
+  charTabRects = [];
+  charPrevRect = null;
+  charNextRect = null;
 
-  CHARACTERS.forEach((chData, i) => {
-    const x = x0 + i * (cw + gap);
-    if (mouse.moved) {
-      const hov = mouse.x > x && mouse.x < x + cw && mouse.y > y0 && mouse.y < y0 + ch;
-      if (hov) selectedCharIndex = i;
-    }
-    const sel = selectedCharIndex === i;
-    const lift = sel ? -8 : 0;
-    panel(x, y0 + lift, cw, ch, sel);
+  if (isMobileView) {
+    // 1. TABS NO TOPO: [Manguinha] [Amxral] [Tuiuba]
+    const tabY = H * 0.08 + 36;
+    const tabH = 34, gapT = 8;
+    const tabW = Math.min(110, (W - 32 - gapT * 2) / 3);
+    const tabStartX = W / 2 - (tabW * 3 + gapT * 2) / 2;
 
-    txt(chData.name.toUpperCase(), x + cw / 2, y0 + lift + 32, 15, sel ? '#ffd23f' : '#ffffff');
-    txt(chData.title, x + cw / 2, y0 + lift + 50, 8, '#9fd0ff');
+    CHARACTERS.forEach((chData, i) => {
+      const tx = tabStartX + i * (tabW + gapT);
+      const isCur = selectedCharIndex === i;
+      panel(tx, tabY, tabW, tabH, isCur);
+      txt(chData.name.toUpperCase(), tx + tabW / 2, tabY + 22, 7.5, isCur ? '#ffd23f' : '#cfe8ff');
+      charTabRects.push({ x: tx, y: tabY, w: tabW, h: tabH, index: i });
+    });
 
-    // Prévia animada alternando entre idle e walkDown quando selecionado!
-    const previewWalk = sel && (Math.floor(t / 2.2) % 2 === 1);
-    const animArr = previewWalk ? chData.anim.walkDown : chData.anim.idle;
+    // 2. CARD CENTRAL GRANDE DO PERSONAGEM SELECIONADO
+    const curCh = CHARACTERS[selectedCharIndex];
+    const cw = Math.min(320, W - 60);
+    const cardY = tabY + tabH + 12;
+    const ch = Math.min(340, H * 0.52);
+    const cx = W / 2 - cw / 2;
+    panel(cx, cardY, cw, ch, true);
+
+    txt(curCh.name.toUpperCase(), cx + cw / 2, cardY + 28, 14, '#ffd23f');
+    txt(curCh.title, cx + cw / 2, cardY + 44, 8, '#9fd0ff');
+
+    const previewWalk = Math.floor(t / 2.2) % 2 === 1;
+    const animArr = previewWalk ? curCh.anim.walkDown : curCh.anim.idle;
     const fr = animArr[Math.floor(t * (previewWalk ? 11 : 7)) % animArr.length];
-    shadow(x + cw / 2, y0 + lift + 175, 24, 8, 0.4);
-    drawCharacterFrame(chData, fr, x + cw / 2, y0 + lift + 175, false);
+    shadow(cx + cw / 2, cardY + 140, 24, 8, 0.4);
+    drawCharacterFrame(curCh, fr, cx + cw / 2, cardY + 140, false);
 
     let wIcon = IMG.i_S_Buff08;
-    if (chData.weaponType === 'star') wIcon = IMG.terraria_star || IMG.i_S_Light04;
-    else if (chData.weaponType === 'orange') wIcon = IMG.orange_ball || IMG.i_P_Red01;
-    ctx.drawImage(wIcon, x + 16, y0 + lift + 198, 32, 32);
-    txt('ATK: ' + chData.attackName, x + 56, y0 + lift + 213, 8, '#ffe042', 'left');
-    txt('ULT: ' + chData.ultName, x + 56, y0 + lift + 227, 7, '#d9b8ff', 'left');
+    if (curCh.weaponType === 'star') wIcon = IMG.terraria_star || IMG.i_S_Light04;
+    else if (curCh.weaponType === 'orange') wIcon = IMG.orange_ball || IMG.i_P_Red01;
+    ctx.drawImage(wIcon, cx + 16, cardY + 160, 28, 28);
+    txt('ATK: ' + curCh.attackName, cx + 52, cardY + 174, 7.5, '#ffe042', 'left');
+    txt('ULT: ' + curCh.ultName, cx + 52, cardY + 188, 7, '#d9b8ff', 'left');
 
-    const dLines = wrap(chData.desc, cw - 26, 8);
-    dLines.forEach((l, j) => txt(l, x + cw / 2, y0 + lift + 252 + j * 15, 8, '#e8eefc'));
+    const dLines = wrap(curCh.desc, cw - 24, 7.5);
+    dLines.slice(0, 3).forEach((l, j) => txt(l, cx + cw / 2, cardY + 214 + j * 14, 7.5, '#e8eefc'));
 
-    const btnCol = sel ? '#7dff7d' : '#bbb';
-    txt(sel ? '✓ SELECIONADO (CLIQUE P/ JOGAR)' : '[' + (i + 1) + '] SELECIONAR', x + cw / 2, y0 + lift + ch - 18, 8, btnCol);
+    txt('✓ SELECIONADO', cx + cw / 2, cardY + ch - 14, 8, '#7dff7d');
+    charCardRects.push({ x: cx, y: cardY, w: cw, h: ch, index: selectedCharIndex });
 
-    charCardRects.push({ x, y: y0, w: cw, h: ch, index: i });
-  });
+    // 3. SETAS LATERAIS [ ◀ ] e [ ▶ ] PARA NAVEGAÇÃO
+    const arrowSize = 42;
+    const arrowY = cardY + ch / 2 - arrowSize / 2;
+    const prevX = Math.max(6, cx - arrowSize - 6);
+    const nextX = Math.min(W - arrowSize - 6, cx + cw + 6);
+    panel(prevX, arrowY, arrowSize, arrowSize, false);
+    txt('◀', prevX + arrowSize / 2, arrowY + 28, 14, '#ffd23f');
+    charPrevRect = { x: prevX, y: arrowY, w: arrowSize, h: arrowSize };
 
-  const py = Math.min(H - 58, y0 + ch + 22);
-  const pw = 340, ph = 42, px = W / 2 - pw / 2 + 70;
-  const phov = mouse.x > px && mouse.x < px + pw && mouse.y > py && mouse.y < py + ph;
-  panel(px, py, pw, ph, phov || true);
-  txt('▶ JOGAR COM ' + CHARACTERS[selectedCharIndex].name.toUpperCase(), px + pw / 2, py + 27, 11, phov ? '#7dff7d' : '#ffd23f');
-  charPlayRect = { x: px, y: py, w: pw, h: ph };
+    panel(nextX, arrowY, arrowSize, arrowSize, false);
+    txt('▶', nextX + arrowSize / 2, arrowY + 28, 14, '#ffd23f');
+    charNextRect = { x: nextX, y: arrowY, w: arrowSize, h: arrowSize };
 
-  const bw = 130, bx = W / 2 - pw / 2 - 75;
-  const bhov = mouse.x > bx && mouse.x < bx + bw && mouse.y > py && mouse.y < py + ph;
-  panel(bx, py, bw, ph, bhov);
-  txt('← MENU', bx + bw / 2, py + 27, 10, bhov ? '#ffd23f' : '#cfe8ff');
-  charBackRect = { x: bx, y: py, w: bw, h: ph };
+    // 4. BOTÕES INFERIORES: [ ▶ JOGAR ] e [ ← MENU ]
+    const btnBottomY = Math.min(H - 52, cardY + ch + 14);
+    const bw = Math.min(100, W * 0.28), bx = W / 2 - cw / 2;
+    panel(bx, btnBottomY, bw, 40, false);
+    txt('← MENU', bx + bw / 2, btnBottomY + 25, 8.5, '#cfe8ff');
+    charBackRect = { x: bx, y: btnBottomY, w: bw, h: 40 };
+
+    const pw = cw - bw - 10, px = bx + bw + 10;
+    panel(px, btnBottomY, pw, 40, true);
+    txt('▶ JOGAR COM ' + curCh.name.toUpperCase(), px + pw / 2, btnBottomY + 25, 9.5, '#ffd23f');
+    charPlayRect = { x: px, y: btnBottomY, w: pw, h: 40 };
+
+  } else {
+    const cw = Math.min(270, (W - 80) / 3), ch = Math.min(410, H * 0.62), gap = 20;
+    const x0 = W / 2 - (cw * CHARACTERS.length + gap * (CHARACTERS.length - 1)) / 2, y0 = H * 0.11 + 55;
+    CHARACTERS.forEach((chData, i) => {
+      const x = x0 + i * (cw + gap);
+      if (mouse.moved) {
+        const hov = mouse.x > x && mouse.x < x + cw && mouse.y > y0 && mouse.y < y0 + ch;
+        if (hov) selectedCharIndex = i;
+      }
+      const sel = selectedCharIndex === i;
+      const lift = sel ? -8 : 0;
+      panel(x, y0 + lift, cw, ch, sel);
+
+      txt(chData.name.toUpperCase(), x + cw / 2, y0 + lift + 32, 15, sel ? '#ffd23f' : '#ffffff');
+      txt(chData.title, x + cw / 2, y0 + lift + 50, 8, '#9fd0ff');
+
+      const previewWalk = sel && (Math.floor(t / 2.2) % 2 === 1);
+      const animArr = previewWalk ? chData.anim.walkDown : chData.anim.idle;
+      const fr = animArr[Math.floor(t * (previewWalk ? 11 : 7)) % animArr.length];
+      shadow(x + cw / 2, y0 + lift + 175, 24, 8, 0.4);
+      drawCharacterFrame(chData, fr, x + cw / 2, y0 + lift + 175, false);
+
+      let wIcon = IMG.i_S_Buff08;
+      if (chData.weaponType === 'star') wIcon = IMG.terraria_star || IMG.i_S_Light04;
+      else if (chData.weaponType === 'orange') wIcon = IMG.orange_ball || IMG.i_P_Red01;
+      ctx.drawImage(wIcon, x + 16, y0 + lift + 198, 32, 32);
+      txt('ATK: ' + chData.attackName, x + 56, y0 + lift + 213, 8, '#ffe042', 'left');
+      txt('ULT: ' + chData.ultName, x + 56, y0 + lift + 227, 7, '#d9b8ff', 'left');
+
+      const dLines = wrap(chData.desc, cw - 26, 8);
+      dLines.forEach((l, j) => txt(l, x + cw / 2, y0 + lift + 252 + j * 15, 8, '#e8eefc'));
+
+      const btnCol = sel ? '#7dff7d' : '#bbb';
+      txt(sel ? '✓ SELECIONADO (CLIQUE P/ JOGAR)' : '[' + (i + 1) + '] SELECIONAR', x + cw / 2, y0 + lift + ch - 18, 8, btnCol);
+
+      charCardRects.push({ x, y: y0, w: cw, h: ch, index: i });
+    });
+
+    const py = Math.min(H - 58, y0 + ch + 22);
+    const pw = 340, ph = 42, px = W / 2 - pw / 2 + 70;
+    const phov = mouse.x > px && mouse.x < px + pw && mouse.y > py && mouse.y < py + ph;
+    panel(px, py, pw, ph, phov || true);
+    txt('▶ JOGAR COM ' + CHARACTERS[selectedCharIndex].name.toUpperCase(), px + pw / 2, py + 27, 11, phov ? '#7dff7d' : '#ffd23f');
+    charPlayRect = { x: px, y: py, w: pw, h: ph };
+
+    const bw = 130, bx = W / 2 - pw / 2 - 75;
+    const bhov = mouse.x > bx && mouse.x < bx + bw && mouse.y > py && mouse.y < py + ph;
+    panel(bx, py, bw, ph, bhov);
+    txt('← MENU', bx + bw / 2, py + 27, 10, bhov ? '#ffd23f' : '#cfe8ff');
+    charBackRect = { x: bx, y: py, w: bw, h: ph };
+  }
 }
 
 function selectCharacter(index) {
@@ -2958,50 +3483,61 @@ let menuPlayRect = null, menuCharRect = null;
 function drawMenu() {
   overlay(0.52);
   const t = performance.now() / 1000;
-  txt('UNDERGROUND', W / 2, H * 0.14, Math.min(48, W / 14), '#ffd23f');
-  txt('GAME', W / 2, H * 0.14 + 38, Math.min(26, W / 26), '#6fc3ff');
+  const isSmall = W < 620;
+
+  txt('UNDERGROUND', W / 2, isSmall ? H * 0.12 : H * 0.14, Math.min(isSmall ? 36 : 48, W / 13), '#ffd23f');
+  txt('GAME', W / 2, (isSmall ? H * 0.12 : H * 0.14) + (isSmall ? 32 : 38), Math.min(isSmall ? 22 : 26, W / 24), '#6fc3ff');
 
   const curChar = CHARACTERS[selectedCharIndex];
   const fr = curChar.anim.idle;
-  shadow(W / 2, H * 0.40, 30, 10, 0.4);
-  drawCharacterFrame(curChar, fr[Math.floor(t * 7) % fr.length], W / 2, H * 0.40, false);
+  const charY = isSmall ? H * 0.34 : H * 0.38;
+  shadow(W / 2, charY, 30, 10, 0.4);
+  drawCharacterFrame(curChar, fr[Math.floor(t * 7) % fr.length], W / 2, charY, false);
 
-  txt(curChar.name + ' (' + curChar.title + ')', W / 2, H * 0.45, 12, '#ffe042');
+  txt(curChar.name + ' (' + curChar.title + ')', W / 2, charY + 36, isSmall ? 10 : 12, '#ffe042');
 
   const gp = gamepadInfo.connected;
+  const isTouch = touch.active;
   if (gp) {
-    txt('🎮 ' + gamepadInfo.toastName.toUpperCase() + ' CONECTADO!', W / 2, H * 0.14 + 66, 8, '#4fe3ff');
+    txt('🎮 ' + gamepadInfo.toastName.toUpperCase() + ' CONECTADO!', W / 2, charY + 54, 8, '#4fe3ff');
+  } else if (isTouch) {
+    txt('📱 TOQUE NA TELA OU USE CONTROLE BLUETOOTH', W / 2, charY + 54, 7.5, '#7fe0ff');
   } else {
-    txt('🎮 SUPORTE A CONTROLE PLUG & PLAY ATIVO (XBOX, PS, GENÉRICOS)', W / 2, H * 0.14 + 66, 7, '#6788a5');
+    txt('🎮 SUPORTE A CONTROLE PLUG & PLAY ATIVO', W / 2, charY + 54, 7, '#6788a5');
   }
 
-  if (curChar.weaponType === 'saber') {
-    txt('Cor do Sabre ' + (gp ? '[LB]: ' : '[C]: ') + SABER_COLORS[saberColorIndex].name, W / 2, H * 0.485, 9, SABER_COLORS[saberColorIndex].hex);
-  } else if (curChar.weaponType === 'orange') {
-    txt('Arma: Laranjas Cítricas Explosivas', W / 2, H * 0.485, 9, '#ff9214');
+  // Botões clicáveis no Menu Principal (responsivo)
+  const btnY = isSmall ? H * 0.52 : H * 0.50;
+  let pRect, cRect;
+  if (isSmall) {
+    const bw = Math.min(290, W - 32), bh = 42;
+    pRect = { x: W / 2 - bw / 2, y: btnY, w: bw, h: bh };
+    cRect = { x: W / 2 - bw / 2, y: btnY + bh + 10, w: bw, h: bh };
   } else {
-    txt('Arma: Estrela Cadente Dourada', W / 2, H * 0.485, 9, '#ffe042');
+    const bw = Math.min(270, (W - 50) / 2), bh = 42;
+    pRect = { x: W / 2 - bw - 10, y: btnY, w: bw, h: bh };
+    cRect = { x: W / 2 + 10, y: btnY, w: bw, h: bh };
   }
 
-  // Botões clicáveis no Menu Principal
-  const btnY = H * 0.515;
-  const pRect = { x: W / 2 - 285, y: btnY, w: 270, h: 40 };
-  const cRect = { x: W / 2 + 15, y: btnY, w: 270, h: 40 };
   const pHov = mouse.x > pRect.x && mouse.x < pRect.x + pRect.w && mouse.y > pRect.y && mouse.y < pRect.y + pRect.h;
   const cHov = mouse.x > cRect.x && mouse.x < cRect.x + cRect.w && mouse.y > cRect.y && mouse.y < cRect.y + cRect.h;
   panel(pRect.x, pRect.y, pRect.w, pRect.h, pHov || true);
-  txt(gp ? '▶ JOGAR [A / START]' : '▶ JOGAR AGORA [ENTER]', pRect.x + pRect.w / 2, pRect.y + 25, 10, pHov ? '#7dff7d' : '#ffd23f');
+  txt(gp ? '▶ JOGAR [A / START]' : (isTouch ? '▶ JOGAR AGORA' : '▶ JOGAR [ENTER]'), pRect.x + pRect.w / 2, pRect.y + 26, isSmall ? 9 : 10, pHov ? '#7dff7d' : '#ffd23f');
   panel(cRect.x, cRect.y, cRect.w, cRect.h, cHov);
-  txt(gp ? '⇄ PERSONAGENS [SELECT]' : '⇄ PERSONAGENS [TAB]', cRect.x + cRect.w / 2, cRect.y + 25, 10, cHov ? '#ffd23f' : '#7fe0ff');
+  txt(gp ? '⇄ PERSONAGENS [SELECT]' : (isTouch ? '⇄ ESCOLHER PERSONAGEM' : '⇄ PERSONAGENS [TAB]'), cRect.x + cRect.w / 2, cRect.y + 26, isSmall ? 9 : 10, cHov ? '#ffd23f' : '#7fe0ff');
   menuPlayRect = pRect;
   menuCharRect = cRect;
 
   const mons = ['slime', 'bat', 'eyeball', 'ghost', 'snake', 'bee'];
-  mons.forEach((m, i) => {
+  const maxMons = isSmall ? 4 : mons.length;
+  for (let i = 0; i < maxMons; i++) {
+    const m = mons[i];
     const d = MON[m], img = IMG['m_' + d.img];
-    const x = W / 2 + (i - 2.5) * 90, y = btnY + 92 + Math.sin(t * 3 + i) * 4;
+    const x = W / 2 + (i - (maxMons - 1) / 2) * (isSmall ? 70 : 90);
+    const y = btnY + (isSmall ? 106 : 92) + Math.sin(t * 3 + i) * 4;
     ctx.drawImage(img, (Math.floor(t * 6 + i) % 3) * d.fw, 2 * d.fh, d.fw, d.fh, x - d.fw * 0.75, y - d.fh * 1.5, d.fw * 1.5, d.fh * 1.5);
-  });
+  }
+
   const lines = gp ? [
     ['STICK ESQ / D-PAD', 'mover pelo cenário'],
     ['STICK DIR / MIRA', 'mirar livremente em 360°'],
@@ -3009,6 +3545,12 @@ function drawMenu() {
     ['GATILHOS LT / LB / B', 'giro invencível + esquiva perfeita'],
     ['Y / X', 'FÚRIA / ESPECIAL (Ultimate)'],
     ['A (CONFIRMAR)', 'selecionar poderes e menus'],
+  ] : (isTouch ? [
+    ['JOYSTICK VIRTUAL', 'mover pelo cenário (toque livre)'],
+    ['BOTÃO ATACAR', 'golpear com mira inteligente'],
+    ['BOTÃO GIRO', 'esquiva e invencibilidade'],
+    ['BOTÃO ULT', 'poder especial destruidor'],
+    ['BOTÃO ⛶', 'alternar tela cheia'],
   ] : [
     ['WASD / SETAS', 'mover pelos 4 lados'],
     ['ESPAÇO / CLIQUE', 'atacar na direção da mira'],
@@ -3016,23 +3558,33 @@ function drawMenu() {
     ['E / Q / L', 'FÚRIA / ESPECIAL'],
     ['TAB', 'trocar personagem (Manguinha / Amxral / Tuiuba)'],
     ['P / ESC', 'pausar   •   M música   •   N radar'],
-  ];
-  const by = btnY + 124;
-  lines.forEach(([k, v], i) => { txt(k, W / 2 - 16, by + i * 20, 8, '#ffd23f', 'right'); txt(v, W / 2 + 16, by + i * 20, 8, '#e8eefc', 'left'); });
+  ]);
+
+  const by = btnY + (isSmall ? 136 : 124);
+  lines.forEach(([k, v], i) => { txt(k, W / 2 - 14, by + i * 18, isSmall ? 7 : 8, '#ffd23f', 'right'); txt(v, W / 2 + 14, by + i * 18, isSmall ? 7 : 8, '#e8eefc', 'left'); });
   if (best) txt('RECORDE: ' + best, W / 2, H - 18, 10, '#ffd23f');
 }
 
 function drawOver() {
-  overlay(0.7);
-  txt('FIM DE JOGO', W / 2, H * 0.25, 44, '#ff5d5d');
+  overlay(0.75);
+  const isSmall = H < 650;
+  txt('FIM DE JOGO', W / 2, isSmall ? H * 0.16 : H * 0.22, isSmall ? 32 : 44, '#ff5d5d');
   const rows = [
     ['PERSONAGEM', player.char.name],
     ['PONTOS', score], ['ONDA', wave], ['NÍVEL', player.level], ['ABATES', kills], ['MOEDAS', coins],
     ['TEMPO', `${Math.floor(playTime / 60)}:${String(Math.floor(playTime % 60)).padStart(2, '0')}`],
   ];
-  rows.forEach(([k, v], i) => { txt(k, W / 2 - 20, H * 0.25 + 55 + i * 26, 11, '#cfe8ff', 'right'); txt('' + v, W / 2 + 20, H * 0.25 + 55 + i * 26, 11, '#ffffff', 'left'); });
-  txt(score >= best && score > 0 ? 'NOVO RECORDE!' : 'RECORDE: ' + best, W / 2, H * 0.25 + 55 + rows.length * 26 + 18, 13, '#ffd23f');
-  if (time > 1 && Math.floor(time * 2) % 2 === 0) txt('ENTER ou CLIQUE para jogar de novo', W / 2, H * 0.84, 12);
+  const rowGap = isSmall ? 20 : 26;
+  const startY = (isSmall ? H * 0.16 : H * 0.22) + (isSmall ? 40 : 55);
+  rows.forEach(([k, v], i) => {
+    txt(k, W / 2 - 20, startY + i * rowGap, isSmall ? 9 : 11, '#cfe8ff', 'right');
+    txt('' + v, W / 2 + 20, startY + i * rowGap, isSmall ? 9 : 11, '#ffffff', 'left');
+  });
+  const recY = startY + rows.length * rowGap + 16;
+  txt(score >= best && score > 0 ? 'NOVO RECORDE!' : 'RECORDE: ' + best, W / 2, recY, isSmall ? 11 : 13, '#ffd23f');
+  if (time > 1 && Math.floor(time * 2) % 2 === 0) {
+    txt(touch.active ? 'TOQUE NA TELA para jogar de novo' : 'ENTER ou CLIQUE para jogar de novo', W / 2, Math.min(H - 24, recY + 36), isSmall ? 10 : 12);
+  }
 }
 
 // =====================================================================
@@ -3082,7 +3634,19 @@ function loop(now) {
       if (anyPressed('arrowleft', 'a')) { selectedCharIndex = (selectedCharIndex + CHARACTERS.length - 1) % CHARACTERS.length; selectCharacter(selectedCharIndex); }
       if (anyPressed('arrowright', 'd')) { selectedCharIndex = (selectedCharIndex + 1) % CHARACTERS.length; selectCharacter(selectedCharIndex); }
       if (mouse.click) {
-        if (inRect(mouse.x, mouse.y, charPlayRect)) {
+        if (charPrevRect && inRect(mouse.x, mouse.y, charPrevRect)) {
+          selectedCharIndex = (selectedCharIndex + CHARACTERS.length - 1) % CHARACTERS.length;
+          selectCharacter(selectedCharIndex);
+          mouse.click = false; mouse.down = false;
+        } else if (charNextRect && inRect(mouse.x, mouse.y, charNextRect)) {
+          selectedCharIndex = (selectedCharIndex + 1) % CHARACTERS.length;
+          selectCharacter(selectedCharIndex);
+          mouse.click = false; mouse.down = false;
+        } else if (charTabRects && charTabRects.some(r => inRect(mouse.x, mouse.y, r))) {
+          const tab = charTabRects.find(r => inRect(mouse.x, mouse.y, r));
+          if (tab) selectCharacter(tab.index);
+          mouse.click = false; mouse.down = false;
+        } else if (inRect(mouse.x, mouse.y, charPlayRect)) {
           startWithSelectedCharacter();
           mouse.click = false; mouse.down = false;
         } else if (inRect(mouse.x, mouse.y, charBackRect)) {
@@ -3182,7 +3746,10 @@ function loop(now) {
         }
       }
     } else if (state === 'pause') {
-      if (anyPressed('p', 'escape', 'enter')) state = 'play';
+      if (anyPressed('p', 'escape', 'enter') || mouse.click) {
+        state = 'play';
+        mouse.click = false; mouse.down = false;
+      }
       if (anyPressed('tab')) { state = 'select_char'; SFX.select(); }
     } else if (state === 'over') {
       time += dt;
@@ -3199,7 +3766,11 @@ function loop(now) {
       drawHUD();
       if (state === 'levelup') drawLevelUp();
       if (state === 'shop') drawShop();
-      if (state === 'pause') { overlay(0.5); txt('PAUSADO', W / 2, H / 2, 40); txt('P / START para continuar  •  TAB / SELECT trocar', W / 2, H / 2 + 40, 11); }
+      if (state === 'pause') {
+        overlay(0.5);
+        txt('PAUSADO', W / 2, H / 2, 38);
+        txt(touch.active ? 'TOQUE NA TELA para continuar' : 'P / START para continuar  •  TAB / SELECT trocar', W / 2, H / 2 + 38, 10);
+      }
       if (state === 'over') drawOver();
     }
     drawGamepadToast();
@@ -3207,6 +3778,7 @@ function loop(now) {
 
   for (const k in pressed) delete pressed[k];
   mouse.click = false; mouse.rclick = false; mouse.moved = false;
+  touch.justAtk = false; touch.justDash = false; touch.justUlt = false;
   requestAnimationFrame(loop);
 }
 requestAnimationFrame(loop);
