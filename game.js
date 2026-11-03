@@ -9,7 +9,7 @@ function resize() {
   W = canvas.width = window.innerWidth || document.documentElement.clientWidth;
   H = canvas.height = window.innerHeight || document.documentElement.clientHeight;
   ctx.imageSmoothingEnabled = false;
-  if (typeof updateTouchLayout === 'function') updateTouchLayout();
+  if (window.__touchReady) updateTouchLayout();
 }
 addEventListener('resize', resize);
 addEventListener('orientationchange', () => setTimeout(resize, 100));
@@ -304,6 +304,7 @@ addEventListener('keydown', e => {
   if (!keys[k]) pressed[k] = true;
   keys[k] = true;
   if ([' ', 'arrowup', 'arrowdown', 'arrowleft', 'arrowright', 'tab'].includes(k)) e.preventDefault();
+  touch.active = false; // voltou pro teclado: esconde os botões touch
   startMusic();
 });
 addEventListener('keyup', e => (keys[e.key.toLowerCase()] = false));
@@ -324,7 +325,7 @@ canvas.addEventListener('contextmenu', e => e.preventDefault());
 const isTouchDevice = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0) || /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
 
 const touch = {
-  active: isTouchDevice,
+  active: false,
   isMobile: isTouchDevice,
 
   // Joystick Virtual (Analógico Dinâmico na Esquerda)
@@ -397,6 +398,7 @@ function updateTouchLayout() {
   touch.pauseBtn = { x: W - topSize - 12, y: 12, w: topSize, h: topSize };
   touch.fullBtn = { x: W - topSize * 2 - 20, y: 12, w: topSize, h: topSize };
 }
+window.__touchReady = true;
 updateTouchLayout();
 
 function toggleFullscreen() {
@@ -450,7 +452,7 @@ function onTouchStart(e) {
 
     // Se estiver em menus ou escolha de poderes, repassa o toque como clique direto
     if (state !== 'play') {
-      mouse.x = x; mouse.y = y; mouse.click = true; mouse.down = true; mouse.moved = true;
+      mouse.x = x; mouse.y = y; mouse.click = true; mouse.down = false; mouse.moved = true;
       continue;
     }
 
@@ -532,6 +534,7 @@ function onTouchMove(e) {
 
 function onTouchEnd(e) {
   e.preventDefault();
+  if (!e.touches || e.touches.length === 0) mouse.down = false;
   for (let i = 0; i < e.changedTouches.length; i++) {
     const t = e.changedTouches[i];
     const id = t.identifier;
