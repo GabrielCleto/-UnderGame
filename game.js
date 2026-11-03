@@ -5,10 +5,32 @@
 const canvas = document.getElementById('game');
 const ctx = canvas.getContext('2d');
 let W = 0, H = 0;
+var cam = null;
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const dist = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
+const angDiff = (a, b) => Math.atan2(Math.sin(a - b), Math.cos(a - b));
+
+function getCamZoom() {
+  if (H <= 450) {
+    // Celular em modo paisagem (ex: 844x390, 896x414): afasta a câmera para abrir bem o campo de visão!
+    return clamp(H / 540, 0.65, 0.76);
+  }
+  if (W <= 480) {
+    // Celular em modo retrato (ex: 390x844)
+    return clamp(W / 560, 0.70, 0.82);
+  }
+  if (H <= 620) {
+    // Telas médias
+    return clamp(H / 660, 0.80, 0.92);
+  }
+  return 1.0;
+}
+
 function resize() {
   W = canvas.width = window.innerWidth || document.documentElement.clientWidth;
   H = canvas.height = window.innerHeight || document.documentElement.clientHeight;
   ctx.imageSmoothingEnabled = false;
+  if (typeof cam !== 'undefined' && cam) cam.zoom = getCamZoom();
   if (window.__touchReady) updateTouchLayout();
 }
 addEventListener('resize', resize);
@@ -19,9 +41,6 @@ const FONT = '"Press Start 2P", monospace';
 const rand = (a, b) => a + Math.random() * (b - a);
 const randi = (a, b) => Math.floor(rand(a, b + 1));
 const pick = arr => arr[Math.floor(Math.random() * arr.length)];
-const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
-const dist = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
-const angDiff = (a, b) => Math.atan2(Math.sin(a - b), Math.cos(a - b));
 
 // =====================================================================
 //  ASSETS & IMAGENS
@@ -361,13 +380,14 @@ const touch = {
 function updateTouchLayout() {
   const minDim = Math.min(W, H);
   const isPortrait = H > W;
+  const isLandscapeMobile = H <= 460 && W > H;
 
-  // Joystick Base
-  const jR = clamp(minDim * 0.12, 54, 72);
+  // Joystick Base (mais compacto e nos cantos no celular paisagem)
+  const jR = isLandscapeMobile ? 46 : clamp(minDim * 0.12, 52, 70);
   touch.joyBaseRadius = jR;
-  touch.joyStickRadius = clamp(jR * 0.44, 22, 30);
-  const defJoyX = clamp(W * 0.13, jR + 18, 120);
-  const defJoyY = H - clamp(H * 0.18, jR + 24, 130);
+  touch.joyStickRadius = clamp(jR * 0.44, 20, 28);
+  const defJoyX = isLandscapeMobile ? 66 : clamp(W * 0.13, jR + 18, 120);
+  const defJoyY = isLandscapeMobile ? H - 66 : H - clamp(H * 0.18, jR + 24, 130);
   if (touch.joyId === null) {
     touch.joyBaseX = defJoyX;
     touch.joyBaseY = defJoyY;
@@ -375,28 +395,28 @@ function updateTouchLayout() {
     touch.joyCurrY = defJoyY;
   }
 
-  // Botão Atacar (Grande, no arco natural do polegar direito)
-  const atkR = clamp(minDim * 0.105, 38, 52);
-  const atkX = W - atkR - clamp(W * 0.05, 18, 38);
-  const atkY = H - atkR - clamp(H * 0.09, 20, 44);
+  // Botão Atacar (Grande, bem no canto inferior direito)
+  const atkR = isLandscapeMobile ? 36 : clamp(minDim * 0.105, 38, 52);
+  const atkX = W - atkR - (isLandscapeMobile ? 18 : clamp(W * 0.05, 18, 38));
+  const atkY = H - atkR - (isLandscapeMobile ? 14 : clamp(H * 0.09, 20, 44));
   touch.atkBtn = { x: atkX, y: atkY, r: atkR };
 
   // Botão Giro / Esquiva (À esquerda do ataque)
-  const dashR = clamp(atkR * 0.74, 28, 36);
-  const dashX = atkX - atkR - dashR - 14;
-  const dashY = atkY + (isPortrait ? -6 : 10);
+  const dashR = isLandscapeMobile ? 27 : clamp(atkR * 0.74, 28, 36);
+  const dashX = atkX - atkR - dashR - (isLandscapeMobile ? 10 : 14);
+  const dashY = atkY + (isPortrait ? -6 : (isLandscapeMobile ? 6 : 10));
   touch.dashBtn = { x: dashX, y: dashY, r: dashR };
 
   // Botão Ultimate (Acima do ataque)
-  const ultR = clamp(atkR * 0.78, 30, 38);
-  const ultX = atkX - (isPortrait ? 8 : 18);
-  const ultY = atkY - atkR - ultR - 16;
+  const ultR = isLandscapeMobile ? 28 : clamp(atkR * 0.78, 30, 38);
+  const ultX = atkX - (isPortrait ? 8 : (isLandscapeMobile ? 8 : 18));
+  const ultY = atkY - atkR - ultR - (isLandscapeMobile ? 10 : 16);
   touch.ultBtn = { x: ultX, y: ultY, r: ultR };
 
   // Botões de Topo: Pausa e Tela Cheia
-  const topSize = clamp(minDim * 0.075, 36, 42);
-  touch.pauseBtn = { x: W - topSize - 12, y: 12, w: topSize, h: topSize };
-  touch.fullBtn = { x: W - topSize * 2 - 20, y: 12, w: topSize, h: topSize };
+  const topSize = isLandscapeMobile ? 32 : clamp(minDim * 0.075, 36, 42);
+  touch.pauseBtn = { x: W - topSize - 10, y: 10, w: topSize, h: topSize };
+  touch.fullBtn = { x: W - topSize * 2 - 18, y: 10, w: topSize, h: topSize };
 }
 window.__touchReady = true;
 updateTouchLayout();
@@ -1066,7 +1086,7 @@ let shopSel = 0;
 let state = 'loading'; // loading | menu | select_char | play | levelup | shop | pause | over
 let player, stats, ups, enemies, ebullets, pshots, particles, pickups, texts, slashes, bolts;
 let shrines = [], hazards = [], fxRings = [], afterimages = [], puddles = [];
-let cam, shake, freeze, wave, waveTimer, toSpawn, spawnTimer, score, coins, kills, banner, time, playTime;
+let shake, freeze, wave, waveTimer, toSpawn, spawnTimer, score, coins, kills, banner, time, playTime;
 let waveEvent = null, meteorTimer = 0, minimapOn = true;
 let levelChoices, levelSel, boss, bossCount;
 let best = +localStorage.getItem('gabriel_best2') || 0;
@@ -1094,7 +1114,7 @@ function reset() {
   enemies = []; ebullets = []; pshots = []; particles = []; pickups = []; texts = []; slashes = []; bolts = [];
   shrines = []; hazards = []; fxRings = []; afterimages = []; puddles = [];
   waveEvent = null; meteorTimer = 0;
-  cam = { x: player.x, y: player.y }; shake = 0; freeze = 0;
+  cam = { x: player.x, y: player.y, zoom: getCamZoom() }; shake = 0; freeze = 0;
   wave = 0; waveTimer = 1.0; toSpawn = 0; spawnTimer = 0; boss = null; bossCount = 0;
   score = 0; coins = 0; kills = 0; banner = null; time = 0; playTime = 0;
   refillBarrels(15);
@@ -1365,7 +1385,8 @@ function startAttack(fromMouse, fromTouch) {
       p.aim = touch.joyAngle;
     }
   } else if (fromMouse) {
-    const wx = mouse.x - W / 2 + cam.x, wy = mouse.y - H / 2 + cam.y;
+    const z = (cam && cam.zoom) || 1;
+    const wx = (mouse.x - W / 2) / z + cam.x, wy = (mouse.y - H / 2) / z + cam.y;
     p.aim = Math.atan2(wy - (p.y - 40), wx - p.x);
   }
   const a = p.aim, c = Math.cos(a), s = Math.sin(a);
@@ -2040,8 +2061,10 @@ function update(dt) {
 }
 
 function clampCam() {
-  cam.x = clamp(cam.x, Math.min(W / 2, WORLD.w / 2), Math.max(WORLD.w - W / 2, WORLD.w / 2));
-  cam.y = clamp(cam.y, Math.min(H / 2, WORLD.h / 2), Math.max(WORLD.h - H / 2, WORLD.h / 2));
+  const z = (cam && cam.zoom) || getCamZoom();
+  const halfW = (W / 2) / z, halfH = (H / 2) / z;
+  cam.x = clamp(cam.x, Math.min(halfW, WORLD.w / 2), Math.max(WORLD.w - halfW, WORLD.w / 2));
+  cam.y = clamp(cam.y, Math.min(halfH, WORLD.h / 2), Math.max(WORLD.h - halfH, WORLD.h / 2));
 }
 
 function hitBarrel(b) {
@@ -2746,10 +2769,13 @@ function drawPickup(k) {
 
 function drawWorld() {
   const sx = shake ? rand(-shake, shake) : 0, sy = shake ? rand(-shake, shake) : 0;
+  const z = (cam && cam.zoom) || getCamZoom();
   ctx.save();
-  ctx.translate(Math.round(W / 2 - cam.x + sx), Math.round(H / 2 - cam.y + sy));
+  ctx.translate(Math.round(W / 2 + sx), Math.round(H / 2 + sy));
+  ctx.scale(z, z);
+  ctx.translate(-Math.round(cam.x), -Math.round(cam.y));
   ctx.fillStyle = '#1d4220';
-  ctx.fillRect(-W, -H, WORLD.w + W * 2, WORLD.h + H * 2);
+  ctx.fillRect(-2000, -2000, WORLD.w + 4000, WORLD.h + 4000);
   ctx.drawImage(ground, 0, 0);
 
   // Poças cítricas (Tuiuba)
@@ -2784,7 +2810,8 @@ function drawWorld() {
     drawCharacterFrame(g.char, g.f, g.x, g.y, g.flip, 0.65, { alpha: a, additive: true });
   }
 
-  const viewL = cam.x - W / 2 - 200, viewR = cam.x + W / 2 + 200, viewT = cam.y - H / 2 - 50, viewB = cam.y + H / 2 + 250;
+  const halfW = (W / 2) / z, halfH = (H / 2) / z;
+  const viewL = cam.x - halfW - 200, viewR = cam.x + halfW + 200, viewT = cam.y - halfH - 100, viewB = cam.y + halfH + 250;
   const vis = o => o.x > viewL && o.x < viewR && o.y > viewT && o.y < viewB;
   const list = [];
   for (const t of trees) if (vis(t)) list.push({ y: t.y, d: () => drawTree(t) });
@@ -2869,9 +2896,10 @@ function wrap(s, maxW, size) {
 }
 
 function drawMinimap() {
-  if (!minimapOn || W < 520) return;
-  const mw = 128, mh = 96;
-  const mx = W - mw - 18, my = 136;
+  if (!minimapOn || W < 380) return;
+  const isCompactH = H < 520;
+  const mw = isCompactH ? 80 : 128, mh = isCompactH ? 56 : 96;
+  const mx = W - mw - 12, my = isCompactH ? 42 : 136;
   const sx = mw / WORLD.w, sy = mh / WORLD.h;
   ctx.save();
   ctx.fillStyle = 'rgba(12, 10, 16, 0.78)';
@@ -2883,78 +2911,109 @@ function drawMinimap() {
   ctx.fillRect(mx, my, mw, mh);
 
   ctx.fillStyle = 'rgba(65, 145, 225, 0.75)';
-  for (const pd of ponds) ctx.fillRect(mx + pd.x * sx, my + pd.y * sy, Math.max(3, pd.w * sx), Math.max(3, pd.h * sy));
+  for (const pd of ponds) ctx.fillRect(mx + pd.x * sx, my + pd.y * sy, Math.max(2, pd.w * sx), Math.max(2, pd.h * sy));
 
   for (const b of props) {
     if (b.kind === 'tnt') {
       ctx.fillStyle = '#ff6b2b';
-      ctx.fillRect(mx + b.x * sx - 1, my + b.y * sy - 1, 2.5, 2.5);
+      ctx.fillRect(mx + b.x * sx - 1, my + b.y * sy - 1, 2, 2);
     }
   }
   for (const sh of shrines) {
     ctx.fillStyle = sh.col;
-    ctx.fillRect(mx + sh.x * sx - 3, my + sh.y * sy - 3, 6, 6);
+    ctx.fillRect(mx + sh.x * sx - 2, my + sh.y * sy - 2, isCompactH ? 4 : 6, isCompactH ? 4 : 6);
   }
   for (const k of pickups) {
     if (k.kind === 'chest') {
       ctx.fillStyle = '#ffd23f';
-      ctx.fillRect(mx + k.x * sx - 3, my + k.y * sy - 3, 6, 6);
+      ctx.fillRect(mx + k.x * sx - 2, my + k.y * sy - 2, isCompactH ? 4 : 6, isCompactH ? 4 : 6);
     }
   }
   for (const e of enemies) {
     if (isBossType(e.type)) {
       ctx.fillStyle = '#ff9a2e';
-      ctx.fillRect(mx + e.x * sx - 3.5, my + e.y * sy - 3.5, 7, 7);
+      ctx.fillRect(mx + e.x * sx - 2.5, my + e.y * sy - 2.5, isCompactH ? 5 : 7, isCompactH ? 5 : 7);
     } else {
       ctx.fillStyle = e.elite ? '#ffd23f' : '#ff4d5e';
-      ctx.fillRect(mx + e.x * sx - 1.2, my + e.y * sy - 1.2, 2.5, 2.5);
+      ctx.fillRect(mx + e.x * sx - 1, my + e.y * sy - 1, 2, 2);
     }
   }
   if (player) {
     ctx.fillStyle = '#7dff7d';
-    ctx.fillRect(mx + player.x * sx - 2.5, my + player.y * sy - 2.5, 5, 5);
+    ctx.fillRect(mx + player.x * sx - 2, my + player.y * sy - 2, isCompactH ? 4 : 5, isCompactH ? 4 : 5);
   }
-  txt(gamepadInfo.connected ? 'MAPA [RB]' : 'MAPA [N]', mx + mw - 2, my + mh + 13, 7, '#99a', 'right');
+  if (!isCompactH) {
+    txt(gamepadInfo.connected ? 'MAPA [RB]' : 'MAPA [N]', mx + mw - 2, my + mh + 13, 7, '#99a', 'right');
+  }
   ctx.restore();
 }
 
 function drawHUD() {
   const p = player;
+  const isCompactH = H < 520;
+  const heartSz = isCompactH ? 24 : 34;
+  const heartStep = isCompactH ? 26 : 38;
   const hearts = stats.maxHp / 2;
+  const hy = isCompactH ? 8 : 14;
   for (let i = 0; i < hearts; i++) {
-    const v = p.hp - i * 2, x = 16 + i * 38, y = 14;
-    ctx.drawImage(IMG.i_heart_empty, x, y, 34, 34);
-    if (v >= 2) ctx.drawImage(IMG.i_heart_full, x, y, 34, 34);
-    else if (v === 1) ctx.drawImage(IMG.i_heart_full, 0, 0, 17, 34, x, y, 17, 34);
+    const v = p.hp - i * 2, x = 14 + i * heartStep;
+    ctx.drawImage(IMG.i_heart_empty, x, hy, heartSz, heartSz);
+    if (v >= 2) ctx.drawImage(IMG.i_heart_full, x, hy, heartSz, heartSz);
+    else if (v === 1) ctx.drawImage(IMG.i_heart_full, 0, 0, 17, 34, x, hy, heartSz / 2, heartSz);
   }
   if (p.shields > 0) {
-    const sx0 = 20 + hearts * 38;
+    const sx0 = 14 + hearts * heartStep + 4;
+    const sSz = isCompactH ? 20 : 26;
     for (let i = 0; i < p.shields; i++) {
-      ctx.drawImage(IMG.i_S_Buff03, sx0 + i * 28, 17, 26, 26);
+      ctx.drawImage(IMG.i_S_Buff03, sx0 + i * (sSz + 2), hy + (heartSz - sSz) / 2, sSz, sSz);
     }
   }
-  const xw = Math.min(420, W * 0.4);
-  bar(20, 60, xw, 12, p.xp / p.xpNext, '#4fa8ff', '#1a2440');
-  txt(p.char.name + ' • NV ' + p.level, 20, 92, 11, '#9fd0ff', 'left');
 
-  bar(155, 82, 85, 8, 1 - p.dashCd / stats.dashCd, p.dashCd <= 0 ? '#7fe0ff' : '#3a6a8a');
-  txt('GIRO' + (gamepadInfo.connected ? ' [LT/B]' : ''), 246, 91, 8, '#bfe8ff', 'left');
+  if (isCompactH) {
+    const xw = Math.min(260, W * 0.35);
+    bar(14, 36, xw, 8, p.xp / p.xpNext, '#4fa8ff', '#1a2440');
+    txt(p.char.name + ' • NV ' + p.level, 14, 54, 8.5, '#9fd0ff', 'left');
 
-  const full = p.ultMeter >= 100;
-  bar(20, 104, 180, 10, p.ultMeter / 100, full ? `hsl(${(time * 300) % 360},90%,60%)` : '#c06bff', '#2a1a3a');
-  txt(full ? p.char.ultName.toUpperCase() + (gamepadInfo.connected ? ' [Y/X]' : ' [E]') : 'FÚRIA', 206, 114, 8, full ? '#fff36b' : '#d9b8ff', 'left');
+    bar(130, 48, 65, 6, 1 - p.dashCd / stats.dashCd, p.dashCd <= 0 ? '#7fe0ff' : '#3a6a8a');
+    txt('GIRO', 200, 54, 6.5, '#bfe8ff', 'left');
 
-  if (p.frenzyT > 0) {
-    txt(`🔥 FRENESI ${p.frenzyT.toFixed(1)}s`, 20, 134, 9, '#ff9442', 'left');
+    const full = p.ultMeter >= 100;
+    bar(14, 62, 110, 7, p.ultMeter / 100, full ? `hsl(${(time * 300) % 360},90%,60%)` : '#c06bff', '#2a1a3a');
+    txt(full ? p.char.ultName.toUpperCase() : 'FÚRIA', 130, 69, 6.5, full ? '#fff36b' : '#d9b8ff', 'left');
+
+    if (p.frenzyT > 0) {
+      txt(`🔥 FRENESI ${p.frenzyT.toFixed(1)}s`, 14, 82, 7.5, '#ff9442', 'left');
+    }
+
+    const mm = Math.floor(playTime / 60), ss = Math.floor(playTime % 60);
+    ctx.drawImage(IMG.i_I_GoldCoin, W - 32, 6, 20, 20);
+    txt('' + coins, W - 36, 22, 13, '#ffd23f', 'right');
+    txt('ONDA ' + wave, W - 95, 21, 9, '#bbf', 'right');
+    txt(`PTS ${score} • ${mm}:${ss < 10 ? '0' : ''}${ss}`, W - 14, 35, 7.5, '#cfe8ff', 'right');
+  } else {
+    const xw = Math.min(420, W * 0.4);
+    bar(20, 60, xw, 12, p.xp / p.xpNext, '#4fa8ff', '#1a2440');
+    txt(p.char.name + ' • NV ' + p.level, 20, 92, 11, '#9fd0ff', 'left');
+
+    bar(155, 82, 85, 8, 1 - p.dashCd / stats.dashCd, p.dashCd <= 0 ? '#7fe0ff' : '#3a6a8a');
+    txt('GIRO' + (gamepadInfo.connected ? ' [LT/B]' : ''), 246, 91, 8, '#bfe8ff', 'left');
+
+    const full = p.ultMeter >= 100;
+    bar(20, 104, 180, 10, p.ultMeter / 100, full ? `hsl(${(time * 300) % 360},90%,60%)` : '#c06bff', '#2a1a3a');
+    txt(full ? p.char.ultName.toUpperCase() + (gamepadInfo.connected ? ' [Y/X]' : ' [E]') : 'FÚRIA', 206, 114, 8, full ? '#fff36b' : '#d9b8ff', 'left');
+
+    if (p.frenzyT > 0) {
+      txt(`🔥 FRENESI ${p.frenzyT.toFixed(1)}s`, 20, 134, 9, '#ff9442', 'left');
+    }
+
+    ctx.drawImage(IMG.i_I_GoldCoin, W - 50, 14, 32, 32);
+    txt('' + coins, W - 58, 40, 18, '#ffd23f', 'right');
+    txt('PONTOS: ' + score, W - 20, 70, 12, '#cfe8ff', 'right');
+    txt('ONDA ' + wave, W - 20, 90, 10, '#bbf', 'right');
+    const mm = Math.floor(playTime / 60), ss = Math.floor(playTime % 60);
+    txt(`${mm}:${ss < 10 ? '0' : ''}${ss}`, W - 20, 108, 9, '#aab', 'right');
+    txt('RECORDE ' + best, W - 20, 124, 8, '#998', 'right');
   }
-
-  ctx.drawImage(IMG.i_I_GoldCoin, W - 50, 14, 32, 32);
-  txt('' + coins, W - 58, 40, 18, '#ffd23f', 'right');
-  txt('PONTOS: ' + score, W - 20, 70, 12, '#cfe8ff', 'right');
-  txt('ONDA ' + wave, W - 20, 90, 10, '#bbf', 'right');
-  const mm = Math.floor(playTime / 60), ss = Math.floor(playTime % 60);
-  txt(`${mm}:${ss < 10 ? '0' : ''}${ss}`, W - 20, 108, 9, '#aab', 'right');
-  txt('RECORDE ' + best, W - 20, 124, 8, '#998', 'right');
 
   drawMinimap();
 
@@ -2987,14 +3046,15 @@ function drawHUD() {
     if (banner.sub) txt(banner.sub, W / 2, H * 0.3 + 40, 14, banner.boss ? '#ffb35d' : '#cfe8ff');
     ctx.globalAlpha = 1;
   }
-  let ix = 16;
-  const upY = touch.active ? 122 : H - 50;
+  let ix = 14;
+  const upSz = isCompactH ? 24 : 34;
+  const upY = isCompactH ? (touch.active ? 88 : H - 34) : (touch.active ? 122 : H - 50);
   for (const u of UPGRADES) {
     if (!ups[u.id]) continue;
-    ctx.fillStyle = 'rgba(18,10,16,0.7)'; ctx.fillRect(ix - 2, upY, 34, 34);
-    ctx.drawImage(IMG['i_' + u.icon], ix, upY + 2, 30, 30);
-    txt('' + ups[u.id], ix + 30, upY + 30, 8, '#fff36b', 'right');
-    ix += 38;
+    ctx.fillStyle = 'rgba(18,10,16,0.7)'; ctx.fillRect(ix - 2, upY, upSz, upSz);
+    ctx.drawImage(IMG['i_' + u.icon], ix, upY + 2, upSz - 4, upSz - 4);
+    txt('' + ups[u.id], ix + upSz - 4, upY + upSz - 4, isCompactH ? 6.5 : 8, '#fff36b', 'right');
+    ix += upSz + 4;
   }
   const left = enemies.length + toSpawn;
   if (!touch.active && left > 0) txt('INIMIGOS: ' + left, W - 20, H - 45, 10, '#ddd', 'right');
@@ -3005,11 +3065,12 @@ function drawHUD() {
   for (const sh of shrines) poi.push({ x: sh.x, y: sh.y, col: sh.col });
   for (const k of pickups) if (k.kind === 'chest') poi.push({ x: k.x, y: k.y, col: '#ffd23f' });
 
+  const z = (cam && cam.zoom) || 1;
   for (const t of poi) {
-    const sx = t.x - cam.x + W / 2, sy = t.y - cam.y + H / 2;
+    const sx = (t.x - cam.x) * z + W / 2, sy = (t.y - cam.y) * z + H / 2;
     if (sx > 20 && sx < W - 20 && sy > 20 && sy < H - 20) continue;
     const a = Math.atan2(sy - H / 2, sx - W / 2);
-    const ex = clamp(sx, 30, W - 30), ey = clamp(sy, 130, H - 70);
+    const ex = clamp(sx, 30, W - 30), ey = clamp(sy, isCompactH ? 50 : 130, H - 50);
     ctx.save(); ctx.translate(ex, ey); ctx.rotate(a);
     ctx.fillStyle = t.col;
     ctx.strokeStyle = '#120a10'; ctx.lineWidth = 3;
@@ -3196,12 +3257,13 @@ function overlay(alpha = 0.6) { ctx.fillStyle = `rgba(8,5,12,${alpha})`; ctx.fil
 let cardRects = [];
 function drawLevelUp() {
   overlay(0.65);
-  const isPortrait = H > W || W < 680;
-  txt('SUBIU DE NÍVEL!', W / 2, isPortrait ? H * 0.11 : H * 0.18, isPortrait ? 22 : 30, '#ffd23f');
-  txt(touch.active ? 'Toque em um poder para escolher' : (gamepadInfo.connected ? 'Use D-Pad / Analógico e aperte [A] (ou botões X, Y, B)' : 'Escolha um poder  (1, 2, 3 ou clique)'), W / 2, (isPortrait ? H * 0.11 : H * 0.18) + (isPortrait ? 26 : 34), isPortrait ? 7.5 : 10, '#cfe8ff');
-
+  const isPortrait = H > W;
+  const isCompactH = H <= 520;
   cardRects = [];
+
   if (isPortrait) {
+    txt('SUBIU DE NÍVEL!', W / 2, H * 0.11, 22, '#ffd23f');
+    txt(touch.active ? 'Toque em um poder para escolher' : (gamepadInfo.connected ? 'Use D-Pad / Analógico e aperte [A]' : 'Escolha um poder (1, 2, 3)'), W / 2, H * 0.11 + 26, 7.5, '#cfe8ff');
     const cw = Math.min(390, W - 28);
     const y0 = H * 0.11 + 42;
     const availH = Math.min(430, H - y0 - 18);
@@ -3222,7 +3284,45 @@ function drawLevelUp() {
       txt(sel ? '✓ ESCOLHIDO' : 'TOQUE P/ ESCOLHER', x + cw - 10, y + ch - 10, 6.5, sel ? '#7dff7d' : '#889', 'right');
       cardRects.push({ x, y, w: cw, h: ch, index: i });
     });
+  } else if (isCompactH) {
+    // Modo Paisagem Celular (Espaçoso, sem aperto vertical)
+    txt('SUBIU DE NÍVEL!', W / 2, 24, 18, '#ffd23f');
+    txt(touch.active ? 'Toque no poder desejado para escolher' : (gamepadInfo.connected ? 'D-Pad + [A] ou botões [X / Y / B]' : 'Escolha um poder (1, 2, 3 ou clique)'), W / 2, 38, 7.5, '#cfe8ff');
+
+    const gap = 12;
+    const cw = clamp((W - 50 - gap * 2) / 3, 190, 240);
+    const ch = clamp(H - 68, 200, 245);
+    const x0 = W / 2 - (cw * 3 + gap * 2) / 2, y0 = 48;
+
+    levelChoices.forEach((u, i) => {
+      const x = x0 + i * (cw + gap);
+      if (mouse.moved) {
+        const hov = mouse.x > x && mouse.x < x + cw && mouse.y > y0 && mouse.y < y0 + ch;
+        if (hov) levelSel = i;
+      }
+      const sel = levelSel === i;
+      const lift = sel ? -4 : 0;
+      panel(x, y0 + lift, cw, ch, sel);
+      const lvl = ups[u.id] || 0;
+      txt(lvl ? 'NV ' + (lvl + 1) : 'NOVO!', x + cw / 2, y0 + lift + 18, 8, lvl ? '#9fd0ff' : '#7dff7d');
+
+      const iconSz = 50;
+      ctx.drawImage(IMG['i_' + u.icon], x + cw / 2 - iconSz / 2, y0 + lift + 24, iconSz, iconSz);
+
+      const nameLines = wrap(u.name.toUpperCase(), cw - 16, 9.5);
+      nameLines.forEach((l, j) => txt(l, x + cw / 2, y0 + lift + 88 + j * 13, 9.5, '#ffd23f'));
+
+      const dLines = wrap(u.desc(lvl), cw - 20, 7);
+      dLines.slice(0, 3).forEach((l, j) => txt(l, x + cw / 2, y0 + lift + 92 + nameLines.length * 13 + j * 12, 7, '#e8eefc'));
+
+      const directBtn = i === 0 ? '[X]' : i === 1 ? '[Y]' : '[B]';
+      const hint = gamepadInfo.connected ? (sel ? '✓ ESCOLHER [A]' : directBtn) : (touch.active ? '✓ ESCOLHER' : '[' + (i + 1) + ']');
+      txt(hint, x + cw / 2, y0 + lift + ch - 10, 8, sel ? '#7dff7d' : '#99a');
+      cardRects.push({ x, y: y0, w: cw, h: ch, index: i });
+    });
   } else {
+    txt('SUBIU DE NÍVEL!', W / 2, H * 0.18, 30, '#ffd23f');
+    txt(touch.active ? 'Toque em um poder para escolher' : (gamepadInfo.connected ? 'Use D-Pad / Analógico e aperte [A] (ou botões X, Y, B)' : 'Escolha um poder  (1, 2, 3 ou clique)'), W / 2, H * 0.18 + 34, 10, '#cfe8ff');
     const cw = Math.min(250, (W - 80) / 3), ch = Math.min(300, H * 0.65), gap = 24;
     const x0 = W / 2 - (cw * 3 + gap * 2) / 2, y0 = H * 0.18 + 60;
     levelChoices.forEach((u, i) => {
@@ -3252,19 +3352,20 @@ function drawLevelUp() {
 let shopRects = [], shopExitRect = null;
 function drawShop() {
   overlay(0.7);
-  const isSmallShop = W < 760;
-  txt('MERCADO DA ARENA', W / 2, isSmallShop ? H * 0.10 : H * 0.16, isSmallShop ? 22 : 28, '#ffd23f');
-  txt(touch.active ? 'Moedas: ' + coins + '   •   Toque para comprar itens' : (gamepadInfo.connected ? 'Moedas: ' + coins + '   •   [A] Comprar selecionado   •   [START / B] Continuar' : 'Moedas: ' + coins + '   •   (Clique para comprar ou ENTER para continuar)'), W / 2, (isSmallShop ? H * 0.10 : H * 0.16) + (isSmallShop ? 24 : 34), isSmallShop ? 8 : 10, '#cfe8ff');
-  const y0 = (isSmallShop ? H * 0.10 : H * 0.16) + (isSmallShop ? 42 : 66);
-
-  if (shopToast && shopToast.time > 0) {
-    shopToast.time -= 0.016;
-    txt(shopToast.txt, W / 2, y0 - 10, 11, shopToast.col);
-  }
-
+  const isPortrait = H > W;
+  const isCompactH = H <= 520;
   shopRects = [];
-  if (isSmallShop) {
-    // Grade 2x2 para celular
+
+  if (isPortrait) {
+    txt('MERCADO DA ARENA', W / 2, H * 0.10, 22, '#ffd23f');
+    txt(touch.active ? 'Moedas: ' + coins + '   •   Toque para comprar itens' : (gamepadInfo.connected ? 'Moedas: ' + coins + '   •   [A] Comprar   •   [START] Continuar' : 'Moedas: ' + coins + '   •   Clique para comprar ou ENTER para continuar'), W / 2, H * 0.10 + 24, 8, '#cfe8ff');
+    const y0 = H * 0.10 + 42;
+
+    if (shopToast && shopToast.time > 0) {
+      shopToast.time -= 0.016;
+      txt(shopToast.txt, W / 2, y0 - 10, 11, shopToast.col);
+    }
+
     const gapX = 10, gapY = 8;
     const cw = Math.min(200, (W - 32 - gapX) / 2);
     const ch = clamp((H * 0.54) / 2, 110, 135);
@@ -3289,7 +3390,64 @@ function drawShop() {
     panel(bx, by, bw, bh, bsel);
     txt('▶ CONTINUAR BATALHA', W / 2, by + 25, 10, bsel ? '#ffd23f' : '#ffffff');
     shopExitRect = { x: bx, y: by, w: bw, h: bh };
+  } else if (isCompactH) {
+    // 4 cards horizontais compactos para celular em modo paisagem
+    txt('MERCADO DA ARENA', W / 2, 20, 16, '#ffd23f');
+    txt(`Moedas: ${coins}  •  ` + (touch.active ? 'Toque no item para comprar' : (gamepadInfo.connected ? '[A] Comprar  •  [START / B] Continuar' : 'Clique p/ comprar')), W / 2, 33, 7.5, '#cfe8ff');
+    const y0 = 44;
+    if (shopToast && shopToast.time > 0) {
+      shopToast.time -= 0.016;
+      txt(shopToast.txt, W / 2, y0 - 8, 9, shopToast.col);
+    }
+    const gap = 8;
+    const cw = clamp((W - 40 - gap * 3) / 4, 150, 195);
+    const ch = clamp(H - 96, 180, 225);
+    const x0 = W / 2 - (cw * 4 + gap * 3) / 2;
+
+    SHOP_ITEMS.forEach((it, i) => {
+      const x = x0 + i * (cw + gap);
+      if (mouse.moved) {
+        const hov = mouse.x > x && mouse.x < x + cw && mouse.y > y0 && mouse.y < y0 + ch;
+        if (hov) shopSel = i;
+      }
+      const sel = shopSel === i;
+      const lift = sel ? -4 : 0;
+      panel(x, y0 + lift, cw, ch, sel);
+      const iconSz = 38;
+      ctx.drawImage(IMG['i_' + it.icon], x + cw / 2 - iconSz / 2, y0 + lift + 10, iconSz, iconSz);
+
+      const nameLines = wrap(it.name, cw - 12, 8.5);
+      nameLines.forEach((l, j) => txt(l, x + cw / 2, y0 + lift + 58 + j * 12, 8.5, '#ffd23f'));
+
+      txt(it.cost + ' MOEDAS', x + cw / 2, y0 + lift + 62 + nameLines.length * 12, 7.5, coins >= it.cost ? '#7dff7d' : '#ff6b6b');
+
+      const dLines = wrap(it.desc, cw - 16, 6.5);
+      dLines.slice(0, 2).forEach((l, j) => txt(l, x + cw / 2, y0 + lift + 80 + nameLines.length * 12 + j * 11, 6.5, '#e8eefc'));
+
+      const cardHint = gamepadInfo.connected ? (sel ? '✓ [A] COMPRAR' : '[' + (i + 1) + ']') : (coins >= it.cost ? '✓ COMPRAR' : 'SEM MOEDAS');
+      txt(cardHint, x + cw / 2, y0 + lift + ch - 10, 7.5, sel ? '#ffd23f' : (coins >= it.cost ? '#7dff7d' : '#778'));
+      shopRects.push({ x, y: y0, w: cw, h: ch, index: i });
+    });
+
+    const bw = Math.min(320, W - 40), bh = 34;
+    const bx = W / 2 - bw / 2, by = Math.min(H - 40, y0 + ch + 8);
+    if (mouse.moved) {
+      const bhov = mouse.x > bx && mouse.x < bx + bw && mouse.y > by && mouse.y < by + bh;
+      if (bhov) shopSel = SHOP_ITEMS.length;
+    }
+    const bsel = shopSel === SHOP_ITEMS.length;
+    panel(bx, by, bw, bh, bsel);
+    txt(gamepadInfo.connected ? '▶ CONTINUAR BATALHA [START / B / A]' : '▶ CONTINUAR BATALHA', W / 2, by + 22, 9.5, bsel ? '#ffd23f' : '#ffffff');
+    shopExitRect = { x: bx, y: by, w: bw, h: bh };
   } else {
+    txt('MERCADO DA ARENA', W / 2, H * 0.16, 28, '#ffd23f');
+    txt(touch.active ? 'Moedas: ' + coins + '   •   Toque para comprar itens' : (gamepadInfo.connected ? 'Moedas: ' + coins + '   •   [A] Comprar selecionado   •   [START / B] Continuar' : 'Moedas: ' + coins + '   •   (Clique para comprar ou ENTER para continuar)'), W / 2, H * 0.16 + 34, 10, '#cfe8ff');
+    const y0 = H * 0.16 + 66;
+
+    if (shopToast && shopToast.time > 0) {
+      shopToast.time -= 0.016;
+      txt(shopToast.txt, W / 2, y0 - 10, 11, shopToast.col);
+    }
     const cw = Math.min(230, (W - 80) / 4), ch = 280, gap = 18;
     const x0 = W / 2 - (cw * 4 + gap * 3) / 2;
     SHOP_ITEMS.forEach((it, i) => {
@@ -3332,17 +3490,18 @@ let charPrevRect = null, charNextRect = null, charTabRects = [];
 function drawCharacterSelect() {
   overlay(0.75);
   const t = performance.now() / 1000;
-  const isMobileView = W < 700 || H > W;
-
-  txt('SELEÇÃO DE PERSONAGEM', W / 2, isMobileView ? H * 0.08 : H * 0.11, isMobileView ? 20 : 26, '#ffd23f');
-  txt('Escolha seu lutador para entrar na Arena', W / 2, (isMobileView ? H * 0.08 : H * 0.11) + (isMobileView ? 22 : 30), isMobileView ? 8 : 10, '#cfe8ff');
+  const isPortrait = H > W;
+  const isCompactH = H <= 520;
 
   charCardRects = [];
   charTabRects = [];
   charPrevRect = null;
   charNextRect = null;
 
-  if (isMobileView) {
+  if (isPortrait) {
+    txt('SELEÇÃO DE PERSONAGEM', W / 2, H * 0.08, 20, '#ffd23f');
+    txt('Escolha seu lutador para entrar na Arena', W / 2, H * 0.08 + 22, 8, '#cfe8ff');
+
     // 1. TABS NO TOPO: [Manguinha] [Amxral] [Tuiuba]
     const tabY = H * 0.08 + 36;
     const tabH = 34, gapT = 8;
@@ -3412,7 +3571,66 @@ function drawCharacterSelect() {
     txt('▶ JOGAR COM ' + curCh.name.toUpperCase(), px + pw / 2, btnBottomY + 25, 9.5, '#ffd23f');
     charPlayRect = { x: px, y: btnBottomY, w: pw, h: 40 };
 
+  } else if (isCompactH) {
+    // Modo Paisagem Celular: 3 cards lado a lado com layout elegante e espaçoso
+    txt('SELEÇÃO DE PERSONAGEM', W / 2, 20, 16, '#ffd23f');
+    txt('Escolha seu lutador para entrar na Arena', W / 2, 33, 7.5, '#cfe8ff');
+
+    const gap = 12;
+    const cw = clamp((W - 50 - gap * 2) / 3, 190, 240);
+    const ch = clamp(H - 86, 200, 245);
+    const x0 = W / 2 - (cw * CHARACTERS.length + gap * (CHARACTERS.length - 1)) / 2;
+    const y0 = 42;
+
+    CHARACTERS.forEach((chData, i) => {
+      const x = x0 + i * (cw + gap);
+      if (mouse.moved) {
+        const hov = mouse.x > x && mouse.x < x + cw && mouse.y > y0 && mouse.y < y0 + ch;
+        if (hov) selectedCharIndex = i;
+      }
+      const sel = selectedCharIndex === i;
+      const lift = sel ? -4 : 0;
+      panel(x, y0 + lift, cw, ch, sel);
+
+      txt(chData.name.toUpperCase(), x + cw / 2, y0 + lift + 18, 11, sel ? '#ffd23f' : '#ffffff');
+      txt(chData.title, x + cw / 2, y0 + lift + 31, 7, '#9fd0ff');
+
+      const previewWalk = sel && (Math.floor(t / 2.2) % 2 === 1);
+      const animArr = previewWalk ? chData.anim.walkDown : chData.anim.idle;
+      const fr = animArr[Math.floor(t * (previewWalk ? 11 : 7)) % animArr.length];
+      shadow(x + cw / 2, y0 + lift + 88, 20, 6, 0.4);
+      drawCharacterFrame(chData, fr, x + cw / 2, y0 + lift + 88, false);
+
+      let wIcon = IMG.i_S_Buff08;
+      if (chData.weaponType === 'star') wIcon = IMG.terraria_star || IMG.i_S_Light04;
+      else if (chData.weaponType === 'orange') wIcon = IMG.orange_ball || IMG.i_P_Red01;
+      ctx.drawImage(wIcon, x + 10, y0 + lift + 102, 22, 22);
+      txt('ATK: ' + chData.attackName, x + 36, y0 + lift + 113, 6.5, '#ffe042', 'left');
+      txt('ULT: ' + chData.ultName, x + 36, y0 + lift + 123, 6, '#d9b8ff', 'left');
+
+      const dLines = wrap(chData.desc, cw - 20, 6.5);
+      dLines.slice(0, 3).forEach((l, j) => txt(l, x + cw / 2, y0 + lift + 140 + j * 11, 6.5, '#e8eefc'));
+
+      txt(sel ? '✓ SELECIONADO' : 'TOQUE P/ ESCOLHER', x + cw / 2, y0 + lift + ch - 10, 7.5, sel ? '#7dff7d' : '#889');
+      charCardRects.push({ x, y: y0, w: cw, h: ch, index: i });
+    });
+
+    const py = Math.min(H - 38, y0 + ch + 6);
+    const pw = Math.min(260, W * 0.45), ph = 32;
+    const px = W / 2 - pw / 2 + 55;
+    const phov = mouse.x > px && mouse.x < px + pw && mouse.y > py && mouse.y < py + ph;
+    panel(px, py, pw, ph, phov || true);
+    txt('▶ JOGAR COM ' + CHARACTERS[selectedCharIndex].name.toUpperCase(), px + pw / 2, py + 21, 9, phov ? '#7dff7d' : '#ffd23f');
+    charPlayRect = { x: px, y: py, w: pw, h: ph };
+
+    const bw = 95, bx = W / 2 - pw / 2 - 50;
+    const bhov = mouse.x > bx && mouse.x < bx + bw && mouse.y > py && mouse.y < py + ph;
+    panel(bx, py, bw, ph, bhov);
+    txt('← MENU', bx + bw / 2, py + 21, 8.5, bhov ? '#ffd23f' : '#cfe8ff');
+    charBackRect = { x: bx, y: py, w: bw, h: ph };
   } else {
+    txt('SELEÇÃO DE PERSONAGEM', W / 2, H * 0.11, 26, '#ffd23f');
+    txt('Escolha seu lutador para entrar na Arena', W / 2, H * 0.11 + 30, 10, '#cfe8ff');
     const cw = Math.min(270, (W - 80) / 3), ch = Math.min(410, H * 0.62), gap = 20;
     const x0 = W / 2 - (cw * CHARACTERS.length + gap * (CHARACTERS.length - 1)) / 2, y0 = H * 0.11 + 55;
     CHARACTERS.forEach((chData, i) => {
@@ -3486,107 +3704,147 @@ let menuPlayRect = null, menuCharRect = null;
 function drawMenu() {
   overlay(0.52);
   const t = performance.now() / 1000;
-  const isSmall = W < 620;
+  const isCompactH = H <= 520;
 
-  txt('UNDERGROUND', W / 2, isSmall ? H * 0.12 : H * 0.14, Math.min(isSmall ? 36 : 48, W / 13), '#ffd23f');
-  txt('GAME', W / 2, (isSmall ? H * 0.12 : H * 0.14) + (isSmall ? 32 : 38), Math.min(isSmall ? 22 : 26, W / 24), '#6fc3ff');
+  if (isCompactH) {
+    // Menu compacto modo paisagem celular
+    txt('UNDERGROUND GAME', W / 2, 24, 20, '#ffd23f');
 
-  const curChar = CHARACTERS[selectedCharIndex];
-  const fr = curChar.anim.idle;
-  const charY = isSmall ? H * 0.34 : H * 0.38;
-  shadow(W / 2, charY, 30, 10, 0.4);
-  drawCharacterFrame(curChar, fr[Math.floor(t * 7) % fr.length], W / 2, charY, false);
+    const curChar = CHARACTERS[selectedCharIndex];
+    const fr = curChar.anim.idle;
+    const charY = 80;
+    shadow(W / 2, charY, 26, 8, 0.4);
+    drawCharacterFrame(curChar, fr[Math.floor(t * 7) % fr.length], W / 2, charY, false);
+    txt(curChar.name + ' (' + curChar.title + ')', W / 2, charY + 28, 9, '#ffe042');
 
-  txt(curChar.name + ' (' + curChar.title + ')', W / 2, charY + 36, isSmall ? 10 : 12, '#ffe042');
+    const gp = gamepadInfo.connected;
+    const isTouch = touch.active;
+    if (gp) {
+      txt('🎮 ' + gamepadInfo.toastName.toUpperCase() + ' CONECTADO!', W / 2, charY + 42, 7.5, '#4fe3ff');
+    } else if (isTouch) {
+      txt('📱 TOQUE NA TELA OU USE CONTROLE BLUETOOTH', W / 2, charY + 42, 7, '#7fe0ff');
+    } else {
+      txt('🎮 SUPORTE A CONTROLE PLUG & PLAY ATIVO', W / 2, charY + 42, 7, '#6788a5');
+    }
 
-  const gp = gamepadInfo.connected;
-  const isTouch = touch.active;
-  if (gp) {
-    txt('🎮 ' + gamepadInfo.toastName.toUpperCase() + ' CONECTADO!', W / 2, charY + 54, 8, '#4fe3ff');
-  } else if (isTouch) {
-    txt('📱 TOQUE NA TELA OU USE CONTROLE BLUETOOTH', W / 2, charY + 54, 7.5, '#7fe0ff');
+    const btnY = charY + 54;
+    const bw = Math.min(220, (W - 36) / 2), bh = 36;
+    const pRect = { x: W / 2 - bw - 6, y: btnY, w: bw, h: bh };
+    const cRect = { x: W / 2 + 6, y: btnY, w: bw, h: bh };
+
+    const pHov = mouse.x > pRect.x && mouse.x < pRect.x + pRect.w && mouse.y > pRect.y && mouse.y < pRect.y + pRect.h;
+    const cHov = mouse.x > cRect.x && mouse.x < cRect.x + cRect.w && mouse.y > cRect.y && mouse.y < cRect.y + cRect.h;
+    panel(pRect.x, pRect.y, pRect.w, pRect.h, pHov || true);
+    txt(gp ? '▶ JOGAR [A]' : (isTouch ? '▶ JOGAR AGORA' : '▶ JOGAR [ENTER]'), pRect.x + pRect.w / 2, pRect.y + 23, 9, pHov ? '#7dff7d' : '#ffd23f');
+    panel(cRect.x, cRect.y, cRect.w, cRect.h, cHov);
+    txt(gp ? '⇄ PERSONAGENS [SELECT]' : (isTouch ? '⇄ PERSONAGENS' : '⇄ PERSONAGENS [TAB]'), cRect.x + cRect.w / 2, cRect.y + 23, 8.5, cHov ? '#ffd23f' : '#7fe0ff');
+    menuPlayRect = pRect;
+    menuCharRect = cRect;
+
+    if (best) txt('RECORDE: ' + best, W / 2, Math.min(H - 12, btnY + bh + 24), 8.5, '#ffd23f');
   } else {
-    txt('🎮 SUPORTE A CONTROLE PLUG & PLAY ATIVO', W / 2, charY + 54, 7, '#6788a5');
+    const isSmall = W < 620;
+
+    txt('UNDERGROUND', W / 2, isSmall ? H * 0.12 : H * 0.14, Math.min(isSmall ? 36 : 48, W / 13), '#ffd23f');
+    txt('GAME', W / 2, (isSmall ? H * 0.12 : H * 0.14) + (isSmall ? 32 : 38), Math.min(isSmall ? 22 : 26, W / 24), '#6fc3ff');
+
+    const curChar = CHARACTERS[selectedCharIndex];
+    const fr = curChar.anim.idle;
+    const charY = isSmall ? H * 0.34 : H * 0.38;
+    shadow(W / 2, charY, 30, 10, 0.4);
+    drawCharacterFrame(curChar, fr[Math.floor(t * 7) % fr.length], W / 2, charY, false);
+
+    txt(curChar.name + ' (' + curChar.title + ')', W / 2, charY + 36, isSmall ? 10 : 12, '#ffe042');
+
+    const gp = gamepadInfo.connected;
+    const isTouch = touch.active;
+    if (gp) {
+      txt('🎮 ' + gamepadInfo.toastName.toUpperCase() + ' CONECTADO!', W / 2, charY + 54, 8, '#4fe3ff');
+    } else if (isTouch) {
+      txt('📱 TOQUE NA TELA OU USE CONTROLE BLUETOOTH', W / 2, charY + 54, 7.5, '#7fe0ff');
+    } else {
+      txt('🎮 SUPORTE A CONTROLE PLUG & PLAY ATIVO', W / 2, charY + 54, 7, '#6788a5');
+    }
+
+    const btnY = isSmall ? H * 0.52 : H * 0.50;
+    let pRect, cRect;
+    if (isSmall) {
+      const bw = Math.min(290, W - 32), bh = 42;
+      pRect = { x: W / 2 - bw / 2, y: btnY, w: bw, h: bh };
+      cRect = { x: W / 2 - bw / 2, y: btnY + bh + 10, w: bw, h: bh };
+    } else {
+      const bw = Math.min(270, (W - 50) / 2), bh = 42;
+      pRect = { x: W / 2 - bw - 10, y: btnY, w: bw, h: bh };
+      cRect = { x: W / 2 + 10, y: btnY, w: bw, h: bh };
+    }
+
+    const pHov = mouse.x > pRect.x && mouse.x < pRect.x + pRect.w && mouse.y > pRect.y && mouse.y < pRect.y + pRect.h;
+    const cHov = mouse.x > cRect.x && mouse.x < cRect.x + cRect.w && mouse.y > cRect.y && mouse.y < cRect.y + cRect.h;
+    panel(pRect.x, pRect.y, pRect.w, pRect.h, pHov || true);
+    txt(gp ? '▶ JOGAR [A / START]' : (isTouch ? '▶ JOGAR AGORA' : '▶ JOGAR [ENTER]'), pRect.x + pRect.w / 2, pRect.y + 26, isSmall ? 9 : 10, pHov ? '#7dff7d' : '#ffd23f');
+    panel(cRect.x, cRect.y, cRect.w, cRect.h, cHov);
+    txt(gp ? '⇄ PERSONAGENS [SELECT]' : (isTouch ? '⇄ ESCOLHER PERSONAGEM' : '⇄ PERSONAGENS [TAB]'), cRect.x + cRect.w / 2, cRect.y + 26, isSmall ? 9 : 10, cHov ? '#ffd23f' : '#7fe0ff');
+    menuPlayRect = pRect;
+    menuCharRect = cRect;
+
+    const mons = ['slime', 'bat', 'eyeball', 'ghost', 'snake', 'bee'];
+    const maxMons = isSmall ? 4 : mons.length;
+    for (let i = 0; i < maxMons; i++) {
+      const m = mons[i];
+      const d = MON[m], img = IMG['m_' + d.img];
+      const x = W / 2 + (i - (maxMons - 1) / 2) * (isSmall ? 70 : 90);
+      const y = btnY + (isSmall ? 106 : 92) + Math.sin(t * 3 + i) * 4;
+      ctx.drawImage(img, (Math.floor(t * 6 + i) % 3) * d.fw, 2 * d.fh, d.fw, d.fh, x - d.fw * 0.75, y - d.fh * 1.5, d.fw * 1.5, d.fh * 1.5);
+    }
+
+    const lines = gp ? [
+      ['STICK ESQ / D-PAD', 'mover pelo cenário'],
+      ['STICK DIR / MIRA', 'mirar livremente em 360°'],
+      ['GATILHOS RT / RB', 'ATACAR (gatilhos de trás)'],
+      ['GATILHOS LT / LB / B', 'giro invencível + esquiva perfeita'],
+      ['Y / X', 'FÚRIA / ESPECIAL (Ultimate)'],
+      ['A (CONFIRMAR)', 'selecionar poderes e menus'],
+    ] : (isTouch ? [
+      ['JOYSTICK VIRTUAL', 'mover pelo cenário (toque livre)'],
+      ['BOTÃO ATACAR', 'golpear com mira inteligente'],
+      ['BOTÃO GIRO', 'esquiva e invencibilidade'],
+      ['BOTÃO ULT', 'poder especial destruidor'],
+      ['BOTÃO ⛶', 'alternar tela cheia'],
+    ] : [
+      ['WASD / SETAS', 'mover pelos 4 lados'],
+      ['ESPAÇO / CLIQUE', 'atacar na direção da mira'],
+      ['SHIFT / BOTÃO DIR.', 'giro invencível + esquiva perfeita'],
+      ['E / Q / L', 'FÚRIA / ESPECIAL'],
+      ['TAB', 'trocar personagem (Manguinha / Amxral / Tuiuba)'],
+      ['P / ESC', 'pausar   •   M música   •   N radar'],
+    ]);
+
+    const by = btnY + (isSmall ? 136 : 124);
+    lines.forEach(([k, v], i) => { txt(k, W / 2 - 14, by + i * 18, isSmall ? 7 : 8, '#ffd23f', 'right'); txt(v, W / 2 + 14, by + i * 18, isSmall ? 7 : 8, '#e8eefc', 'left'); });
+    if (best) txt('RECORDE: ' + best, W / 2, H - 18, 10, '#ffd23f');
   }
-
-  // Botões clicáveis no Menu Principal (responsivo)
-  const btnY = isSmall ? H * 0.52 : H * 0.50;
-  let pRect, cRect;
-  if (isSmall) {
-    const bw = Math.min(290, W - 32), bh = 42;
-    pRect = { x: W / 2 - bw / 2, y: btnY, w: bw, h: bh };
-    cRect = { x: W / 2 - bw / 2, y: btnY + bh + 10, w: bw, h: bh };
-  } else {
-    const bw = Math.min(270, (W - 50) / 2), bh = 42;
-    pRect = { x: W / 2 - bw - 10, y: btnY, w: bw, h: bh };
-    cRect = { x: W / 2 + 10, y: btnY, w: bw, h: bh };
-  }
-
-  const pHov = mouse.x > pRect.x && mouse.x < pRect.x + pRect.w && mouse.y > pRect.y && mouse.y < pRect.y + pRect.h;
-  const cHov = mouse.x > cRect.x && mouse.x < cRect.x + cRect.w && mouse.y > cRect.y && mouse.y < cRect.y + cRect.h;
-  panel(pRect.x, pRect.y, pRect.w, pRect.h, pHov || true);
-  txt(gp ? '▶ JOGAR [A / START]' : (isTouch ? '▶ JOGAR AGORA' : '▶ JOGAR [ENTER]'), pRect.x + pRect.w / 2, pRect.y + 26, isSmall ? 9 : 10, pHov ? '#7dff7d' : '#ffd23f');
-  panel(cRect.x, cRect.y, cRect.w, cRect.h, cHov);
-  txt(gp ? '⇄ PERSONAGENS [SELECT]' : (isTouch ? '⇄ ESCOLHER PERSONAGEM' : '⇄ PERSONAGENS [TAB]'), cRect.x + cRect.w / 2, cRect.y + 26, isSmall ? 9 : 10, cHov ? '#ffd23f' : '#7fe0ff');
-  menuPlayRect = pRect;
-  menuCharRect = cRect;
-
-  const mons = ['slime', 'bat', 'eyeball', 'ghost', 'snake', 'bee'];
-  const maxMons = isSmall ? 4 : mons.length;
-  for (let i = 0; i < maxMons; i++) {
-    const m = mons[i];
-    const d = MON[m], img = IMG['m_' + d.img];
-    const x = W / 2 + (i - (maxMons - 1) / 2) * (isSmall ? 70 : 90);
-    const y = btnY + (isSmall ? 106 : 92) + Math.sin(t * 3 + i) * 4;
-    ctx.drawImage(img, (Math.floor(t * 6 + i) % 3) * d.fw, 2 * d.fh, d.fw, d.fh, x - d.fw * 0.75, y - d.fh * 1.5, d.fw * 1.5, d.fh * 1.5);
-  }
-
-  const lines = gp ? [
-    ['STICK ESQ / D-PAD', 'mover pelo cenário'],
-    ['STICK DIR / MIRA', 'mirar livremente em 360°'],
-    ['GATILHOS RT / RB', 'ATACAR (gatilhos de trás)'],
-    ['GATILHOS LT / LB / B', 'giro invencível + esquiva perfeita'],
-    ['Y / X', 'FÚRIA / ESPECIAL (Ultimate)'],
-    ['A (CONFIRMAR)', 'selecionar poderes e menus'],
-  ] : (isTouch ? [
-    ['JOYSTICK VIRTUAL', 'mover pelo cenário (toque livre)'],
-    ['BOTÃO ATACAR', 'golpear com mira inteligente'],
-    ['BOTÃO GIRO', 'esquiva e invencibilidade'],
-    ['BOTÃO ULT', 'poder especial destruidor'],
-    ['BOTÃO ⛶', 'alternar tela cheia'],
-  ] : [
-    ['WASD / SETAS', 'mover pelos 4 lados'],
-    ['ESPAÇO / CLIQUE', 'atacar na direção da mira'],
-    ['SHIFT / BOTÃO DIR.', 'giro invencível + esquiva perfeita'],
-    ['E / Q / L', 'FÚRIA / ESPECIAL'],
-    ['TAB', 'trocar personagem (Manguinha / Amxral / Tuiuba)'],
-    ['P / ESC', 'pausar   •   M música   •   N radar'],
-  ]);
-
-  const by = btnY + (isSmall ? 136 : 124);
-  lines.forEach(([k, v], i) => { txt(k, W / 2 - 14, by + i * 18, isSmall ? 7 : 8, '#ffd23f', 'right'); txt(v, W / 2 + 14, by + i * 18, isSmall ? 7 : 8, '#e8eefc', 'left'); });
-  if (best) txt('RECORDE: ' + best, W / 2, H - 18, 10, '#ffd23f');
 }
 
 function drawOver() {
   overlay(0.75);
+  const isCompactH = H <= 520;
   const isSmall = H < 650;
-  txt('FIM DE JOGO', W / 2, isSmall ? H * 0.16 : H * 0.22, isSmall ? 32 : 44, '#ff5d5d');
+  txt('FIM DE JOGO', W / 2, isCompactH ? 26 : (isSmall ? H * 0.16 : H * 0.22), isCompactH ? 22 : (isSmall ? 32 : 44), '#ff5d5d');
   const rows = [
     ['PERSONAGEM', player.char.name],
     ['PONTOS', score], ['ONDA', wave], ['NÍVEL', player.level], ['ABATES', kills], ['MOEDAS', coins],
     ['TEMPO', `${Math.floor(playTime / 60)}:${String(Math.floor(playTime % 60)).padStart(2, '0')}`],
   ];
-  const rowGap = isSmall ? 20 : 26;
-  const startY = (isSmall ? H * 0.16 : H * 0.22) + (isSmall ? 40 : 55);
+  const rowGap = isCompactH ? 16 : (isSmall ? 20 : 26);
+  const startY = isCompactH ? 48 : ((isSmall ? H * 0.16 : H * 0.22) + (isSmall ? 40 : 55));
   rows.forEach(([k, v], i) => {
-    txt(k, W / 2 - 20, startY + i * rowGap, isSmall ? 9 : 11, '#cfe8ff', 'right');
-    txt('' + v, W / 2 + 20, startY + i * rowGap, isSmall ? 9 : 11, '#ffffff', 'left');
+    txt(k, W / 2 - 20, startY + i * rowGap, isCompactH ? 8 : (isSmall ? 9 : 11), '#cfe8ff', 'right');
+    txt('' + v, W / 2 + 20, startY + i * rowGap, isCompactH ? 8 : (isSmall ? 9 : 11), '#ffffff', 'left');
   });
-  const recY = startY + rows.length * rowGap + 16;
-  txt(score >= best && score > 0 ? 'NOVO RECORDE!' : 'RECORDE: ' + best, W / 2, recY, isSmall ? 11 : 13, '#ffd23f');
+  const recY = startY + rows.length * rowGap + (isCompactH ? 10 : 16);
+  txt(score >= best && score > 0 ? 'NOVO RECORDE!' : 'RECORDE: ' + best, W / 2, recY, isCompactH ? 9 : (isSmall ? 11 : 13), '#ffd23f');
   if (time > 1 && Math.floor(time * 2) % 2 === 0) {
-    txt(touch.active ? 'TOQUE NA TELA para jogar de novo' : 'ENTER ou CLIQUE para jogar de novo', W / 2, Math.min(H - 24, recY + 36), isSmall ? 10 : 12);
+    txt(touch.active ? 'TOQUE NA TELA para jogar de novo' : 'ENTER ou CLIQUE para jogar de novo', W / 2, Math.min(H - 14, recY + (isCompactH ? 20 : 36)), isCompactH ? 8.5 : (isSmall ? 10 : 12));
   }
 }
 
