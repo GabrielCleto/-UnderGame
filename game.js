@@ -2377,6 +2377,7 @@ function spawnTerrariaFallenStar(targetX, targetY) {
   const sy = ty - rand(420, 560);
   hazards.push({
     kind: 'fallen_star',
+    x: tx, y: ty, r: 85,
     startX: sx, startY: sy,
     targetX: tx, targetY: ty,
     curX: sx, curY: sy,
@@ -3009,6 +3010,28 @@ function drawShrine(sh) {
 }
 
 function drawHazard(h) {
+  if (h.kind === 'fallen_star') {
+    const k = clamp(h.t / h.dur, 0, 1);
+    ctx.save();
+    ctx.fillStyle = "rgba(100,240,255," + (0.15 + k * 0.35) + ")";
+    ctx.beginPath(); ctx.ellipse(h.targetX, h.targetY, 32, 14, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = "rgba(140,250,255," + (0.6 + 0.4 * Math.sin(h.t * 26)) + ")";
+    ctx.lineWidth = 2.5;
+    ctx.beginPath(); ctx.ellipse(h.targetX, h.targetY, 32 * k, 14 * k, 0, 0, Math.PI * 2); ctx.stroke();
+
+    const sx = h.curX || h.startX, sy = h.curY || h.startY;
+    ctx.globalCompositeOperation = 'lighter';
+    const g = ctx.createRadialGradient(sx, sy, 3, sx, sy, 36);
+    g.addColorStop(0, '#ffffff');
+    g.addColorStop(0.3, '#7ef8ff');
+    g.addColorStop(0.7, '#ffd843');
+    g.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = g;
+    ctx.beginPath(); ctx.arc(sx, sy, 36, 0, Math.PI * 2); ctx.fill();
+    if (IMG.terraria_star) ctx.drawImage(IMG.terraria_star, sx - 20, sy - 20, 40, 40);
+    ctx.restore();
+    return;
+  }
   const k = clamp(h.t / h.dur, 0, 1);
   ctx.save();
   ctx.fillStyle = `rgba(255,40,20,${0.12 + k * 0.25})`;
@@ -3212,21 +3235,8 @@ function drawPlayer() {
     ctx.restore();
   }
   if (!(p.inv > 0 && !p.dash && !p.ult && Math.floor(p.inv * 15) % 2 === 0)) {
-    if (p.char.id === 'manguinha' && p.attack && p.attack.dur > 0 && IMG.manguinha_atk) {
-      const atkFrac = clamp(p.attack.t / p.attack.dur, 0, 0.999);
-      const frameIdx = Math.min(4, Math.floor(atkFrac * 5));
-      const fw = 200, fh = 280;
-      const s = 0.32;
-      const dw = fw * s, dh = fh * s;
-      ctx.save();
-      ctx.translate(p.x, p.y);
-      if (p.flip) ctx.scale(-1, 1);
-      ctx.drawImage(IMG.manguinha_atk, frameIdx * fw, 0, fw, fh, -dw / 2, -250 * s, dw, dh);
-      ctx.restore();
-    } else {
-      const { f, flip, bobY, tilt } = playerFrame();
-      drawCharacterFrame(p.char, f, p.x, p.y, flip, p.inv > stats.invTime - 0.12 ? 0.8 : 0, { bobY, tilt });
-    }
+    const { f, flip, bobY, tilt } = playerFrame();
+    drawCharacterFrame(p.char, f, p.x, p.y, flip, p.inv > stats.invTime - 0.12 ? 0.8 : 0, { bobY, tilt });
   }
   if (p.shields > 0) {
     ctx.save(); ctx.globalCompositeOperation = 'lighter';
@@ -3376,9 +3386,9 @@ function drawBolt(b) {
 
 const PICK_ICON = {
   coin: 'i_I_GoldCoin', gem: 'i_I_Sapphire', ruby: 'i_I_Ruby', potion: 'i_P_Red01', chest: 'i_I_Chest01',
-  magnet_orb: 'i_I_Diamond', frenzy_orb: 'i_P_Red02', ice_bomb: 'i_S_Ice01'
+  magnet_orb: 'i_I_Diamond', frenzy_orb: 'i_P_Red02', ice_bomb: 'i_S_Ice01', star: 'terraria_star'
 };
-const PICK_SIZE = { coin: 20, gem: 16, ruby: 24, potion: 28, chest: 48, magnet_orb: 30, frenzy_orb: 30, ice_bomb: 30 };
+const PICK_SIZE = { coin: 20, gem: 16, ruby: 24, potion: 28, chest: 48, magnet_orb: 30, frenzy_orb: 30, ice_bomb: 30, star: 28 };
 function drawPickup(k) {
   if (k.t > 24 && Math.floor(k.t * 8) % 2 === 0) return;
   const sz = PICK_SIZE[k.kind] || 24;
