@@ -1193,15 +1193,17 @@ function isBossType(t) {
 }
 
 function wavePool() {
-  if (waveEvent === 'swarm') return pick(['bat', 'slime', 'bee', 'worm', 'viper']);
+  if (waveEvent === 'swarm') return pick(['bat', 'slime', 'bee', 'worm', 'viper', 'chaos_imp']);
+  if (waveEvent === 'void_eclipse') return pick(['void_spider', 'chaos_imp', 'ghost', 'eyeball']);
+  if (waveEvent === 'magma_surge') return pick(['chaos_imp', 'bomber', 'snake', 'golem']);
   const p = [['slime', 5], ['worm', 3]];
-  if (wave >= 2) p.push(['bat', 4], ['snake', 2]);
-  if (wave >= 3) p.push(['bee', 3], ['bomber', 2]);
-  if (wave >= 4) p.push(['eyeball', 2], ['bigslime', 1], ['viper', 2]);
-  if (wave >= 6) p.push(['ghost', 2], ['flower', 1], ['sniper', 2]);
-  if (wave >= 7) p.push(['bigworm', 2], ['necromancer', 2]);
-  if (wave >= 9) p.push(['golem', 2], ['sniper', 2], ['bomber', 3]);
-  if (wave >= 12) p.push(['golem', 3], ['necromancer', 3], ['bigslime', 2]);
+  if (wave >= 2) p.push(['bat', 3], ['snake', 2], ['chaos_imp', 3]);
+  if (wave >= 3) p.push(['bee', 2], ['bomber', 2], ['void_spider', 3]);
+  if (wave >= 4) p.push(['eyeball', 2], ['bigslime', 1], ['viper', 2], ['chaos_imp', 2]);
+  if (wave >= 6) p.push(['ghost', 2], ['flower', 1], ['sniper', 2], ['void_spider', 2]);
+  if (wave >= 7) p.push(['bigworm', 2], ['necromancer', 2], ['chaos_imp', 2]);
+  if (wave >= 9) p.push(['golem', 2], ['sniper', 2], ['bomber', 3], ['void_spider', 2]);
+  if (wave >= 12) p.push(['golem', 3], ['necromancer', 3], ['bigslime', 2], ['chaos_imp', 3]);
   const tot = p.reduce((a, b) => a + b[1], 0);
   let r = Math.random() * tot;
   for (const [t, w] of p) { if ((r -= w) <= 0) return t; }
@@ -1659,7 +1661,7 @@ function update(dt) {
         texts.push({ x: p.x, y: p.y - 140, txt: 'PERGAMINHO ATIVADO!', life: 2, color: '#ffd23f', size: 14 });
       }
       if (isBoss) {
-        const bossCycle = ['boss', 'leviathan', 'necro_boss', 'boss_void_overlord', 'hydra_boss', 'boss_magma_colossus', 'beholder_boss'];
+        const bossCycle = ['boss_void_overlord', 'boss_magma_colossus', 'leviathan', 'necro_boss', 'boss', 'hydra_boss', 'beholder_boss'];
         const bIdx = (Math.floor(wave / 5) - 1) % bossCycle.length;
         const bType = bossCycle[bIdx];
         const bObj = spawnEnemy(bType, spawnPos(340, 440, 60));
@@ -3617,10 +3619,47 @@ function drawWorld() {
   ctx.globalAlpha = 1;
   ctx.restore();
 
-  const g = ctx.createRadialGradient(W / 2, H / 2, Math.min(W, H) * 0.4, W / 2, H / 2, Math.max(W, H) * 0.75);
-  g.addColorStop(0, 'rgba(0,0,0,0)');
-  g.addColorStop(1, waveEvent === 'bloodmoon' ? 'rgba(65,0,15,0.58)' : 'rgba(0,0,10,0.5)');
-  ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+  // --- ILUMINAÇÃO DINÂMICA V.2 (Luz de Tocha, Sombra de Calabouço & Aura de Bosses) ---
+  if (player && (state === 'play' || state === 'pause')) {
+    const px = (player.x - cam.x) * z + W / 2;
+    const py = (player.y - cam.y) * z + H / 2;
+    const lightR = Math.max(160, Math.min(W, H) * 0.38) * (1 + 0.04 * Math.sin(time * 6));
+    const maxR = Math.max(W, H) * 0.85;
+
+    const g = ctx.createRadialGradient(px, py, lightR * 0.35, px, py, maxR);
+    g.addColorStop(0, 'rgba(255, 235, 175, 0.06)');
+    g.addColorStop(0.35, 'rgba(0, 0, 0, 0.08)');
+    const darkEdge = waveEvent === 'bloodmoon' ? 'rgba(68, 0, 16, 0.68)'
+      : waveEvent === 'void_eclipse' ? 'rgba(28, 4, 55, 0.72)'
+      : waveEvent === 'magma_surge' ? 'rgba(62, 16, 2, 0.64)'
+      : 'rgba(3, 7, 16, 0.60)';
+    g.addColorStop(1, darkEdge);
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, W, H);
+
+    // Aura Luminosa de Chefão Ativo
+    if (boss && !boss.dead && boss.hp > 0) {
+      const bx = (boss.x - cam.x) * z + W / 2;
+      const by = (boss.y - cam.y) * z + H / 2;
+      const bPulse = 0.22 + 0.1 * Math.sin(time * 7);
+      const bR = Math.max(120, boss.r * z * 2.8);
+      const bg = ctx.createRadialGradient(bx, by, bR * 0.2, bx, by, bR);
+      const bColor = boss.type === 'boss_void_overlord' ? '192, 107, 255'
+        : boss.type === 'boss_magma_colossus' ? '255, 110, 40'
+        : boss.type === 'necro_boss' ? '180, 85, 255'
+        : boss.type === 'hydra_boss' ? '80, 240, 110'
+        : '255, 180, 60';
+      bg.addColorStop(0, 'rgba(' + bColor + ', ' + bPulse + ')');
+      bg.addColorStop(1, 'rgba(' + bColor + ', 0)');
+      ctx.fillStyle = bg;
+      ctx.beginPath(); ctx.arc(bx, by, bR, 0, Math.PI * 2); ctx.fill();
+    }
+  } else {
+    const g = ctx.createRadialGradient(W / 2, H / 2, Math.min(W, H) * 0.4, W / 2, H / 2, Math.max(W, H) * 0.75);
+    g.addColorStop(0, 'rgba(0,0,0,0)');
+    g.addColorStop(1, 'rgba(0,0,10,0.55)');
+    ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+  }
     if (player && player.hp <= 2 && state === 'play') {
     // Low HP pulsing vignette
     const pulse = 0.12 + 0.08 * Math.sin(time * 8);
@@ -3891,14 +3930,7 @@ function drawHUD() {
     const s = 14 + Math.min(14, p.combo / 2);
     txt('COMBO x' + p.combo, W / 2, 46 + (boss ? 50 : 0), s, p.combo >= 20 ? '#ff5d5d' : '#ff9f3f');
   }
-  if (boss) {
-    const bw = Math.min(600, W * 0.6);
-    const bName = MON[boss.type].bossName || 'CHEFÃO';
-    const bCol = boss.type === 'leviathan' || boss.type === 'hydra_boss' ? '#8cff7a' : boss.type === 'necro_boss' ? '#e29eff' : boss.type === 'beholder_boss' ? '#7fe8ff' : '#ffb35d';
-    const barCol = boss.hp < boss.maxHp / 2 ? '#ff3b3b' : (boss.type === 'leviathan' || boss.type === 'hydra_boss' ? '#4ad66d' : boss.type === 'necro_boss' ? '#b855ff' : boss.type === 'beholder_boss' ? '#3ac2ff' : '#ff8a2e');
-    txt(bName, W / 2, 26, 12, bCol);
-    bar(W / 2 - bw / 2, 34, bw, 14, boss.hp / boss.maxHp, barCol, '#3a1410');
-  }
+  // drawBossBar() estilizada no topo da tela já atua
   if (banner) {
     const a = Math.min(1, banner.life * 2, (banner.max - banner.life) * 4);
     ctx.globalAlpha = a;
@@ -4572,33 +4604,51 @@ function startWithSelectedCharacter() {
 // =====================================================================
 let menuPlayRect = null, menuCharRect = null;
 function drawMenu() {
-  overlay(0.52);
+  overlay(0.58);
   const t = performance.now() / 1000;
   const isCompactH = H <= 520;
+  const isSmall = W < 640;
+  const gp = gamepadInfo.connected;
+  const isTouch = touch.active;
+  const curChar = CHARACTERS[selectedCharIndex];
+
+  // Partículas de brasas e poeira mística flutuando no menu
+  ctx.save();
+  for (let i = 0; i < 28; i++) {
+    const px = (Math.sin(i * 127.1 + t * 0.4) * 0.5 + 0.5) * W;
+    const py = ((i * 37.7 - t * 24) % H + H) % H;
+    const sz = 1.5 + (i % 3);
+    const alpha = 0.2 + 0.25 * Math.sin(t * 3 + i);
+    ctx.fillStyle = i % 2 === 0 ? 'rgba(255, 210, 63, ' + alpha + ')' : 'rgba(80, 220, 255, ' + alpha + ')';
+    ctx.fillRect(px, py, sz, sz);
+  }
+  ctx.restore();
 
   if (isCompactH) {
-    // Menu compacto modo paisagem celular
-    txt('UNDERGROUND GAME', W / 2, 24, 20, '#ffd23f');
-    txt('★ V.2 DEFINITIVA ★', W / 2, 40, 7, '#ffaa30');
+    // -------------------------------------------------------------
+    // MODO COMPACTO (Paisagem celular)
+    // -------------------------------------------------------------
+    // Título Estilizado
+    txt('UNDERGROUND GAME', W / 2, 22, 19, '#ffd23f');
+    txt('★ V.2 DEFINITIVA • ERA DOS COLOSSOS ★', W / 2, 38, 7.5, '#4fe3ff');
 
-    const curChar = CHARACTERS[selectedCharIndex];
+    const charY = 82;
+    // Pedestal Rúnico
+    ctx.save();
+    ctx.fillStyle = 'rgba(20, 16, 28, 0.85)';
+    ctx.beginPath(); ctx.ellipse(W / 2, charY + 14, 38, 11, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = '#ffd23f'; ctx.lineWidth = 1.5;
+    ctx.setLineDash([4, 4]); ctx.lineDashOffset = -t * 12;
+    ctx.stroke();
+    ctx.restore();
+
     const fr = curChar.anim.idle;
-    const charY = 80;
-    shadow(W / 2, charY, 26, 8, 0.4);
+    shadow(W / 2, charY, 28, 9, 0.45);
     drawCharacterFrame(curChar, fr[Math.floor(t * 7) % fr.length], W / 2, charY, false);
     txt(curChar.name + ' (' + curChar.title + ')', W / 2, charY + 28, 9, '#ffe042');
 
-    const gp = gamepadInfo.connected;
-    const isTouch = touch.active;
-    if (gp) {
-      txt('🎮 ' + gamepadInfo.toastName.toUpperCase() + ' CONECTADO!', W / 2, charY + 42, 7.5, '#4fe3ff');
-    } else if (isTouch) {
-      txt('📱 TOQUE NA TELA OU USE CONTROLE BLUETOOTH', W / 2, charY + 42, 7, '#7fe0ff');
-    } else {
-      txt('🎮 SUPORTE A CONTROLE PLUG & PLAY ATIVO', W / 2, charY + 42, 7, '#6788a5');
-    }
-
-    const btnY = charY + 54;
+    // Botões
+    const btnY = charY + 44;
     const bw = Math.min(220, (W - 36) / 2), bh = 36;
     const pRect = { x: W / 2 - bw - 6, y: btnY, w: bw, h: bh };
     const cRect = { x: W / 2 + 6, y: btnY, w: bw, h: bh };
@@ -4612,90 +4662,153 @@ function drawMenu() {
     menuPlayRect = pRect;
     menuCharRect = cRect;
 
-    if (best) txt('RECORDE: ' + best, W / 2, Math.min(H - 12, btnY + bh + 24), 8.5, '#ffd23f');
+    // Showcase mini dos novos monstros
+    const newMons = ['chaos_imp', 'void_spider', 'boss_void_overlord', 'boss_magma_colossus'];
+    const showY = Math.min(H - 16, btnY + bh + 24);
+    txt('✦ NOVOS MOBS & BOSSES V.2 ✦', W / 2, showY - 14, 6.5, '#ffd23f');
+    for (let i = 0; i < 4; i++) {
+      const m = newMons[i];
+      const d = MON[m], img = IMG['m_' + d.img];
+      if (img && img.complete) {
+        const mx = W / 2 + (i - 1.5) * 60;
+        const my = showY + 8 + Math.sin(t * 3 + i) * 3;
+        const curF = Math.floor(t * 6 + i) % 3;
+        ctx.drawImage(img, curF * d.fw, 0, d.fw, d.fh, mx - 16, my - 16, 32, 32);
+      }
+    }
   } else {
-    const isSmall = W < 620;
+    // -------------------------------------------------------------
+    // MODO DESKTOP / TELAS GRANDES (Alta Produção Visual)
+    // -------------------------------------------------------------
+    const titleY = isSmall ? H * 0.11 : H * 0.12;
 
-    txt('UNDERGROUND', W / 2, isSmall ? H * 0.12 : H * 0.14, Math.min(isSmall ? 36 : 48, W / 13), '#ffd23f');
-    txt('GAME', W / 2, (isSmall ? H * 0.12 : H * 0.14) + (isSmall ? 32 : 38), Math.min(isSmall ? 22 : 26, W / 24), '#6fc3ff');
+    // Efeito de Brilho / Neon Bevel no Logo
+    ctx.save();
+    // Glow suave atrás
+    ctx.shadowColor = 'rgba(255, 170, 0, 0.45)';
+    ctx.shadowBlur = 18;
+    txt('UNDERGROUND GAME 2.0', W / 2, titleY, Math.min(isSmall ? 28 : 42, W / 14), '#ffd23f');
+    ctx.shadowBlur = 0;
+    ctx.restore();
 
-    const curChar = CHARACTERS[selectedCharIndex];
+    // Faixa / Tagline de Alta Produção
+    txt('★ A REVOLUÇÃO DOS COLOSSOS & ABISMO CÓSMICO ★', W / 2, titleY + (isSmall ? 26 : 34), isSmall ? 8 : 10, '#4fe3ff');
+    txt('[ V.2 ATIVA: 4 NOVOS MOBS/BOSSES • LUZ DINÂMICA • SISTEMA DE REFÚGIO ]', W / 2, titleY + (isSmall ? 44 : 54), isSmall ? 6.5 : 7.5, '#ffd97a');
+
+    // Pedestal Rúnico & Spotlight no Herói
+    const charY = isSmall ? H * 0.35 : H * 0.38;
+    ctx.save();
+    // Spotlight Cone de Luz descendo do topo
+    const spotG = ctx.createLinearGradient(W / 2, titleY + 60, W / 2, charY + 20);
+    spotG.addColorStop(0, 'rgba(80, 220, 255, 0.02)');
+    spotG.addColorStop(1, 'rgba(255, 210, 63, 0.14)');
+    ctx.fillStyle = spotG;
+    ctx.beginPath();
+    ctx.moveTo(W / 2 - 40, titleY + 60);
+    ctx.lineTo(W / 2 + 40, titleY + 60);
+    ctx.lineTo(W / 2 + 75, charY + 20);
+    ctx.lineTo(W / 2 - 75, charY + 20);
+    ctx.closePath();
+    ctx.fill();
+
+    // Base do Pedestal de Pedra / Obsidiana
+    ctx.fillStyle = 'rgba(18, 14, 26, 0.92)';
+    ctx.beginPath(); ctx.ellipse(W / 2, charY + 16, 56, 16, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = '#ffd23f'; ctx.lineWidth = 2;
+    ctx.setLineDash([6, 6]); ctx.lineDashOffset = -t * 14;
+    ctx.stroke();
+    ctx.strokeStyle = '#4fe3ff'; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.ellipse(W / 2, charY + 16, 42, 11, 0, 0, Math.PI * 2); ctx.stroke();
+    ctx.restore();
+
+    // Desenhar Herói Animado
     const fr = curChar.anim.idle;
-    const charY = isSmall ? H * 0.34 : H * 0.38;
-    shadow(W / 2, charY, 30, 10, 0.4);
+    shadow(W / 2, charY, 36, 12, 0.5);
     drawCharacterFrame(curChar, fr[Math.floor(t * 7) % fr.length], W / 2, charY, false);
 
-    txt(curChar.name + ' (' + curChar.title + ')', W / 2, charY + 36, isSmall ? 10 : 12, '#ffe042');
+    // Pill de Status do Herói Selecionado
+    const weaponLabel = curChar.weaponType === 'orange' ? 'Laranjas Místicas' : (curChar.weaponType === 'star' ? 'Estrelas Cadentes' : 'Sabre de Luz');
+    txt('◄ ' + curChar.name + ' (' + curChar.title + ') ►', W / 2, charY + 36, isSmall ? 10 : 12, '#ffe042');
+    txt('Arma: ' + weaponLabel + '   •   ❤️ ' + (curChar.baseHp || 6) + ' HP   •   ⚡ ' + (curChar.baseSpeed || 180) + ' VEL', W / 2, charY + 52, isSmall ? 7.5 : 8.5, '#cfe8ff');
 
-    const gp = gamepadInfo.connected;
-    const isTouch = touch.active;
-    if (gp) {
-      txt('🎮 ' + gamepadInfo.toastName.toUpperCase() + ' CONECTADO!', W / 2, charY + 54, 8, '#4fe3ff');
-    } else if (isTouch) {
-      txt('📱 TOQUE NA TELA OU USE CONTROLE BLUETOOTH', W / 2, charY + 54, 7.5, '#7fe0ff');
-    } else {
-      txt('🎮 SUPORTE A CONTROLE PLUG & PLAY ATIVO', W / 2, charY + 54, 7, '#6788a5');
-    }
-
-    const btnY = isSmall ? H * 0.52 : H * 0.50;
-    let pRect, cRect;
-    if (isSmall) {
-      const bw = Math.min(290, W - 32), bh = 42;
-      pRect = { x: W / 2 - bw / 2, y: btnY, w: bw, h: bh };
-      cRect = { x: W / 2 - bw / 2, y: btnY + bh + 10, w: bw, h: bh };
-    } else {
-      const bw = Math.min(270, (W - 50) / 2), bh = 42;
-      pRect = { x: W / 2 - bw - 10, y: btnY, w: bw, h: bh };
-      cRect = { x: W / 2 + 10, y: btnY, w: bw, h: bh };
-    }
+    // Botões Principais de Ação
+    const btnY = isSmall ? H * 0.52 : H * 0.51;
+    const bw = Math.min(270, (W - 50) / 2), bh = 42;
+    const pRect = { x: W / 2 - bw - 10, y: btnY, w: bw, h: bh };
+    const cRect = { x: W / 2 + 10, y: btnY, w: bw, h: bh };
 
     const pHov = mouse.x > pRect.x && mouse.x < pRect.x + pRect.w && mouse.y > pRect.y && mouse.y < pRect.y + pRect.h;
     const cHov = mouse.x > cRect.x && mouse.x < cRect.x + cRect.w && mouse.y > cRect.y && mouse.y < cRect.y + cRect.h;
+
     panel(pRect.x, pRect.y, pRect.w, pRect.h, pHov || true);
-    txt(gp ? '▶ JOGAR [A / START]' : (isTouch ? '▶ JOGAR AGORA' : '▶ JOGAR [ENTER]'), pRect.x + pRect.w / 2, pRect.y + 26, isSmall ? 9 : 10, pHov ? '#7dff7d' : '#ffd23f');
+    txt(gp ? '▶ ENTRAR NA ARENA [A / START]' : (isTouch ? '▶ JOGAR AGORA' : '▶ ENTRAR NA ARENA [ENTER]'), pRect.x + pRect.w / 2, pRect.y + 26, isSmall ? 8.5 : 9.5, pHov ? '#7dff7d' : '#ffd23f');
+
     panel(cRect.x, cRect.y, cRect.w, cRect.h, cHov);
-    txt(gp ? '⇄ PERSONAGENS [SELECT]' : (isTouch ? '⇄ ESCOLHER PERSONAGEM' : '⇄ PERSONAGENS [TAB]'), cRect.x + cRect.w / 2, cRect.y + 26, isSmall ? 9 : 10, cHov ? '#ffd23f' : '#7fe0ff');
+    txt(gp ? '⇄ TROCAR PERSONAGEM [SELECT]' : (isTouch ? '⇄ ESCOLHER PERSONAGEM' : '⇄ TROCAR PERSONAGEM [TAB]'), cRect.x + cRect.w / 2, cRect.y + 26, isSmall ? 8.5 : 9.5, cHov ? '#ffd23f' : '#7fe0ff');
+
     menuPlayRect = pRect;
     menuCharRect = cRect;
 
-    const mons = ['slime', 'bat', 'eyeball', 'ghost', 'snake', 'bee'];
-    const maxMons = isSmall ? 4 : mons.length;
-    for (let i = 0; i < maxMons; i++) {
-      const m = mons[i];
-      const d = MON[m], img = IMG['m_' + d.img];
-      const x = W / 2 + (i - (maxMons - 1) / 2) * (isSmall ? 70 : 90);
-      const y = btnY + (isSmall ? 106 : 92) + Math.sin(t * 3 + i) * 4;
-      ctx.drawImage(img, (Math.floor(t * 6 + i) % 3) * d.fw, 2 * d.fh, d.fw, d.fh, x - d.fw * 0.75, y - d.fh * 1.5, d.fw * 1.5, d.fh * 1.5);
+    // -------------------------------------------------------------
+    // VITRINE DE NOVOS MONSTROS & BOSSES V.2 (Showcase Visual)
+    // -------------------------------------------------------------
+    const showcaseY = btnY + bh + 36;
+    txt('✦ NOVOS CHEFÕES & MONSTROS PIXEL ART V.2 ✦', W / 2, showcaseY - 14, isSmall ? 7 : 8, '#ffd23f');
+
+    const newShowcase = [
+      { key: 'chaos_imp', label: 'IMP DO CAOS', sub: 'Onda 2+' },
+      { key: 'void_spider', label: 'ARANHA DO VAZIO', sub: 'Onda 3+' },
+      { key: 'boss_void_overlord', label: 'SOBERANO DO VAZIO', sub: 'Chefão Onda 5' },
+      { key: 'boss_magma_colossus', label: 'COLOSSO DE MAGMA', sub: 'Chefão Onda 10' }
+    ];
+
+    const showGap = isSmall ? 100 : 140;
+    for (let i = 0; i < newShowcase.length; i++) {
+      const item = newShowcase[i];
+      const d = MON[item.key], img = IMG['m_' + d.img];
+      const sx = W / 2 + (i - (newShowcase.length - 1) / 2) * showGap;
+      const sy = showcaseY + 24 + Math.sin(t * 3 + i * 1.2) * 5;
+
+      if (img && img.complete) {
+        const curF = Math.floor(t * 7 + i) % (item.key.includes('boss') ? 6 : 6);
+        const dw = d.fw * (item.key.includes('boss') ? 0.95 : 1.35);
+        const dh = d.fh * (item.key.includes('boss') ? 0.95 : 1.35);
+        ctx.save();
+        // Sombra sob monstro
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
+        ctx.beginPath(); ctx.ellipse(sx, sy + dh * 0.45, dw * 0.45, 6, 0, 0, Math.PI * 2); ctx.fill();
+        ctx.drawImage(img, curF * d.fw, 0, d.fw, d.fh, sx - dw / 2, sy - dh / 2, dw, dh);
+        ctx.restore();
+      }
+
+      txt(item.label, sx, sy + 30, isSmall ? 6 : 7, '#ffe042');
+      txt(item.sub, sx, sy + 41, isSmall ? 5.5 : 6, '#7fe0ff');
     }
 
+    // Comandos Rápidos na Parte Inferior
     const lines = gp ? [
       ['STICK ESQ / D-PAD', 'mover pelo cenário'],
       ['STICK DIR / MIRA', 'mirar livremente em 360°'],
-      ['GATILHOS RT / RB', 'ATACAR (gatilhos de trás)'],
-      ['GATILHOS LT / LB / B', 'giro invencível + esquiva perfeita'],
+      ['GATILHOS RT / RB', 'ATACAR'],
+      ['GATILHOS LT / LB / B', 'giro invencível'],
       ['Y / X', 'FÚRIA / ESPECIAL (Ultimate)'],
-      ['A (CONFIRMAR)', 'selecionar poderes e menus'],
-    ] : (isTouch ? [
-      ['JOYSTICK VIRTUAL', 'mover pelo cenário (toque livre)'],
-      ['BOTÃO ATACAR', 'golpear com mira inteligente'],
-      ['BOTÃO GIRO', 'esquiva e invencibilidade'],
-      ['BOTÃO ULT', 'poder especial destruidor'],
-      ['BOTÃO ⛶', 'alternar tela cheia'],
     ] : [
       ['WASD / SETAS', 'mover pelos 4 lados'],
       ['ESPAÇO / CLIQUE', 'atacar na direção da mira'],
       ['SHIFT / BOTÃO DIR.', 'giro invencível + esquiva perfeita'],
       ['E / Q / L', 'FÚRIA / ESPECIAL'],
-      ['TAB', 'trocar personagem (Manguinha / Amxral / Tuiuba)'],
-      ['P / ESC', 'pausar   •   M música   •   N radar'],
-    ]);
+      ['TAB', 'trocar personagem  •  P pausar  •  M música'],
+    ];
 
-    const by = btnY + (isSmall ? 136 : 124);
-    lines.forEach(([k, v], i) => { txt(k, W / 2 - 14, by + i * 18, isSmall ? 7 : 8, '#ffd23f', 'right'); txt(v, W / 2 + 14, by + i * 18, isSmall ? 7 : 8, '#e8eefc', 'left'); });
-    if (best) txt('RECORDE: ' + best, W / 2, H - 18, 10, '#ffd23f');
+    const by = showcaseY + 70;
+    lines.forEach(([k, v], i) => {
+      txt(k, W / 2 - 14, by + i * 16, isSmall ? 6.5 : 7.5, '#ffd23f', 'right');
+      txt(v, W / 2 + 14, by + i * 16, isSmall ? 6.5 : 7.5, '#e8eefc', 'left');
+    });
+
+    if (best) txt('🏆 RECORDE MÁXIMO: ' + best + ' PONTOS', W / 2, H - 18, 9, '#ffd23f');
   }
 }
-
 
 // =====================================================================
 //  MENU DE PAUSA (v.2 — Game UI/UX Design System)
@@ -4961,9 +5074,7 @@ function loop(now) {
       if (state === 'levelup') drawLevelUp();
       if (state === 'shop') drawShop();
       if (state === 'pause') {
-        overlay(0.5);
-        txt('PAUSADO', W / 2, H / 2, 38);
-        txt(touch.active ? 'TOQUE NA TELA para continuar' : 'P / START para continuar  •  TAB / SELECT trocar', W / 2, H / 2 + 38, 10);
+        drawPauseMenu();
       }
       if (state === 'over') drawOver();
     }
