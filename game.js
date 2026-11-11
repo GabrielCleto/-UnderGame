@@ -53,6 +53,7 @@ const IMAGE_LIST = {
   portrait_manguinha: 'assets/manguinha_portrait.png',
   portrait_amxral: 'assets/amxral_portrait.png',
   portrait_tuiuba: 'assets/tuiuba_portrait.png',
+  manguinha_atk: 'assets/manguinha_attack_strip.png',
   terraria_star: 'assets/icons/terraria_star.png',
   orange_ball: 'assets/icons/orange_pure.png',
   orange_splash: 'assets/icons/orange_splash.png',
@@ -1084,6 +1085,35 @@ const UPGRADES = [
 ];
 
 // =====================================================================
+//  TERRARIA REFORGE & PREFIX SYSTEM (Terraria PrefixID.cs)
+// =====================================================================
+const TERRARIA_PREFIXES = [
+  { id: 'legendary', name: 'Lendário', color: '#ffaa2b', dmgMul: 1.25, critAdd: 0.10, speedMul: 1.15, sizeMul: 1.22, kbMul: 1.25, desc: '+25% Dano, +15% Vel., +10% Crítico, +22% Sabre' },
+  { id: 'godly',     name: 'Divino',   color: '#ffe855', dmgMul: 1.20, critAdd: 0.08, speedMul: 1.05, sizeMul: 1.15, kbMul: 1.30, desc: '+20% Dano, +8% Crítico, +30% Repulsão' },
+  { id: 'demonic',   name: 'Demoníaco',color: '#ff4d6d', dmgMul: 1.22, critAdd: 0.10, speedMul: 1.00, sizeMul: 1.10, kbMul: 1.00, desc: '+22% Dano Bruto, +10% Chance de Crítico' },
+  { id: 'unreal',    name: 'Irreal',   color: '#52f6ff', dmgMul: 1.18, critAdd: 0.08, speedMul: 1.20, sizeMul: 1.05, kbMul: 1.15, desc: '+18% Dano, +20% Velocidade de Ataque, +8% Crítico' },
+  { id: 'mythical',  name: 'Mítico',   color: '#d66fff', dmgMul: 1.15, critAdd: 0.06, speedMul: 1.12, sizeMul: 1.10, kbMul: 1.10, desc: '+15% Dano, +12% Vel., +6% Crítico, +Regenera Fúria' },
+  { id: 'massive',   name: 'Titânico', color: '#7aff61', dmgMul: 1.14, critAdd: 0.04, speedMul: 0.95, sizeMul: 1.35, kbMul: 1.35, desc: '+14% Dano, +35% Alcance Gigantesco do Sabre!' },
+  { id: 'ruthless',  name: 'Implacável',color: '#ff7043', dmgMul: 1.28, critAdd: 0.00, speedMul: 1.02, sizeMul: 1.10, kbMul: 0.85, desc: '+28% Dano Destruidor (Poder Absoluto)' },
+  { id: 'deadly',    name: 'Mortal',   color: '#ff85b8', dmgMul: 1.16, critAdd: 0.08, speedMul: 1.10, sizeMul: 1.00, kbMul: 1.00, desc: '+16% Dano, +10% Vel., +8% Crítico' },
+];
+
+function rollTerrariaPrefix() {
+  if (!player) return null;
+  const pref = pick(TERRARIA_PREFIXES);
+  player.prefix = pref;
+  texts.push({ x: player.x, y: player.y - 110, txt: 'Reforja: [' + pref.name + ']!', life: 1.8, color: pref.color, size: 14 });
+  for (let i = 0; i < 28; i++) {
+    particles.push({
+      x: player.x, y: player.y - 30,
+      vx: rand(-140, 140), vy: rand(-140, 140),
+      life: rand(0.35, 0.75), max: 0.75, color: pref.color, size: rand(3, 7)
+    });
+  }
+  return pref;
+}
+
+// =====================================================================
 //  LOJA ENTRE ONDAS (Preços Dinâmicos & Inflação Equilibrada)
 // =====================================================================
 let shopBuys = {};
@@ -1093,9 +1123,12 @@ function getShopCost(item) {
 }
 const SHOP_ITEMS = [
   { id: 'potion', name: 'Frasco de Vida', icon: 'P_Red01', baseCost: 12, stepCost: 6, get cost() { return getShopCost(this); }, desc: 'Recupera 2 corações cheios', buy: (s, p) => { p.hp = Math.min(s.maxHp, p.hp + 4); SFX.potion(); } },
+  { id: 'reforge', name: 'Forja Goblin', icon: 'S_Axe03', baseCost: 15, stepCost: 8, get cost() { return getShopCost(this); }, desc: 'Reforja sua arma com prefixos lendários do Terraria (Lendário, Divino, etc.)', buy: (s, p) => { rollTerrariaPrefix(); SFX.level(); } },
+  { id: 'ironskin', name: 'Pele de Ferro', icon: 'A_Armour01', baseCost: 14, stepCost: 6, get cost() { return getShopCost(this); }, desc: 'Concede +4 Armadura e corta dano recebido pela metade por 35s', buy: (s, p) => { p.ironskinT = Math.max(p.ironskinT || 0, 35); texts.push({ x: p.x, y: p.y - 95, txt: '🛡 PELE DE FERRO!', life: 1.4, color: '#ffea60', size: 12 }); SFX.potion(); } },
+  { id: 'thorns', name: 'Poção Espinhos', icon: 'S_Buff08', baseCost: 15, stepCost: 6, get cost() { return getShopCost(this); }, desc: 'Devolve 100% do dano aos inimigos atacantes por 30s', buy: (s, p) => { p.thornsT = Math.max(p.thornsT || 0, 30); texts.push({ x: p.x, y: p.y - 95, txt: '🌵 ESPINHOS ATIVOS!', life: 1.4, color: '#7aff61', size: 12 }); SFX.potion(); } },
   { id: 'shield_orb', name: 'Orbe de Escudo', icon: 'S_Buff03', baseCost: 18, stepCost: 10, get cost() { return getShopCost(this); }, desc: 'Concede +2 Escudos Orbitais que bloqueiam dano', buy: (s, p) => { p.shields = Math.min(4, (p.shields || 0) + 2); SFX.shrine(); } },
   { id: 'mystery', name: 'Tomo do Destino', icon: 'I_Book', baseCost: 24, stepCost: 14, get cost() { return getShopCost(this); }, desc: 'Concede +100% Fúria, Ímã Global e +10% Crítico na próxima onda', buy: (s, p) => { p.ultMeter = 100; p.frenzyT = Math.max(p.frenzyT, 8); for (const k of pickups) k.pull = true; SFX.ult(); } },
-  { id: 'medal', name: 'Medalha de Honra', icon: 'Ac_Medal01', baseCost: 42, stepCost: 28, get cost() { return getShopCost(this); }, desc: 'Aumenta permanentemente o dano principal e de giro em +1', buy: (s, p) => { s.dmg += 1; s.dashDmg += 1; SFX.level(); } },
+  { id: 'medal', name: 'Medalha Honra', icon: 'Ac_Medal01', baseCost: 42, stepCost: 28, get cost() { return getShopCost(this); }, desc: 'Aumenta permanentemente o dano principal e de giro em +1', buy: (s, p) => { s.dmg += 1; s.dashDmg += 1; SFX.level(); } },
 ];
 let shopSel = 0;
 
@@ -1130,7 +1163,7 @@ function reset() {
     ult: null, ultMeter: 0, combo: 0, comboT: 0, bestStreakMilestone: 0,
     level: 1, xp: 0, xpNext: 6, pendingLevels: 0,
     fireAng: 0, boltT: 2, iceT: 0, earthT: 3, phantomT: 1.5, axeT: 1.4, aegisT: 12, vortexT: 3.5,
-    frenzyT: 0, shields: 0, ghostT: 0, stepT: 0, goblinT: 16,
+    frenzyT: 0, shields: 0, ghostT: 0, stepT: 0, goblinT: 16, prefix: null, ironskinT: 0, thornsT: 0, starTimer: 5.0,
   };
   enemies = []; ebullets = []; pshots = []; particles = []; pickups = []; texts = []; slashes = []; bolts = [];
   shrines = []; hazards = []; fxRings = []; afterimages = []; puddles = [];
@@ -1228,7 +1261,12 @@ function damageEnemy(e, dmg, fromX, fromY, power = 380, opts = {}) {
   if (e.dead || e.spawn > 0) return false;
   if ((e.type === 'ghost' || e.type === 'necro_boss') && e.faded) return false;
   let crit = false;
-  if (!opts.noCrit && Math.random() < stats.crit) { dmg *= 2; crit = true; }
+  const pref = (player && player.prefix) || null;
+  const critChance = stats.crit + (pref ? pref.critAdd : 0);
+  if (!opts.noCrit && Math.random() < critChance) { dmg *= 2; crit = true; }
+  if (pref && pref.dmgMul && !opts.noCrit) { dmg = Math.max(1, Math.round(dmg * pref.dmgMul)); }
+  if (pref && pref.kbMul && power) { power *= pref.kbMul; }
+  if (pref && pref.id === 'mythical' && player && player.ultMeter < 100) { player.ultMeter = Math.min(100, player.ultMeter + 0.6); }
   if (e.shieldOn && !opts.ignoreShield) {
     dmg = Math.max(1, Math.ceil(dmg * 0.4));
     power *= 0.25;
@@ -1516,7 +1554,10 @@ function startAttack(fromMouse, fromTouch) {
   if (Math.abs(c) > 0.05) p.flip = c < 0;
 
   const berserkBonus = stats.berserk ? stats.berserk * 0.08 * (Math.min(1, p.combo / 25) + (p.hp <= 2 ? 0.8 : 0)) : 0;
-  const rateMul = stats.atkRate * (1 + berserkBonus) * (p.frenzyT > 0 ? 1.55 : 1);
+  const pPrefix = p.prefix;
+  const prefSpd = pPrefix ? pPrefix.speedMul : 1;
+  const prefSize = pPrefix ? pPrefix.sizeMul : 1;
+  const rateMul = stats.atkRate * (1 + berserkBonus) * (p.frenzyT > 0 ? 1.55 : 1) * prefSpd;
   const dur = (p.char.weaponType === 'saber' ? 0.32 : 0.25) / rateMul;
   p.attack = { t: 0, dur, hit: new Set() };
 
@@ -1548,7 +1589,7 @@ function startAttack(fromMouse, fromTouch) {
     }
   } else {
     // Manguinha: Golpe de Sabre Melee (+ Cortes Duplos/Cruzados com Ataque Múltiplo)
-    slashes.push({ a, life: 0.2, max: 0.2, r: 72 * stats.range, follow: true });
+    slashes.push({ a, life: 0.2, max: 0.2, r: 72 * stats.range * prefSize, follow: true });
     if (stats.multi >= 1) slashes.push({ a: a + 0.45, life: 0.22, max: 0.22, r: 82 * stats.range, follow: true });
     if (stats.multi >= 2) slashes.push({ a: a - 0.45, life: 0.22, max: 0.22, r: 82 * stats.range, follow: true });
     if (stats.multi >= 3) slashes.push({ a: a + Math.PI, life: 0.22, max: 0.22, r: 74 * stats.range, follow: true });
@@ -1686,6 +1727,29 @@ function update(dt) {
   }
   for (const h of hazards) {
     h.t += dt;
+    if (h.kind === 'fallen_star') {
+      const k = Math.min(1, h.t / h.dur);
+      h.curX = h.startX + (h.targetX - h.startX) * k;
+      h.curY = h.startY + (h.targetY - h.startY) * k;
+      if (Math.random() < 0.6) {
+        particles.push({ x: h.curX, y: h.curY, vx: rand(-30, 30), vy: rand(-30, 30), life: 0.35, max: 0.35, color: '#8ef5ff', size: 3 });
+      }
+      if (h.t >= h.dur) {
+        h.dead = true;
+        shake = Math.max(shake, 12);
+        SFX.explode();
+        fxRings.push({ kind: 'nova', x: h.targetX, y: h.targetY, r: 10, maxR: 125, life: 0.35, max: 0.35, col: '#62f6ff' });
+        burst(h.targetX, h.targetY, '#ffe042', 25, 240);
+        burst(h.targetX, h.targetY, '#7bf5ff', 25, 260);
+        for (const e of enemies) {
+          if (!e.dead && Math.hypot(e.x - h.targetX, e.y - h.targetY) < 125 + e.r) {
+            damageEnemy(e, 85 + wave * 5, h.targetX, h.targetY, 520, { color: '#62f6ff' });
+          }
+        }
+        pickups.push({ kind: 'star', x: h.targetX, y: h.targetY, z: 20, vz: 180, vx: rand(-35, 35), vy: rand(-35, 35), t: 0 });
+      }
+      continue;
+    }
     if (h.t >= h.dur) {
       h.dead = true;
       triggerExplosion(h.x, h.y, h.r, 7 + wave, false);
@@ -1780,6 +1844,13 @@ function update(dt) {
   p.attackCd = Math.max(0, p.attackCd - dt);
   p.dashCd = Math.max(0, p.dashCd - dt);
   p.frenzyT = Math.max(0, p.frenzyT - dt);
+  p.ironskinT = Math.max(0, (p.ironskinT || 0) - dt);
+  p.thornsT = Math.max(0, (p.thornsT || 0) - dt);
+  p.starTimer = (p.starTimer || 5) - dt;
+  if (p.starTimer <= 0) {
+    p.starTimer = rand(7, 13);
+    spawnTerrariaFallenStar();
+  }
   p.comboT -= dt;
   if (p.comboT <= 0) { p.combo = 0; p.bestStreakMilestone = 0; }
 
@@ -2294,6 +2365,25 @@ function update(dt) {
   shake = Math.max(0, shake - dt * 40);
 }
 
+
+// =====================================================================
+//  TERRARIA FALLEN STAR HAZARD & MECHANIC (Star.cs)
+// =====================================================================
+function spawnTerrariaFallenStar(targetX, targetY) {
+  if (!player || state !== 'play') return;
+  const tx = targetX !== undefined ? targetX : clamp(player.x + rand(-240, 240), 90, WORLD.w - 90);
+  const ty = targetY !== undefined ? targetY : clamp(player.y + rand(-180, 180), 90, WORLD.h - 90);
+  const sx = tx + rand(-160, 160);
+  const sy = ty - rand(420, 560);
+  hazards.push({
+    kind: 'fallen_star',
+    startX: sx, startY: sy,
+    targetX: tx, targetY: ty,
+    curX: sx, curY: sy,
+    dur: 1.15, t: 0, dead: false
+  });
+}
+
 function clampCam() {
   const z = (cam && cam.zoom) || getCamZoom();
   const halfW = (W / 2) / z, halfH = (H / 2) / z;
@@ -2331,7 +2421,14 @@ function collect(k) {
   if (k.kind === 'coin') { coins++; score += 10; SFX.coin(); }
   else if (k.kind === 'gem') { gainXp(1); SFX.gem(); }
   else if (k.kind === 'ruby') { gainXp(5); SFX.gem(); beep(1600, 0.08, 'triangle', 0.04); }
-  else if (k.kind === 'potion') {
+  else if (k.kind === 'star') {
+    SFX.ult();
+    p.ultMeter = Math.min(100, (p.ultMeter || 0) + 35);
+    p.frenzyT = Math.max(p.frenzyT || 0, 6);
+    score += 50;
+    texts.push({ x: p.x, y: p.y - 110, txt: '+35 FÚRIA! (Estrela Cadente)', life: 1.3, color: '#ffee55', size: 13 });
+    burst(p.x, p.y - 40, '#ffee55', 20, 220);
+  } else if (k.kind === 'potion') {
     p.hp = Math.min(stats.maxHp, p.hp + 2); SFX.potion();
     texts.push({ x: p.x, y: p.y - 110, txt: '+2 VIDA', life: 1, color: '#ff7a9c', size: 12 });
     burst(p.x, p.y - 40, '#ff7a9c', 14, 160);
@@ -3115,8 +3212,21 @@ function drawPlayer() {
     ctx.restore();
   }
   if (!(p.inv > 0 && !p.dash && !p.ult && Math.floor(p.inv * 15) % 2 === 0)) {
-    const { f, flip, bobY, tilt } = playerFrame();
-    drawCharacterFrame(p.char, f, p.x, p.y, flip, p.inv > stats.invTime - 0.12 ? 0.8 : 0, { bobY, tilt });
+    if (p.char.id === 'manguinha' && p.attack && p.attack.dur > 0 && IMG.manguinha_atk) {
+      const atkFrac = clamp(p.attack.t / p.attack.dur, 0, 0.999);
+      const frameIdx = Math.min(4, Math.floor(atkFrac * 5));
+      const fw = 200, fh = 280;
+      const s = 0.32;
+      const dw = fw * s, dh = fh * s;
+      ctx.save();
+      ctx.translate(p.x, p.y);
+      if (p.flip) ctx.scale(-1, 1);
+      ctx.drawImage(IMG.manguinha_atk, frameIdx * fw, 0, fw, fh, -dw / 2, -250 * s, dw, dh);
+      ctx.restore();
+    } else {
+      const { f, flip, bobY, tilt } = playerFrame();
+      drawCharacterFrame(p.char, f, p.x, p.y, flip, p.inv > stats.invTime - 0.12 ? 0.8 : 0, { bobY, tilt });
+    }
   }
   if (p.shields > 0) {
     ctx.save(); ctx.globalCompositeOperation = 'lighter';
@@ -3528,6 +3638,15 @@ function drawHUD() {
     if (p.frenzyT > 0) {
       txt(`🔥 FRENESI ${p.frenzyT.toFixed(1)}s`, 14, 82, 7.5, '#ff9442', 'left');
     }
+    if (p.prefix) {
+      txt(`[${p.prefix.name}] Sabre`, 14, 94, 7, p.prefix.color, 'left');
+    }
+    if (p.ironskinT > 0) {
+      txt(`🛡 PELE DE FERRO ${Math.ceil(p.ironskinT)}s`, 14, 105, 6.5, '#ffea60', 'left');
+    }
+    if (p.thornsT > 0) {
+      txt(`🌵 ESPINHOS ${Math.ceil(p.thornsT)}s`, 14, 116, 6.5, '#7aff61', 'left');
+    }
 
     const mm = Math.floor(playTime / 60), ss = Math.floor(playTime % 60);
     ctx.drawImage(IMG.i_I_GoldCoin, W - 32, 6, 20, 20);
@@ -3548,6 +3667,15 @@ function drawHUD() {
 
     if (p.frenzyT > 0) {
       txt(`🔥 FRENESI ${p.frenzyT.toFixed(1)}s`, 20, 134, 9, '#ff9442', 'left');
+    }
+    if (p.prefix) {
+      txt(`ARMY: [${p.prefix.name}]`, 20, 150, 8.5, p.prefix.color, 'left');
+    }
+    if (p.ironskinT > 0) {
+      txt(`🛡 PELE DE FERRO ${Math.ceil(p.ironskinT)}s`, 20, 164, 8, '#ffea60', 'left');
+    }
+    if (p.thornsT > 0) {
+      txt(`🌵 ESPINHOS ${Math.ceil(p.thornsT)}s`, 20, 178, 8, '#7aff61', 'left');
     }
 
     ctx.drawImage(IMG.i_I_GoldCoin, W - 50, 14, 32, 32);
@@ -3950,9 +4078,9 @@ function drawShop() {
       txt(shopToast.txt, W / 2, y0 - 8, 9, shopToast.col);
     }
     const gap = 8;
-    const cw = clamp((W - 40 - gap * 3) / 4, 150, 195);
+    const cw = clamp((W - 40 - gap * (SHOP_ITEMS.length - 1)) / SHOP_ITEMS.length, 100, 185);
     const ch = clamp(H - 96, 180, 225);
-    const x0 = W / 2 - (cw * 4 + gap * 3) / 2;
+    const x0 = W / 2 - (cw * SHOP_ITEMS.length + gap * (SHOP_ITEMS.length - 1)) / 2;
 
     SHOP_ITEMS.forEach((it, i) => {
       const x = x0 + i * (cw + gap);
@@ -3998,8 +4126,8 @@ function drawShop() {
       shopToast.time -= 0.016;
       txt(shopToast.txt, W / 2, y0 - 10, 11, shopToast.col);
     }
-    const cw = Math.min(230, (W - 80) / 4), ch = 280, gap = 18;
-    const x0 = W / 2 - (cw * 4 + gap * 3) / 2;
+    const cw = Math.min(210, (W - 80) / SHOP_ITEMS.length), ch = 280, gap = 12;
+    const x0 = W / 2 - (cw * SHOP_ITEMS.length + gap * (SHOP_ITEMS.length - 1)) / 2;
     SHOP_ITEMS.forEach((it, i) => {
       const x = x0 + i * (cw + gap);
       if (mouse.moved) {
