@@ -282,6 +282,7 @@ function drawCharacterFrame(charObj, f, x, y, flip, white = 0, opts = null) {
   ctx.translate(Math.round(x), Math.round(y + bobY));
   if (opts && opts.tilt) ctx.rotate(opts.tilt);
   if (flip) ctx.scale(-1, 1);
+  if (opts && (opts.squashX || opts.squashY)) ctx.scale(opts.squashX || 1, opts.squashY || 1);
   const sc = charObj.scale * (f.sc || 1);
   const dx = Math.round(-f.ax * sc), dy = Math.round(-f.ay * sc);
   const dw = Math.round(f.w * sc), dh = Math.round(f.h * sc);
@@ -1139,6 +1140,8 @@ let state = 'loading'; // loading | menu | select_char | play | levelup | shop |
 let player, stats, ups, enemies, ebullets, pshots, particles, pickups, texts, slashes, bolts;
 let shrines = [], hazards = [], fxRings = [], afterimages = [], puddles = [];
 let shake, freeze, wave, waveTimer, toSpawn, spawnTimer, score, coins, kills, banner, time, playTime;
+let trauma = 0.0;
+function addTrauma(amt) { trauma = Math.min(1.0, trauma + amt); shake = Math.max(shake, amt * 18); }
 let waveEvent = null, meteorTimer = 0, minimapOn = true;
 let levelChoices, levelSel, boss, bossCount;
 let best = +localStorage.getItem('gabriel_best2') || 0;
@@ -1314,6 +1317,7 @@ function damageEnemy(e, dmg, fromX, fromY, power = 380, opts = {}) {
   if (!opts.silent) SFX.hit();
   if (!opts.noFreeze) freeze = Math.max(freeze, crit ? 0.05 : 0.025);
   shake = Math.max(shake, crit ? 6 : 3);
+  addTrauma(crit ? 0.35 : 0.16);
   if (e.hp <= 0) killEnemy(e);
   return true;
 }
@@ -2363,6 +2367,7 @@ function update(dt) {
   cam.y += (p.y - 40 - cam.y) * Math.min(1, dt * 8);
   clampCam();
   shake = Math.max(0, shake - dt * 40);
+  trauma = Math.max(0, trauma - dt * 1.35);
 }
 
 
@@ -2489,7 +2494,7 @@ function hurtPlayer(dmg, fx, fy) {
   p.hp -= dmg;
   p.inv = stats.invTime;
   p.combo = 0; p.bestStreakMilestone = 0;
-  shake = 14; freeze = 0.08;
+  shake = 14; freeze = 0.08; addTrauma(0.55);
   SFX.hurt();
   gamepadRumble(0.45, 0.75, 230);
   burst(p.x, p.y - 40, '#ff4d4d', 16, 220);
@@ -3106,6 +3111,13 @@ function drawEnemy(e) {
   let alpha = 1;
   if (e.type === 'ghost' || e.type === 'necro_boss') alpha = e.faded ? 0.22 : 0.88;
   ctx.globalAlpha = alpha;
+  ctx.save();
+  ctx.translate(e.x, e.y);
+  if (e.hurt > 0) {
+    const k = e.hurt / 0.18;
+    ctx.scale(1 + k * 0.22, 1 - k * 0.20);
+  }
+  ctx.translate(-e.x, -e.y);
   ctx.drawImage(img, col * d.fw, row * d.fh, d.fw, d.fh, Math.round(dx), Math.round(dy), w, h);
   if (e.hurt > 0) {
     ctx.globalAlpha = alpha * Math.min(1, e.hurt / 0.1);
@@ -3124,6 +3136,7 @@ function drawEnemy(e) {
     ctx.globalCompositeOperation = 'source-over';
   }
   ctx.globalAlpha = 1;
+  ctx.restore();
 
   if (e.shieldOn) {
     ctx.save();
@@ -3236,7 +3249,10 @@ function drawPlayer() {
   }
   if (!(p.inv > 0 && !p.dash && !p.ult && Math.floor(p.inv * 15) % 2 === 0)) {
     const { f, flip, bobY, tilt } = playerFrame();
-    drawCharacterFrame(p.char, f, p.x, p.y, flip, p.inv > stats.invTime - 0.12 ? 0.8 : 0, { bobY, tilt });
+    let sqX = 1, sqY = 1;
+    if (p.dash) { sqX = 1.14; sqY = 0.90; }
+    else if (p.inv > stats.invTime - 0.14) { sqX = 1.16; sqY = 0.84; }
+    drawCharacterFrame(p.char, f, p.x, p.y, flip, p.inv > stats.invTime - 0.12 ? 0.8 : 0, { bobY, tilt, squashX: sqX, squashY: sqY });
   }
   if (p.shields > 0) {
     ctx.save(); ctx.globalCompositeOperation = 'lighter';
@@ -3412,10 +3428,16 @@ function drawPickup(k) {
 }
 
 function drawWorld() {
-  const sx = shake ? rand(-shake, shake) : 0, sy = shake ? rand(-shake, shake) : 0;
+  const sqTrauma = trauma * trauma;
+  const shakeOffset = sqTrauma * 22;
+  const shakeRoll = sqTrauma * 0.024;
+  const sx = shakeOffset > 0.1 ? Math.sin(time * 38) * shakeOffset : (shake ? rand(-shake, shake) : 0);
+  const sy = shakeOffset > 0.1 ? Math.cos(time * 32) * shakeOffset * 0.8 : (shake ? rand(-shake, shake) : 0);
+  const roll = shakeRoll > 0.001 ? Math.sin(time * 26) * shakeRoll : 0;
   const z = (cam && cam.zoom) || getCamZoom();
   ctx.save();
   ctx.translate(Math.round(W / 2 + sx), Math.round(H / 2 + sy));
+  if (roll) ctx.rotate(roll);
   ctx.scale(z, z);
   ctx.translate(-Math.round(cam.x), -Math.round(cam.y));
   ctx.fillStyle = '#1d4220';
@@ -3513,7 +3535,17 @@ function drawWorld() {
     ctx.fillRect(q.x - q.size / 2, q.y - q.size / 2, q.size, q.size);
   }
   ctx.globalAlpha = 1;
-  for (const t of texts) { ctx.globalAlpha = Math.min(1, t.life * 2); txt(t.txt, t.x, t.y, t.size, t.color); }
+  for (const t of texts) {
+    const maxL = t.maxLife || 0.8;
+    const progress = clamp(1 - t.life / maxL, 0, 1);
+    const pop = progress < 0.18 ? 1 + (progress / 0.18) * 0.38 : 1.38 - ((progress - 0.18) / 0.82) * 0.38;
+    ctx.save();
+    ctx.globalAlpha = Math.min(1, t.life * 2.4);
+    ctx.translate(t.x, t.y);
+    ctx.scale(pop, pop);
+    txt(t.txt, 0, 0, t.size, t.color);
+    ctx.restore();
+  }
   ctx.globalAlpha = 1;
   ctx.restore();
 
@@ -3521,6 +3553,15 @@ function drawWorld() {
   g.addColorStop(0, 'rgba(0,0,0,0)');
   g.addColorStop(1, waveEvent === 'bloodmoon' ? 'rgba(65,0,15,0.58)' : 'rgba(0,0,10,0.5)');
   ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+    if (player && player.hp <= 2 && state === 'play') {
+    // Low HP pulsing vignette
+    const pulse = 0.12 + 0.08 * Math.sin(time * 8);
+    const lowHpG = ctx.createRadialGradient(W / 2, H / 2, Math.min(W, H) * 0.35, W / 2, H / 2, Math.max(W, H) * 0.72);
+    lowHpG.addColorStop(0, 'rgba(0,0,0,0)');
+    lowHpG.addColorStop(1, "rgba(180,0,20," + pulse + ")");
+    ctx.fillStyle = lowHpG;
+    ctx.fillRect(0, 0, W, H);
+  }
   if (player && player.inv > stats.invTime - 0.3 && !player.dash && !player.ult && player.hp < stats.maxHp && state === 'play') {
     ctx.fillStyle = `rgba(255,0,0,${(player.inv - (stats.invTime - 0.3)) * 0.8})`; ctx.fillRect(0, 0, W, H);
   }
@@ -3620,10 +3661,15 @@ function drawHUD() {
   const hearts = stats.maxHp / 2;
   const hy = isCompactH ? 8 : 14;
   for (let i = 0; i < hearts; i++) {
-    const v = p.hp - i * 2, x = 14 + i * heartStep;
-    ctx.drawImage(IMG.i_heart_empty, x, hy, heartSz, heartSz);
-    if (v >= 2) ctx.drawImage(IMG.i_heart_full, x, hy, heartSz, heartSz);
-    else if (v === 1) ctx.drawImage(IMG.i_heart_full, 0, 0, 17, 34, x, hy, heartSz / 2, heartSz);
+    const v = p.hp - i * 2;
+    let x = 14 + i * heartStep, y = hy;
+    if (p.hp <= 2 && i === 0) {
+      const beat = Math.sin(time * 9);
+      if (beat > 0.45) y -= (beat - 0.45) * 5;
+    }
+    ctx.drawImage(IMG.i_heart_empty, x, y, heartSz, heartSz);
+    if (v >= 2) ctx.drawImage(IMG.i_heart_full, x, y, heartSz, heartSz);
+    else if (v === 1) ctx.drawImage(IMG.i_heart_full, 0, 0, 17, 34, x, y, heartSz / 2, heartSz);
   }
   if (p.shields > 0) {
     const sx0 = 14 + hearts * heartStep + 4;
@@ -3695,6 +3741,18 @@ function drawHUD() {
     const mm = Math.floor(playTime / 60), ss = Math.floor(playTime % 60);
     txt(`${mm}:${ss < 10 ? '0' : ''}${ss}`, W - 20, 108, 9, '#aab', 'right');
     txt('RECORDE ' + best, W - 20, 124, 8, '#998', 'right');
+    // Combo streak badge (v.2)
+    if (p.combo >= 3) {
+      const cbX = isCompactH ? W - 14 : W - 20;
+      const cbY = isCompactH ? 50 : 148;
+      const colCombo = p.combo >= 40 ? '#d25bff' : (p.combo >= 20 ? '#ff3e5b' : (p.combo >= 10 ? '#ff9436' : '#ffd23f'));
+      const bounce = 1 + 0.12 * Math.sin(p.comboT * 16);
+      ctx.save();
+      ctx.translate(cbX, cbY);
+      ctx.scale(bounce, bounce);
+      txt("⚡ " + p.combo + "x COMBO!", 0, 0, isCompactH ? 8.5 : 10, colCombo, 'right');
+      ctx.restore();
+    }
   }
 
   drawMinimap();
@@ -4397,6 +4455,7 @@ function drawMenu() {
   if (isCompactH) {
     // Menu compacto modo paisagem celular
     txt('UNDERGROUND GAME', W / 2, 24, 20, '#ffd23f');
+    txt('★ V.2 DEFINITIVA ★', W / 2, 40, 7, '#ffaa30');
 
     const curChar = CHARACTERS[selectedCharIndex];
     const fr = curChar.anim.idle;
@@ -4513,6 +4572,61 @@ function drawMenu() {
   }
 }
 
+
+// =====================================================================
+//  MENU DE PAUSA (v.2 — Game UI/UX Design System)
+// =====================================================================
+let pauseResumeRect = null, pauseCharRect = null, pauseRestartRect = null;
+function drawPauseMenu() {
+  overlay(0.68);
+  const isPortrait = H > W;
+  const isCompactH = H <= 520;
+  const p = player;
+  const pw = Math.min(440, W - 32);
+  const ph = Math.min(320, H - 40);
+  const px = W / 2 - pw / 2;
+  const py = H / 2 - ph / 2;
+
+  panel(px, py, pw, ph, true);
+  txt('★ JOGO PAUSADO ★', W / 2, py + 26, isCompactH ? 12 : 14, '#ffd23f');
+
+  // Mini painel de status do jogador
+  const statsY = py + 48;
+  const curPrefix = p && p.prefix ? '[' + p.prefix.name + '] ' : '';
+  const charTitle = (p ? p.char.name : '') + ' • ' + curPrefix + (p && p.char.weaponType === 'orange' ? 'Laranjas' : p && p.char.weaponType === 'star' ? 'Estrelas' : 'Sabre');
+  txt(charTitle, W / 2, statsY, 8.5, '#7fe0ff');
+
+  const infoY = statsY + 22;
+  txt("ONDA: " + wave + "   •   KILLS: " + kills + "   •   MOEDAS: " + coins + "   •   PTS: " + score, W / 2, infoY, 7.5, '#cfe8ff');
+
+  // Botões de Ação
+  const btnW = Math.min(280, pw - 40);
+  const btnH = 32;
+  const btnGap = 8;
+  const b0Y = infoY + 22;
+
+  const r0 = { x: W / 2 - btnW / 2, y: b0Y, w: btnW, h: btnH };
+  const r1 = { x: W / 2 - btnW / 2, y: b0Y + btnH + btnGap, w: btnW, h: btnH };
+  const r2 = { x: W / 2 - btnW / 2, y: b0Y + (btnH + btnGap) * 2, w: btnW, h: btnH };
+
+  const hov0 = inRect(mouse.x, mouse.y, r0);
+  const hov1 = inRect(mouse.x, mouse.y, r1);
+  const hov2 = inRect(mouse.x, mouse.y, r2);
+
+  panel(r0.x, r0.y, r0.w, r0.h, hov0);
+  txt(gamepadInfo.connected ? '▶ CONTINUAR [START / A]' : '▶ CONTINUAR [ESC / ENTER]', W / 2, r0.y + 20, 8.5, hov0 ? '#7dff7d' : '#ffffff');
+
+  panel(r1.x, r1.y, r1.w, r1.h, hov1);
+  txt(gamepadInfo.connected ? '⇄ TROCAR PERSONAGEM [SELECT]' : '⇄ TROCAR PERSONAGEM [TAB]', W / 2, r1.y + 20, 8.5, hov1 ? '#ffd23f' : '#cfe8ff');
+
+  panel(r2.x, r2.y, r2.w, r2.h, hov2);
+  txt('🔄 REINICIAR PARTIDA [R]', W / 2, r2.y + 20, 8.5, hov2 ? '#ff6438' : '#e0e0e0');
+
+  pauseResumeRect = r0;
+  pauseCharRect = r1;
+  pauseRestartRect = r2;
+}
+
 function drawOver() {
   overlay(0.75);
   const isCompactH = H <= 520;
@@ -4620,7 +4734,7 @@ function loop(now) {
     } else if (state === 'play') {
       if (anyPressed('p', 'escape')) state = 'pause';
       else if (anyPressed('tab')) { state = 'select_char'; SFX.select(); }
-      else if (freeze > 0) { freeze -= dt; shake = Math.max(0, shake - dt * 20); }
+      else if (freeze > 0) { freeze -= dt; shake = Math.max(0, shake - dt * 20); trauma = Math.max(0, trauma - dt * 0.8); }
       else update(dt);
     } else if (state === 'levelup') {
       // Atalhos diretos: 1, 2, 3 no teclado ou botões X, Y, B no controle
@@ -4695,11 +4809,18 @@ function loop(now) {
         }
       }
     } else if (state === 'pause') {
-      if (anyPressed('p', 'escape', 'enter') || mouse.click) {
+      if (anyPressed('p', 'escape', 'enter') || (gpState && (gpState.justPressed[0] || gpState.justPressed[9]))) {
         state = 'play';
         mouse.click = false; mouse.down = false;
       }
-      if (anyPressed('tab')) { state = 'select_char'; SFX.select(); }
+      if (anyPressed('tab') || (gpState && gpState.justPressed[8])) { state = 'select_char'; SFX.select(); }
+      if (anyPressed('r')) { reset(); state = 'play'; SFX.wave(); }
+      if (mouse.click) {
+        if (inRect(mouse.x, mouse.y, pauseResumeRect)) { state = 'play'; }
+        else if (inRect(mouse.x, mouse.y, pauseCharRect)) { state = 'select_char'; SFX.select(); }
+        else if (inRect(mouse.x, mouse.y, pauseRestartRect)) { reset(); state = 'play'; SFX.wave(); }
+        mouse.click = false; mouse.down = false;
+      }
     } else if (state === 'over') {
       time += dt;
       for (const q of particles) { q.x += q.vx * dt; q.y += q.vy * dt; q.life -= dt; }
