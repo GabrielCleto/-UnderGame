@@ -115,10 +115,9 @@ function play(name, vol = 0.5, rateVar = 0.1) {
   a.playbackRate = 1 + rand(-rateVar, rateVar);
   a.play().catch(() => { });
 }
-const music = new Audio('assets/audio/musica.mp3');
-music.loop = true; music.volume = 0.3;
-let musicOn = true;
-function startMusic() { if (musicOn && music.paused) music.play().catch(() => { }); }
+const music = { loop: true, volume: 0.3, paused: true, play: () => Promise.resolve(), pause: () => { } };
+let musicOn = false;
+function startMusic() { }
 
 let actx = null;
 function beep(freq = 440, dur = 0.1, type = 'square', vol = 0.05, slide = 0) {
@@ -308,10 +307,19 @@ const MON = {
   snake: { img: 'snake', fw: 32, fh: 32, hp: 3, speed: 110, r: 14, dmg: 1, xp: 2, score: 15, scale: 1.6, shadow: true },
   eyeball: { img: 'eyeball', fw: 32, fh: 38, hp: 3, speed: 85, r: 14, dmg: 1, xp: 2, score: 20, scale: 1.5, fly: true },
   ghost: { img: 'ghost', fw: 40, fh: 46, hp: 5, speed: 95, r: 16, dmg: 1, xp: 3, score: 25, scale: 1.4, fly: true },
-  bigworm: { img: 'big_worm', fw: 35, fh: 50, hp: 14, speed: 45, r: 22, dmg: 2, xp: 6, score: 60, scale: 1.7, shadow: true },
-  flower: { img: 'man_eater_flower', fw: 60, fh: 76, hp: 12, speed: 0, r: 24, dmg: 1, xp: 6, score: 60, scale: 1.3, shadow: true },
-  boss: { img: 'pumpking', fw: 46, fh: 46, hp: 75, speed: 78, r: 40, dmg: 2, xp: 32, score: 500, scale: 3.2, shadow: true, bossName: 'REI ABÓBORA' },
-  leviathan: { img: 'big_worm', fw: 35, fh: 50, hp: 95, speed: 92, r: 42, dmg: 2, xp: 40, score: 650, scale: 3.1, shadow: true, bossName: 'LEVIATÃ ABISSAL', isBoss: true },
+  bigworm: { img: 'big_worm', fw: 35, fh: 50, hp: 15, speed: 48, r: 22, dmg: 2, xp: 6, score: 60, scale: 1.7, shadow: true },
+  flower: { img: 'man_eater_flower', fw: 60, fh: 76, hp: 14, speed: 0, r: 24, dmg: 1, xp: 6, score: 60, scale: 1.3, shadow: true },
+  bomber: { img: 'slime', fw: 32, fh: 32, hp: 4, speed: 138, r: 15, dmg: 2, xp: 3, score: 30, scale: 1.55, shadow: true },
+  viper: { img: 'snake', fw: 32, fh: 32, hp: 5, speed: 132, r: 14, dmg: 1, xp: 3, score: 32, scale: 1.7, shadow: true },
+  sniper: { img: 'eyeball', fw: 32, fh: 38, hp: 5, speed: 75, r: 15, dmg: 2, xp: 4, score: 40, scale: 1.65, fly: true },
+  necromancer: { img: 'ghost', fw: 40, fh: 46, hp: 9, speed: 72, r: 18, dmg: 1, xp: 5, score: 55, scale: 1.65, fly: true },
+  golem: { img: 'pumpking', fw: 46, fh: 46, hp: 22, speed: 56, r: 24, dmg: 2, xp: 8, score: 85, scale: 1.85, shadow: true },
+  goblin: { img: 'small_worm', fw: 32, fh: 32, hp: 16, speed: 168, r: 16, dmg: 0, xp: 10, score: 250, scale: 1.9, shadow: true },
+  boss: { img: 'pumpking', fw: 46, fh: 46, hp: 95, speed: 80, r: 40, dmg: 2, xp: 35, score: 600, scale: 3.2, shadow: true, bossName: 'REI ABÓBORA', isBoss: true },
+  leviathan: { img: 'big_worm', fw: 35, fh: 50, hp: 120, speed: 94, r: 42, dmg: 2, xp: 45, score: 750, scale: 3.1, shadow: true, bossName: 'LEVIATÃ ABISSAL', isBoss: true },
+  necro_boss: { img: 'ghost', fw: 40, fh: 46, hp: 140, speed: 86, r: 38, dmg: 2, xp: 55, score: 900, scale: 2.8, fly: true, shadow: true, bossName: 'SOBERANO NECROMANTE', isBoss: true },
+  hydra_boss: { img: 'man_eater_flower', fw: 60, fh: 76, hp: 165, speed: 52, r: 44, dmg: 2, xp: 65, score: 1100, scale: 2.35, shadow: true, bossName: 'IMPERATRIZ CARNÍVORA', isBoss: true },
+  beholder_boss: { img: 'eyeball', fw: 32, fh: 38, hp: 185, speed: 88, r: 40, dmg: 2, xp: 75, score: 1300, scale: 3.3, fly: true, shadow: true, bossName: 'OLHO ASTRAL SUPREMO', isBoss: true },
 };
 
 // =====================================================================
@@ -984,6 +992,8 @@ const SHRINE_TYPES = [
   { id: 'shield', name: 'ALTAR CELESTIAL', sub: '+2 Escudos Orbitais Protetores!', col: '#4fe3ff', icon: 'i_S_Buff03' },
   { id: 'fortune', name: 'ALTAR DA FORTUNA', sub: 'Chuva de Moedas + Ímã Global!', col: '#ffd23f', icon: 'i_I_GoldCoin' },
   { id: 'storm', name: 'ALTAR DO TROVÃO', sub: 'Tempestade de Raios + Fúria!', col: '#d26bff', icon: 'i_S_Light02' },
+  { id: 'pact', name: 'ALTAR DO PACTO', sub: 'Sacrifique 1 Coração por +1 NÍVEL e +1 DANO!', col: '#ff2a55', icon: 'i_I_Ruby' },
+  { id: 'cursed', name: 'BAÚ DESAFIADOR', sub: 'Derrote a Emboscada de Elites por Recompensa Épica!', col: '#ff9a2e', icon: 'i_I_Chest01' },
 ];
 
 function spawnShrine() {
@@ -1044,39 +1054,48 @@ function collideStatic(e, r) {
 }
 
 // =====================================================================
-//  MELHORIAS (Level Up)
+//  MELHORIAS (Level Up & Sinergias Despertas)
 // =====================================================================
 const UPGRADES = [
-  { id: 'dmg', name: 'Poder Puro', icon: 'S_Buff08', max: 6, desc: l => '+1 de dano no ataque principal', apply: s => (s.dmg += 1) },
-  { id: 'rate', name: 'Mãos Rápidas', icon: 'I_Clock', max: 5, desc: l => 'Ataques 18% mais rápidos', apply: s => (s.atkRate *= 1.18) },
-  { id: 'multi', name: 'Ataque Múltiplo', icon: 'S_Light04', max: 3, desc: l => '+1 projétil em leque ou corte duplo de sabre', apply: s => (s.multi = (s.multi || 0) + 1) },
-  { id: 'speed', name: 'Tênis Turbo', icon: 'A_Shoes03', max: 5, desc: l => 'Anda 12% mais rápido', apply: s => (s.speed *= 1.12) },
-  { id: 'hp', name: 'Coração Extra', icon: 'S_Holy01', max: 5, desc: l => '+1 coração e cura total', apply: (s, p) => { s.maxHp += 2; p.hp = s.maxHp; } },
-  { id: 'range', name: 'Alcance Ampliado', icon: 'S_Light01', max: 4, desc: l => 'Alcance do golpe/projéteis +20%', apply: s => (s.range *= 1.2) },
-  { id: 'wave', name: 'Onda Cósmica', icon: 'S_Magic02', max: 5, desc: l => ['Cada ataque dispara uma onda cósmica', 'Ondas atravessam mais inimigos', '3 ondas em leque', 'Ondas maiores e com dano elevado', 'Ondas adicionais para trás'][l], apply: s => (s.wave += 1) },
-  { id: 'fire', name: 'Bolas de Fogo', icon: 'S_Fire02', max: 5, desc: l => (l === 0 ? 'Uma bola de fogo te orbita' : '+1 bola de fogo orbitando'), apply: s => (s.fire += 1) },
-  { id: 'bolt', name: 'Raio em Cadeia', icon: 'S_Light02', max: 5, desc: l => (l === 0 ? 'Raios caem nos inimigos' : 'Raios mais frequentes e saltam +1'), apply: s => (s.bolt += 1) },
-  { id: 'axe', name: 'Machado Bumerangue', icon: 'S_Axe03', max: 4, desc: l => (l === 0 ? 'Lança machados giratórios que voltam até você' : '+1 machado bumerangue e mais dano'), apply: s => (s.axe = (s.axe || 0) + 1) },
-  { id: 'ice', name: 'Aura de Gelo', icon: 'S_Ice01', max: 4, desc: l => (l === 0 ? 'Congela e fere quem chega perto' : 'Aura maior e mais forte'), apply: s => (s.ice += 1) },
-  { id: 'earth', name: 'Tremor Sísmico', icon: 'S_Earth01', max: 4, desc: l => (l === 0 ? 'A cada 4s um choque atordoa e fere em área' : 'Choque sísmico com dobro de raio e força'), apply: s => (s.earth = (s.earth || 0) + 1) },
-  { id: 'phantom', name: 'Lâminas Fantasmas', icon: 'S_Dagger03', max: 4, desc: l => (l === 0 ? 'Adagas de luz perseguem o inimigo mais próximo' : '+1 adaga automática e mais veloz'), apply: s => (s.phantom = (s.phantom || 0) + 1) },
-  { id: 'aegis', name: 'Égide Divina', icon: 'S_Buff03', max: 3, desc: l => (l === 0 ? 'Gera 1 escudo protetor a cada 15s' : 'Escudo recarrega mais rápido e explode forte'), apply: (s, p) => { s.aegis = (s.aegis || 0) + 1; p.shields = Math.min(3, (p.shields || 0) + 1); } },
+  { id: 'dmg', name: 'Poder Puro', icon: 'S_Buff08', max: 5, desc: l => '+1 de dano no ataque principal', apply: s => (s.dmg += 1) },
+  { id: 'rate', name: 'Mãos Rápidas', icon: 'I_Clock', max: 5, desc: l => 'Ataques +14% mais rápidos', apply: s => (s.atkRate *= 1.14) },
+  { id: 'multi', name: 'Ataque Múltiplo', icon: 'S_Light04', max: 3, desc: l => '+1 projétil em leque ou corte extra de sabre', apply: s => (s.multi = (s.multi || 0) + 1) },
+  { id: 'speed', name: 'Tênis Turbo', icon: 'A_Shoes03', max: 5, desc: l => 'Anda +10% mais rápido', apply: s => (s.speed *= 1.10) },
+  { id: 'hp', name: 'Coração Extra', icon: 'S_Holy01', max: 5, desc: l => '+1 coração máximo e cura 3 de vida', apply: (s, p) => { s.maxHp += 2; p.hp = Math.min(s.maxHp, p.hp + 6); } },
+  { id: 'range', name: 'Alcance Ampliado', icon: 'S_Light01', max: 4, desc: l => 'Alcance do golpe/projéteis +16%', apply: s => (s.range *= 1.16) },
+  { id: 'wave', name: 'Onda Cósmica', icon: 'S_Magic02', max: 5, desc: l => ['Cada ataque dispara uma onda cósmica', 'Ondas atravessam mais inimigos', '3 ondas em leque', 'Ondas maiores e com dano elevado', '★ DESPERTAR: Supernova Cósmica 360°!'][l], apply: s => (s.wave += 1) },
+  { id: 'fire', name: 'Bolas de Fogo', icon: 'S_Fire02', max: 5, desc: l => l === 4 ? '★ DESPERTAR: Sol Solar Supremo que queima tudo!' : (l === 0 ? 'Uma bola de fogo te orbita' : '+1 bola de fogo orbitando'), apply: s => (s.fire += 1) },
+  { id: 'bolt', name: 'Raio em Cadeia', icon: 'S_Light02', max: 5, desc: l => l === 4 ? '★ DESPERTAR: Tempestade de Thor (raios duplos e paralisia)!' : (l === 0 ? 'Raios caem nos inimigos' : 'Raios mais frequentes e saltam +1'), apply: s => (s.bolt += 1) },
+  { id: 'axe', name: 'Machado Bumerangue', icon: 'S_Axe03', max: 4, desc: l => l === 3 ? '★ DESPERTAR: Guilhotina Espiral Gigante!' : (l === 0 ? 'Lança machados giratórios que voltam até você' : '+1 machado bumerangue e mais dano'), apply: s => (s.axe = (s.axe || 0) + 1) },
+  { id: 'ice', name: 'Aura de Gelo', icon: 'S_Ice01', max: 4, desc: l => l === 3 ? '★ DESPERTAR: Zero Absoluto (congela inimigos na aura)!' : (l === 0 ? 'Desacelera e fere quem chega perto' : 'Aura maior e mais gelada'), apply: s => (s.ice += 1) },
+  { id: 'earth', name: 'Tremor Sísmico', icon: 'S_Earth01', max: 4, desc: l => (l === 0 ? 'A cada 4.5s um choque atordoa e fere em área' : 'Choque sísmico com maior raio e força'), apply: s => (s.earth = (s.earth || 0) + 1) },
+  { id: 'phantom', name: 'Lâminas Fantasmas', icon: 'S_Dagger03', max: 4, desc: l => l === 3 ? '★ DESPERTAR: Exército Espectral Perfurante!' : (l === 0 ? 'Adagas de luz perseguem o inimigo mais próximo' : '+1 adaga automática e mais veloz'), apply: s => (s.phantom = (s.phantom || 0) + 1) },
+  { id: 'vortex', name: 'Vórtice Abissal', icon: 'S_Magic04', max: 4, desc: l => (l === 0 ? 'Cria buracos negros que puxam e esmagam inimigos' : 'Vórtice maior, mais forte e mais frequente'), apply: s => (s.vortex = (s.vortex || 0) + 1) },
+  { id: 'venom', name: 'Peçonha Letal', icon: 'P_Medicine01', max: 4, desc: l => (l === 0 ? 'Ataques envenenam inimigos e explodem ao morrer' : 'Veneno mais letal e explosão tóxica maior'), apply: s => (s.venom = (s.venom || 0) + 1) },
+  { id: 'berserk', name: 'Sangue Berserker', icon: 'S_Fire01', max: 4, desc: l => 'Ganha até +45% velocidade de ataque conforme seu Combo ou vida baixa', apply: s => (s.berserk = (s.berserk || 0) + 1) },
+  { id: 'ricochet', name: 'Cristal de Eco', icon: 'I_Diamond', max: 3, desc: l => 'Ataques têm 25% de chance por nível de disparar um raio de eco em outro alvo', apply: s => (s.ricochet = (s.ricochet || 0) + 1) },
+  { id: 'aegis', name: 'Égide Divina', icon: 'S_Buff03', max: 3, desc: l => (l === 0 ? 'Gera 1 escudo protetor a cada 16s' : 'Escudo recarrega mais rápido e explode forte'), apply: (s, p) => { s.aegis = (s.aegis || 0) + 1; p.shields = Math.min(3, (p.shields || 0) + 1); } },
   { id: 'critNova', name: 'Impacto Arcano', icon: 'S_Magic03', max: 3, desc: l => 'Acertos críticos explodem causando dano em área', apply: s => (s.critNova = (s.critNova || 0) + 1) },
-  { id: 'luck', name: 'Trevo da Sorte', icon: 'I_Clover', max: 4, desc: l => '+8% crítico e mais drops especiais', apply: s => { s.crit += 0.08; s.luck += 1; } },
-  { id: 'magnet', name: 'Anel Ímã', icon: 'Ac_Ring01', max: 3, desc: l => 'Puxa itens de mais longe', apply: s => (s.magnet += 85) },
-  { id: 'vamp', name: 'Rubi Vampiro', icon: 'I_Ruby', max: 3, desc: l => 'Chance de curar ao derrotar', apply: s => (s.vamp += 1) },
-  { id: 'dash', name: 'Giro Cortante', icon: 'S_Buff04', max: 4, desc: l => 'Giro recarrega 20% mais rápido e causa +2 de dano', apply: s => { s.dashCd *= 0.8; s.dashDmg += 2; } },
-  { id: 'armor', name: 'Jaqueta Blindada', icon: 'A_Armour01', max: 3, desc: l => 'Mais tempo invencível após dano', apply: s => (s.invTime += 0.35) },
+  { id: 'luck', name: 'Trevo da Sorte', icon: 'I_Clover', max: 4, desc: l => '+7% crítico e mais drops raros', apply: s => { s.crit += 0.07; s.luck += 1; } },
+  { id: 'magnet', name: 'Anel Ímã', icon: 'Ac_Ring01', max: 3, desc: l => 'Puxa itens de mais longe (+85 alcance)', apply: s => (s.magnet += 85) },
+  { id: 'vamp', name: 'Rubi Vampiro', icon: 'I_Ruby', max: 3, desc: l => 'Chance de curar 1 de vida ao derrotar inimigos', apply: s => (s.vamp += 1) },
+  { id: 'dash', name: 'Giro Cortante', icon: 'S_Buff04', max: 4, desc: l => 'Giro recarrega 16% mais rápido e causa +2 de dano', apply: s => { s.dashCd *= 0.84; s.dashDmg += 2; } },
+  { id: 'armor', name: 'Jaqueta Blindada', icon: 'A_Armour01', max: 3, desc: l => 'Mais tempo invencível após dano e reduz dano pesado em ondas altas', apply: s => { s.invTime += 0.3; s.armor = (s.armor || 0) + 1; } },
 ];
 
 // =====================================================================
-//  LOJA ENTRE ONDAS
+//  LOJA ENTRE ONDAS (Preços Dinâmicos & Inflação Equilibrada)
 // =====================================================================
+let shopBuys = {};
+function getShopCost(item) {
+  const n = shopBuys[item.id] || 0;
+  return item.baseCost + n * item.stepCost;
+}
 const SHOP_ITEMS = [
-  { id: 'potion', name: 'Frasco de Vida', icon: 'P_Red01', cost: 12, desc: 'Recupera 2 corações cheios', buy: (s, p) => { p.hp = Math.min(s.maxHp, p.hp + 4); SFX.potion(); } },
-  { id: 'shield_orb', name: 'Orbe de Escudo', icon: 'S_Buff03', cost: 18, desc: 'Concede +2 Escudos Orbitais que bloqueiam dano', buy: (s, p) => { p.shields = Math.min(4, (p.shields || 0) + 2); SFX.shrine(); } },
-  { id: 'ult_charge', name: 'Carga de Fúria', icon: 'S_Buff01', cost: 20, desc: 'Enche 100% da barra de Fúria instantaneamente', buy: (s, p) => { p.ultMeter = 100; SFX.ult(); } },
-  { id: 'medal', name: 'Medalha de Honra', icon: 'Ac_Medal01', cost: 36, desc: 'Aumenta permanentemente o dano de tudo em +1', buy: (s, p) => { s.dmg += 1; s.dashDmg += 1; SFX.level(); } },
+  { id: 'potion', name: 'Frasco de Vida', icon: 'P_Red01', baseCost: 12, stepCost: 6, get cost() { return getShopCost(this); }, desc: 'Recupera 2 corações cheios', buy: (s, p) => { p.hp = Math.min(s.maxHp, p.hp + 4); SFX.potion(); } },
+  { id: 'shield_orb', name: 'Orbe de Escudo', icon: 'S_Buff03', baseCost: 18, stepCost: 10, get cost() { return getShopCost(this); }, desc: 'Concede +2 Escudos Orbitais que bloqueiam dano', buy: (s, p) => { p.shields = Math.min(4, (p.shields || 0) + 2); SFX.shrine(); } },
+  { id: 'mystery', name: 'Tomo do Destino', icon: 'I_Book', baseCost: 24, stepCost: 14, get cost() { return getShopCost(this); }, desc: 'Concede +100% Fúria, Ímã Global e +10% Crítico na próxima onda', buy: (s, p) => { p.ultMeter = 100; p.frenzyT = Math.max(p.frenzyT, 8); for (const k of pickups) k.pull = true; SFX.ult(); } },
+  { id: 'medal', name: 'Medalha de Honra', icon: 'Ac_Medal01', baseCost: 42, stepCost: 28, get cost() { return getShopCost(this); }, desc: 'Aumenta permanentemente o dano principal e de giro em +1', buy: (s, p) => { s.dmg += 1; s.dashDmg += 1; SFX.level(); } },
 ];
 let shopSel = 0;
 
@@ -1099,17 +1118,19 @@ function reset() {
     dmg: curChar.dmgMod, atkRate: 1, speed: 220 * curChar.speedMod, maxHp: curChar.hpMod, range: 1,
     dashCd: 0.95, dashDmg: 2, crit: 0.08, magnet: 110, wave: 0, fire: 0, bolt: 0, ice: 0,
     earth: 0, phantom: 0, multi: 0, axe: 0, aegis: 0, critNova: 0,
+    vortex: 0, venom: 0, berserk: 0, ricochet: 0, armor: 0,
     luck: 0, vamp: 0, invTime: 1.0, nukeNext: false
   };
   ups = {};
+  shopBuys = {};
   player = {
     char: curChar,
     x: WORLD.w / 2, y: WORLD.h / 2, dir: 'down', flip: false, moving: false, aim: Math.PI / 2,
     hp: curChar.hpMod, inv: 0, animT: 0, idleT: 0, attack: null, attackCd: 0, dash: null, dashCd: 0,
     ult: null, ultMeter: 0, combo: 0, comboT: 0, bestStreakMilestone: 0,
     level: 1, xp: 0, xpNext: 6, pendingLevels: 0,
-    fireAng: 0, boltT: 2, iceT: 0, earthT: 3, phantomT: 1.5, axeT: 1.4, aegisT: 12,
-    frenzyT: 0, shields: 0, ghostT: 0, stepT: 0,
+    fireAng: 0, boltT: 2, iceT: 0, earthT: 3, phantomT: 1.5, axeT: 1.4, aegisT: 12, vortexT: 3.5,
+    frenzyT: 0, shields: 0, ghostT: 0, stepT: 0, goblinT: 16,
   };
   enemies = []; ebullets = []; pshots = []; particles = []; pickups = []; texts = []; slashes = []; bolts = [];
   shrines = []; hazards = []; fxRings = []; afterimages = []; puddles = [];
@@ -1121,19 +1142,22 @@ function reset() {
 }
 
 // =====================================================================
-//  INIMIGOS & SPAWN
+//  INIMIGOS & SPAWN (Balanceamento Progressivo & Variedade de Arquétipos)
 // =====================================================================
-function isBossType(t) { return t === 'boss' || t === 'leviathan'; }
+function isBossType(t) {
+  return Boolean(MON[t] && MON[t].isBoss);
+}
 
 function wavePool() {
-  if (waveEvent === 'swarm') return pick(['bat', 'slime', 'bee', 'worm']);
+  if (waveEvent === 'swarm') return pick(['bat', 'slime', 'bee', 'worm', 'viper']);
   const p = [['slime', 5], ['worm', 3]];
-  if (wave >= 2) p.push(['bat', 4]);
-  if (wave >= 3) p.push(['snake', 3], ['bee', 2]);
-  if (wave >= 4) p.push(['eyeball', 2], ['bigslime', 1]);
-  if (wave >= 6) p.push(['ghost', 2], ['flower', 1]);
-  if (wave >= 7) p.push(['bigworm', 1]);
-  if (wave >= 9) p.push(['eyeball', 2], ['bee', 2]);
+  if (wave >= 2) p.push(['bat', 4], ['snake', 2]);
+  if (wave >= 3) p.push(['bee', 3], ['bomber', 2]);
+  if (wave >= 4) p.push(['eyeball', 2], ['bigslime', 1], ['viper', 2]);
+  if (wave >= 6) p.push(['ghost', 2], ['flower', 1], ['sniper', 2]);
+  if (wave >= 7) p.push(['bigworm', 2], ['necromancer', 2]);
+  if (wave >= 9) p.push(['golem', 2], ['sniper', 2], ['bomber', 3]);
+  if (wave >= 12) p.push(['golem', 3], ['necromancer', 3], ['bigslime', 2]);
   const tot = p.reduce((a, b) => a + b[1], 0);
   let r = Math.random() * tot;
   for (const [t, w] of p) { if ((r -= w) <= 0) return t; }
@@ -1141,8 +1165,11 @@ function wavePool() {
 }
 
 function spawnPos(minD, maxD, r) {
+  const z = (cam && cam.zoom) || 1;
+  const adjMin = minD / Math.min(1, z);
+  const adjMax = maxD / Math.min(1, z);
   for (let i = 0; i < 40; i++) {
-    const a = rand(0, Math.PI * 2), d = rand(minD, maxD);
+    const a = rand(0, Math.PI * 2), d = rand(adjMin, adjMax);
     const x = player.x + Math.cos(a) * d, y = player.y + Math.sin(a) * d;
     if (x < 70 || y < 110 || x > WORLD.w - 70 || y > WORLD.h - 50) continue;
     if (!blocked(x, y, r)) return { x, y };
@@ -1153,25 +1180,39 @@ function spawnPos(minD, maxD, r) {
 function spawnEnemy(kind, at, opts = {}) {
   let type = kind, scaleMul = 1, hpMul = 1, extra = {};
   if (kind === 'bigslime') { type = 'slime'; scaleMul = 1.7; hpMul = 3.5; extra.big = true; }
-  if (kind === 'minislime') { type = 'slime'; scaleMul = 0.7; hpMul = 0.34; extra.mini = true; }
+  if (kind === 'minislime') { type = 'slime'; scaleMul = 0.7; hpMul = 0.36; extra.mini = true; }
   const d = MON[type];
-  const eliteChance = waveEvent === 'golden' ? 0.25 : 0.06;
-  const elite = !opts.noElite && !isBossType(type) && (wave >= 4 || waveEvent === 'golden') && Math.random() < eliteChance;
-  if (elite) { scaleMul *= 1.3; hpMul *= 2.8; }
+  const eliteChance = waveEvent === 'golden' ? 0.28 : waveEvent === 'bloodmoon' ? 0.18 : Math.min(0.22, 0.05 + Math.max(0, wave - 4) * 0.01);
+  const elite = Boolean(opts.forceElite || (!opts.noElite && !isBossType(type) && type !== 'goblin' && (wave >= 4 || waveEvent === 'golden' || waveEvent === 'bloodmoon') && Math.random() < eliteChance));
+  if (elite) { scaleMul *= 1.32; hpMul *= 2.9; }
+  if (opts.bounty) { scaleMul *= 1.65; hpMul *= 6.5; extra.bounty = true; extra.bountyT = 22; }
   const pos = at || (type === 'flower' ? spawnPos(260, 480, 40) : spawnPos(Math.max(W, H) * 0.55, Math.max(W, H) * 0.7, 30));
-  const hpScale = 1 + (wave - 1) * 0.12;
+
+  // Escalonamento composto: mantém o início acessível e impede que o jogador delete tudo em ondas avançadas
+  const lvlFactor = player ? Math.max(0, player.level - 4) * 0.07 : 0;
+  const hpScale = 1 + (wave - 1) * 0.24 + Math.pow(Math.max(0, wave - 3), 1.62) * 0.14 + lvlFactor;
   const hp = Math.max(1, Math.round(d.hp * hpMul * (isBossType(type) ? 1 : hpScale)));
+  const spdScale = (1 + Math.min(wave, 25) * 0.022) * (extra.mini ? 1.28 : 1) * (waveEvent === 'swarm' ? 1.15 : 1) * (waveEvent === 'bloodmoon' ? 1.18 : 1);
+  const scaledDmg = d.dmg + (wave >= 12 && (elite || isBossType(type)) ? 1 : 0) + (waveEvent === 'bloodmoon' ? 1 : 0);
+
   const e = {
     type, x: pos.x, y: pos.y, vx: 0, vy: 0, kx: 0, ky: 0, hp, maxHp: hp,
-    r: d.r * scaleMul, scale: d.scale * scaleMul, speed: d.speed * (1 + Math.min(wave, 15) * 0.025) * (extra.mini ? 1.3 : 1) * (waveEvent === 'swarm' ? 1.15 : 1),
-    dmg: d.dmg, xp: Math.ceil(d.xp * hpMul * (waveEvent === 'swarm' ? 1.3 : 1)), score: Math.round(d.score * hpMul),
-    t: rand(0, 10), row: 2, hurt: 0, spawn: opts.instant ? 0 : 0.7, act: rand(1, 3), mode: 'move', slow: 0, freezeT: 0,
+    r: d.r * scaleMul, scale: d.scale * scaleMul, speed: d.speed * spdScale,
+    dmg: scaledDmg, xp: Math.ceil(d.xp * (elite ? 2.4 : 1) * (waveEvent === 'swarm' ? 1.25 : 1) * (waveEvent === 'bloodmoon' ? 1.8 : 1)),
+    score: Math.round(d.score * hpMul * (waveEvent === 'bloodmoon' ? 1.5 : 1)),
+    t: rand(0, 10), row: 2, hurt: 0, spawn: opts.instant ? 0 : 0.7, act: rand(1.1, 2.6), mode: 'move', slow: 0, freezeT: 0,
+    poisonT: 0, poisonDmg: 0, poisonTick: 0, shieldOn: false,
     elite, fireHit: 0, ...extra,
   };
+  if (type === 'goblin') {
+    e.escapeT = 16;
+    e.coinT = 0.6;
+  }
   if (isBossType(type)) {
     bossCount++;
-    e.hp = e.maxHp = d.hp + (bossCount - 1) * 50;
-    e.phase = 'chase'; e.pt = 2.6; e.cycle = 0; e.spawn = 1.2;
+    const bossWaveScale = 1 + Math.max(0, wave - 5) * 0.25 + Math.pow(Math.max(0, bossCount - 1), 1.35) * 0.45;
+    e.hp = e.maxHp = Math.round((d.hp + (bossCount - 1) * 70) * bossWaveScale);
+    e.phase = 'chase'; e.pt = 2.4; e.cycle = 0; e.spawn = 1.2;
     boss = e;
   }
   enemies.push(e);
@@ -1185,19 +1226,31 @@ function charThemeHex() {
 
 function damageEnemy(e, dmg, fromX, fromY, power = 380, opts = {}) {
   if (e.dead || e.spawn > 0) return false;
-  if (e.type === 'ghost' && e.faded) return false;
+  if ((e.type === 'ghost' || e.type === 'necro_boss') && e.faded) return false;
   let crit = false;
   if (!opts.noCrit && Math.random() < stats.crit) { dmg *= 2; crit = true; }
+  if (e.shieldOn && !opts.ignoreShield) {
+    dmg = Math.max(1, Math.ceil(dmg * 0.4));
+    power *= 0.25;
+  }
+  if (isBossType(e.type)) {
+    const maxHit = Math.max(8, Math.ceil(e.maxHp * 0.14));
+    if (dmg > maxHit) dmg = maxHit + Math.ceil((dmg - maxHit) * 0.25);
+  }
   e.hp -= dmg;
   e.hurt = 0.18;
+  if (stats.venom > 0 && !opts.isPoison) {
+    e.poisonT = 3.2 + stats.venom * 0.5;
+    e.poisonDmg = Math.max(e.poisonDmg || 0, stats.venom + Math.floor(stats.dmg * 0.35));
+  }
   if (fromX !== undefined) {
     const a = Math.atan2(e.y - fromY, e.x - fromX);
-    const res = isBossType(e.type) ? 0.08 : e.type === 'bigworm' || e.type === 'flower' ? 0.2 : e.big ? 0.4 : 1;
+    const res = isBossType(e.type) ? 0.07 : e.type === 'golem' || e.type === 'bigworm' || e.type === 'flower' ? 0.18 : e.big ? 0.4 : 1;
     e.kx += Math.cos(a) * power * res; e.ky += Math.sin(a) * power * res;
   }
   burst(e.x, e.y - e.r, '#ffffff', 4, 160);
   burst(e.x, e.y - e.r, opts.color || charThemeHex(), 5, 200);
-  texts.push({ x: e.x + rand(-10, 10), y: e.y - e.r * 2.2 - 10, txt: '' + dmg + (crit ? '!' : ''), life: 0.8, color: crit ? '#ffd23f' : '#ffffff', size: crit ? 16 : 11 });
+  texts.push({ x: e.x + rand(-10, 10), y: e.y - e.r * 2.2 - 10, txt: '' + dmg + (crit ? '!' : ''), life: 0.8, color: crit ? '#ffd23f' : (opts.isPoison ? '#7dff7a' : '#ffffff'), size: crit ? 16 : 11 });
   if (crit && stats.critNova > 0 && !opts.isNova) {
     const nr = 75 + stats.critNova * 20;
     fxRings.push({ kind: 'nova', x: e.x, y: e.y - e.r * 0.5, r: 10, maxR: nr, life: 0.25, max: 0.25, col: '#d26bff' });
@@ -1206,6 +1259,18 @@ function damageEnemy(e, dmg, fromX, fromY, power = 380, opts = {}) {
       if (!o.dead && o !== e && Math.hypot(o.x - e.x, o.y - e.y) < nr + o.r) {
         damageEnemy(o, ndmg, e.x, e.y, 200, { color: '#d26bff', noFreeze: true, silent: true, noCrit: true, isNova: true });
       }
+    }
+  }
+  if (stats.ricochet > 0 && !opts.isRicochet && !opts.isPoison && !opts.isNova && Math.random() < stats.ricochet * 0.24) {
+    let ricTarget = null, rDist = 240;
+    for (const o of enemies) {
+      if (o === e || o.dead || o.spawn > 0 || (o.type === 'ghost' && o.faded)) continue;
+      const d = Math.hypot(o.x - e.x, o.y - e.y);
+      if (d < rDist) { rDist = d; ricTarget = o; }
+    }
+    if (ricTarget) {
+      bolts.push({ pts: [e.x, e.y - e.r, ricTarget.x, ricTarget.y - ricTarget.r], life: 0.18 });
+      damageEnemy(ricTarget, Math.max(1, Math.round(dmg * 0.65)), e.x, e.y, 140, { color: '#5be8ff', noFreeze: true, silent: true, isRicochet: true });
     }
   }
   if (!opts.silent) SFX.hit();
@@ -1224,14 +1289,15 @@ const STREAK_CALLS = [
   [30, 'IMPLACÁVEL!', '#ff6b4a', 8],
   [50, 'LENDÁRIO!', '#ffd23f', 15],
   [80, 'DEUS DA ARENA!', '#ff4df0', 25],
+  [120, 'TRANSCENDENTE!', '#4fe3ff', 40],
 ];
 
 function killEnemy(e) {
   e.dead = true;
   kills++;
   const p = player;
-  p.combo++; p.comboT = 2.8;
-  p.ultMeter = Math.min(100, p.ultMeter + (isBossType(e.type) ? 40 : e.elite ? 12 : 3.5));
+  p.combo++; p.comboT = 2.9;
+  p.ultMeter = Math.min(100, p.ultMeter + (isBossType(e.type) ? 40 : e.elite ? 10 : 3.2));
   const mult = 1 + Math.floor(p.combo / 10) * 0.25;
   score += Math.round(e.score * mult);
 
@@ -1246,34 +1312,76 @@ function killEnemy(e) {
     }
   }
 
-  burst(e.x, e.y - e.r, e.type === 'slime' ? '#5fd35f' : e.type === 'ghost' ? '#e8ffd0' : isBossType(e.type) ? '#ff9a2e' : '#c9a0ff', 18, 260);
+  burst(e.x, e.y - e.r, e.type === 'slime' || e.type === 'viper' ? '#5fd35f' : e.type === 'ghost' || e.type === 'necromancer' ? '#e8ffd0' : isBossType(e.type) ? '#ff9a2e' : '#c9a0ff', 18, 260);
   burst(e.x, e.y - e.r, '#ffffff', 8, 180);
   SFX.kill(e.type);
+
+  // Explosão de Inimigo Volátil (Bomber) ou Inimigo Envenenado (Peçonha Letal)
+  if (e.type === 'bomber') {
+    hazards.push({ kind: 'meteor', x: e.x, y: e.y, r: 68, t: 0, dur: 0.65 });
+  }
+  if (e.poisonT > 0 && stats.venom > 0) {
+    const vR = 65 + stats.venom * 18;
+    fxRings.push({ kind: 'nova', x: e.x, y: e.y - e.r * 0.5, r: 10, maxR: vR, life: 0.28, max: 0.28, col: '#5dff6b' });
+    for (const o of enemies) {
+      if (!o.dead && o !== e && Math.hypot(o.x - e.x, o.y - e.y) < vR + o.r) {
+        o.poisonT = Math.max(o.poisonT || 0, 3.0);
+        o.poisonDmg = Math.max(o.poisonDmg || 0, stats.venom + 1);
+        damageEnemy(o, stats.venom * 2, e.x, e.y, 150, { color: '#5dff6b', noFreeze: true, silent: true, noCrit: true, isPoison: true });
+      }
+    }
+  }
+
+  if (e.type === 'goblin') {
+    SFX.shrine();
+    shake = Math.max(shake, 16);
+    for (let i = 0; i < 18; i++) dropItem('coin', e.x, e.y);
+    for (let i = 0; i < 4; i++) dropItem('ruby', e.x, e.y);
+    dropItem('potion', e.x, e.y);
+    dropItem(pick(['magnet_orb', 'frenzy_orb']), e.x, e.y);
+    banner = { txt: 'DUENDE CAPTURADO!', sub: 'Jackpot de Ouro e Rubis!', life: 2.4, max: 2.4, small: true };
+    return;
+  }
+
+  if (e.bounty) {
+    SFX.shrine();
+    for (let i = 0; i < 12; i++) dropItem('coin', e.x, e.y);
+    for (let i = 0; i < 3; i++) dropItem('ruby', e.x, e.y);
+    p.pendingLevels++;
+    texts.push({ x: e.x, y: e.y - 80, txt: '★ ALVO ELIMINADO! +1 NÍVEL!', life: 2.0, color: '#ffd23f', size: 14 });
+  }
+
   let xp = e.xp;
   while (xp >= 5) { dropItem('ruby', e.x, e.y); xp -= 5; }
   for (let i = 0; i < xp; i++) dropItem('gem', e.x, e.y);
-  if (Math.random() < 0.3 + stats.luck * 0.07) dropItem('coin', e.x, e.y);
+  const coinChance = (waveEvent === 'bloodmoon' ? 0.55 : 0.28) + stats.luck * 0.06;
+  if (Math.random() < coinChance) dropItem('coin', e.x, e.y);
   if (Math.random() < 0.025 + stats.luck * 0.01) dropItem('potion', e.x, e.y);
 
   // Power-ups especiais raros
   const pwrRoll = Math.random();
-  const pwrChance = (e.elite ? 0.22 : 0.014) + stats.luck * 0.005;
+  const pwrChance = (e.elite ? 0.20 : 0.014) + stats.luck * 0.005;
   if (pwrRoll < pwrChance) {
     dropItem(pick(['magnet_orb', 'frenzy_orb', 'ice_bomb']), e.x, e.y);
   }
 
-  if (e.elite) { for (let i = 0; i < 5; i++) dropItem('coin', e.x, e.y); dropItem('potion', e.x, e.y); }
-  if (stats.vamp && Math.random() < stats.vamp * 0.04 && p.hp < stats.maxHp) { p.hp++; texts.push({ x: p.x, y: p.y - 110, txt: '+1', life: 0.8, color: '#ff5d7a', size: 12 }); }
+  if (e.elite) { for (let i = 0; i < 4; i++) dropItem('coin', e.x, e.y); dropItem('potion', e.x, e.y); }
+  if (stats.vamp && Math.random() < stats.vamp * 0.035 && p.hp < stats.maxHp) { p.hp++; texts.push({ x: p.x, y: p.y - 110, txt: '+1', life: 0.8, color: '#ff5d7a', size: 12 }); }
   if (e.big) for (let i = 0; i < 3; i++) spawnEnemy('minislime', { x: e.x + rand(-20, 20), y: e.y + rand(-20, 20) }, { instant: true, noElite: true });
   if (isBossType(e.type)) {
-    boss = null;
+    const otherBoss = enemies.find(o => !o.dead && o !== e && isBossType(o.type));
+    boss = otherBoss || null;
     SFX.bossDie();
     shake = 25; freeze = 0.3;
-    for (let i = 0; i < 25; i++) dropItem('coin', e.x, e.y);
+    for (let i = 0; i < 22; i++) dropItem('coin', e.x, e.y);
     dropItem('chest', e.x, e.y);
-    ebullets = [];
-    banner = { txt: 'CHEFÃO DERROTADO!', sub: 'Pegue o baú do tesouro!', life: 3, max: 3 };
-  } else if (e.elite || e.big || e.type === 'bigworm') { shake = Math.max(shake, 10); freeze = Math.max(freeze, 0.07); }
+    if (!boss) {
+      ebullets = [];
+      banner = { txt: 'CHEFÃO DERROTADO!', sub: 'Pegue o baú do tesouro!', life: 3, max: 3 };
+    } else {
+      banner = { txt: '1º CHEFÃO ABATIDO!', sub: 'Derrote o Chefão restante!', life: 2.2, max: 2.2, small: true };
+    }
+  } else if (e.elite || e.big || e.type === 'bigworm' || e.type === 'golem') { shake = Math.max(shake, 10); freeze = Math.max(freeze, 0.07); }
 }
 
 function enemyShoot(e, ang, speed = 200, r = 7, color = 'purple') {
@@ -1303,7 +1411,15 @@ function gainXp(n) {
 
 function openLevelUp() {
   const avail = UPGRADES.filter(u => (ups[u.id] || 0) < u.max);
-  if (!avail.length) { player.pendingLevels = 0; return; }
+  if (!avail.length) {
+    player.pendingLevels = 0;
+    player.hp = stats.maxHp;
+    coins += 25;
+    player.ultMeter = 100;
+    texts.push({ x: player.x, y: player.y - 120, txt: '★ BÊNÇÃO SUPREMA: VIDA CHEIA + 25 MOEDAS!', life: 1.8, color: '#ffd23f', size: 13 });
+    SFX.level();
+    return;
+  }
   const choices = [];
   while (choices.length < 3 && choices.length < avail.length) {
     const u = pick(avail);
@@ -1318,6 +1434,10 @@ function chooseUpgrade(i) {
   if (!u) return;
   u.apply(stats, player, ups[u.id] || 0);
   ups[u.id] = (ups[u.id] || 0) + 1;
+  if (ups[u.id] === u.max && ['wave', 'fire', 'bolt', 'axe', 'ice', 'phantom'].includes(u.id)) {
+    banner = { txt: '★ FORMA DESPERTA!', sub: u.name.toUpperCase() + ' ATINGIU O NÍVEL MÁXIMO!', life: 2.2, max: 2.2, small: true };
+    SFX.shrine();
+  }
   player.pendingLevels--;
   SFX.select();
   burst(player.x, player.y - 40, '#ffd23f', 30, 300);
@@ -1335,15 +1455,17 @@ let shopToast = null;
 function buyShopItem(i) {
   const item = SHOP_ITEMS[i];
   if (!item) return;
-  if (coins >= item.cost) {
-    coins -= item.cost;
+  const curCost = item.cost;
+  if (coins >= curCost) {
+    coins -= curCost;
+    shopBuys[item.id] = (shopBuys[item.id] || 0) + 1;
     item.buy(stats, player);
     shopToast = { txt: '✓ COMPROU ' + item.name.toUpperCase() + '!', time: 1.5, col: '#7aff7a' };
     texts.push({ x: player.x, y: player.y - 90, txt: 'COMPRADO!', life: 0.9, color: '#7aff7a', size: 14 });
     SFX.shopBuy();
     gamepadRumble(0.2, 0.4, 100);
   } else {
-    shopToast = { txt: '❌ MOEDAS INSUFICIENTES (' + item.cost + ' necessarias)!', time: 1.5, col: '#ff5d5d' };
+    shopToast = { txt: '❌ MOEDAS INSUFICIENTES (' + curCost + ' necessarias)!', time: 1.5, col: '#ff5d5d' };
     SFX.shopNo();
     gamepadRumble(0.4, 0.5, 140);
     shake = 4;
@@ -1362,7 +1484,7 @@ function spreadAngles(base, count, step = 0.17) {
 function getNearestEnemyAngle(p, maxDist = 520) {
   let closest = null, minDist = maxDist;
   for (const m of enemies) {
-    if (m.dead || m.hp <= 0) continue;
+    if (m.dead || m.hp <= 0 || m.spawn > 0 || ((m.type === 'ghost' || m.type === 'necro_boss') && m.faded)) continue;
     const d = Math.hypot(m.x - p.x, m.y - p.y);
     if (d < minDist) {
       minDist = d;
@@ -1393,7 +1515,8 @@ function startAttack(fromMouse, fromTouch) {
   if (Math.abs(c) > Math.abs(s)) p.dir = c > 0 ? 'right' : 'left'; else p.dir = s > 0 ? 'down' : 'up';
   if (Math.abs(c) > 0.05) p.flip = c < 0;
 
-  const rateMul = stats.atkRate * (p.frenzyT > 0 ? 1.55 : 1);
+  const berserkBonus = stats.berserk ? stats.berserk * 0.08 * (Math.min(1, p.combo / 25) + (p.hp <= 2 ? 0.8 : 0)) : 0;
+  const rateMul = stats.atkRate * (1 + berserkBonus) * (p.frenzyT > 0 ? 1.55 : 1);
   const dur = (p.char.weaponType === 'saber' ? 0.32 : 0.25) / rateMul;
   p.attack = { t: 0, dur, hit: new Set() };
 
@@ -1432,16 +1555,15 @@ function startAttack(fromMouse, fromTouch) {
     SFX.slash();
   }
 
-  // Ondas Cósmicas (Poder Roguelite adicional)
+  // Ondas Cósmicas (Poder Roguelite adicional + Forma Desperta)
   if (stats.wave > 0) {
     const lvl = stats.wave;
-    const angs = lvl >= 3 ? [a - 0.3, a, a + 0.3] : [a];
-    if (lvl >= 5) angs.push(a + Math.PI);
+    const angs = lvl >= 5 ? [a - 0.35, a, a + 0.35, a + Math.PI - 0.25, a + Math.PI + 0.25] : (lvl >= 3 ? [a - 0.3, a, a + 0.3] : [a]);
     for (const an of angs) pshots.push({
       kind: 'wave', x: p.x + Math.cos(an) * 30, y: p.y - 40 + Math.sin(an) * 30,
-      vx: Math.cos(an) * 520, vy: Math.sin(an) * 520,
-      r: lvl >= 4 ? 26 : 18, dmg: stats.dmg + (lvl >= 4 ? 1 : 0),
-      pierce: lvl >= 2 ? 5 : 2, life: 0.75, hit: new Set(), ang: an,
+      vx: Math.cos(an) * (lvl >= 5 ? 580 : 520), vy: Math.sin(an) * (lvl >= 5 ? 580 : 520),
+      r: lvl >= 5 ? 30 : (lvl >= 4 ? 26 : 18), dmg: stats.dmg + (lvl >= 5 ? 2 : (lvl >= 4 ? 1 : 0)),
+      pierce: lvl >= 5 ? 8 : (lvl >= 2 ? 4 : 2), life: 0.78, hit: new Set(), ang: an,
     });
   }
 }
@@ -1465,13 +1587,16 @@ function update(dt) {
         return;
       }
       const isBoss = wave % 5 === 0;
-      toSpawn = isBoss ? 6 + wave : 8 + wave * 3;
+      toSpawn = isBoss ? 8 + Math.floor(wave * 1.5) : 9 + Math.floor(wave * 3.4);
       spawnTimer = 0.5;
-      if (!isBoss && wave >= 3) {
+      if (!isBoss && wave >= 2) {
         const roll = Math.random();
-        if (roll < 0.24) { waveEvent = 'meteors'; meteorTimer = 1.2; }
-        else if (roll < 0.44) { waveEvent = 'golden'; }
-        else if (roll < 0.62) { waveEvent = 'swarm'; toSpawn = Math.round(toSpawn * 1.35); }
+        if (roll < 0.18 && wave >= 3) { waveEvent = 'meteors'; meteorTimer = 1.2; }
+        else if (roll < 0.34 && wave >= 3) { waveEvent = 'golden'; }
+        else if (roll < 0.50) { waveEvent = 'swarm'; toSpawn = Math.round(toSpawn * 1.35); }
+        else if (roll < 0.65 && wave >= 4) { waveEvent = 'bloodmoon'; }
+        else if (roll < 0.78 && wave >= 3) { waveEvent = 'ambush'; }
+        else if (roll < 0.88 && wave >= 4) { waveEvent = 'bounty'; }
       }
       if (stats.nukeNext) {
         stats.nukeNext = false;
@@ -1479,16 +1604,39 @@ function update(dt) {
         texts.push({ x: p.x, y: p.y - 140, txt: 'PERGAMINHO ATIVADO!', life: 2, color: '#ffd23f', size: 14 });
       }
       if (isBoss) {
-        const bType = (Math.floor(wave / 5) % 2 === 0) ? 'leviathan' : 'boss';
-        const bObj = spawnEnemy(bType, spawnPos(350, 450, 60));
-        banner = { txt: 'ONDA ' + wave, sub: 'CHEFÃO: ' + MON[bObj.type].bossName + '!', life: 3.2, max: 3.2, boss: true };
+        const bossCycle = ['boss', 'leviathan', 'necro_boss', 'hydra_boss', 'beholder_boss'];
+        const bIdx = (Math.floor(wave / 5) - 1) % bossCycle.length;
+        const bType = bossCycle[bIdx];
+        const bObj = spawnEnemy(bType, spawnPos(340, 440, 60));
+        if (wave >= 20) {
+          const secondType = bossCycle[(bIdx + 1) % bossCycle.length];
+          spawnEnemy(secondType, spawnPos(360, 460, 60));
+          banner = { txt: 'ONDA ' + wave + ' • PANTEÃO DUPLO', sub: MON[bObj.type].bossName + ' & ' + MON[secondType].bossName + '!', life: 3.5, max: 3.5, boss: true };
+        } else {
+          banner = { txt: 'ONDA ' + wave, sub: 'CHEFÃO: ' + MON[bObj.type].bossName + '!', life: 3.2, max: 3.2, boss: true };
+        }
         SFX.boss();
       } else {
+        if (waveEvent === 'ambush') {
+          const ringCnt = Math.min(14, 7 + Math.floor(wave * 0.6));
+          const ambType = pick(['bat', 'snake', 'viper', 'slime']);
+          for (let i = 0; i < ringCnt; i++) {
+            const ang = (i * Math.PI * 2) / ringCnt;
+            const rx = clamp(p.x + Math.cos(ang) * 280, 80, WORLD.w - 80);
+            const ry = clamp(p.y + Math.sin(ang) * 240, 120, WORLD.h - 60);
+            spawnEnemy(ambType, { x: rx, y: ry }, { noElite: true });
+          }
+        } else if (waveEvent === 'bounty') {
+          spawnEnemy(pick(['golem', 'necromancer', 'bigworm', 'sniper']), spawnPos(300, 420, 40), { forceElite: true, bounty: true });
+        }
         const evSub = waveEvent === 'meteors' ? '☄ EVENTO: CHUVA DE METEOROS!'
           : waveEvent === 'golden' ? '✦ EVENTO: INVASÃO DOURADA!'
           : waveEvent === 'swarm' ? '⚡ EVENTO: ENXAME FRENÉTICO!'
+          : waveEvent === 'bloodmoon' ? '🩸 LUA DE SANGUE: INIMIGOS FEROZES + DOBRO DE RECOMPENSAS!'
+          : waveEvent === 'ambush' ? '⚔ CERCO RELÂMPAGO: QUEBRE O CÍRCULO INIMIGO!'
+          : waveEvent === 'bounty' ? '🎯 CAÇADA AO COMANDANTE: DERROTE O ALVO P/ +1 NÍVEL!'
           : (wave === 1 ? 'Sobreviva!' : 'Prepare-se!');
-        banner = { txt: 'ONDA ' + wave, sub: evSub, life: 2.5, max: 2.5, boss: waveEvent === 'meteors' };
+        banner = { txt: 'ONDA ' + wave, sub: evSub, life: 2.6, max: 2.6, boss: waveEvent === 'meteors' || waveEvent === 'bloodmoon' };
         SFX.wave();
       }
       if (wave > 1) p.hp = Math.min(stats.maxHp, p.hp + 1);
@@ -1499,16 +1647,29 @@ function update(dt) {
   }
   if (toSpawn > 0) {
     spawnTimer -= dt;
-    const cap = (waveEvent === 'swarm' ? 48 : 35) + wave * 2;
+    const cap = (waveEvent === 'swarm' ? 52 : 38) + wave * 2;
     if (spawnTimer <= 0 && enemies.length < cap) {
       const groupSize = (wave >= 3 && (waveEvent === 'swarm' || Math.random() < 0.28)) ? randi(3, 5) : 1;
       const kind = wavePool();
-      if (groupSize > 1 && kind !== 'flower' && kind !== 'bigworm') {
+      if (groupSize > 1 && kind !== 'flower' && kind !== 'bigworm' && kind !== 'golem' && kind !== 'necromancer') {
         const c = spawnPos(Math.max(W, H) * 0.55, Math.max(W, H) * 0.7, 30);
         for (let i = 0; i < groupSize && toSpawn > 0; i++) { spawnEnemy(kind, { x: c.x + rand(-40, 40), y: c.y + rand(-40, 40) }); toSpawn--; }
       } else { spawnEnemy(kind); toSpawn--; }
-      const baseRate = Math.max(0.18, 0.92 - wave * 0.055);
+      const baseRate = Math.max(0.18, 0.90 - wave * 0.052);
       spawnTimer = waveEvent === 'swarm' ? baseRate * 0.65 : baseRate;
+    }
+  }
+
+  // ---------- DUENDE DO TESOURO (Aparição Surpresa no Meio da Partida) ----------
+  if (wave >= 2 && (toSpawn > 0 || enemies.length > 3)) {
+    p.goblinT = (p.goblinT || 20) - dt;
+    if (p.goblinT <= 0) {
+      p.goblinT = rand(36, 54);
+      if (!enemies.some(e => e.type === 'goblin') && Math.random() < 0.65) {
+        const g = spawnEnemy('goblin', spawnPos(280, 420, 30), { noElite: true });
+        SFX.coin();
+        texts.push({ x: g.x, y: g.y - 60, txt: '💰 DUENDE DO TESOURO APARECEU!', life: 2.2, color: '#ffd23f', size: 13 });
+      }
     }
   }
 
@@ -1565,6 +1726,26 @@ function update(dt) {
               count++;
             }
           }
+        } else if (sh.id === 'pact') {
+          if (p.hp > 2) {
+            p.hp -= 2;
+            shake = Math.max(shake, 14);
+            burst(p.x, p.y - 36, '#ff2a55', 24, 240);
+          }
+          stats.dmg += 1;
+          stats.crit += 0.06;
+          p.pendingLevels += 1;
+          p.inv = Math.max(p.inv, 1.2);
+        } else if (sh.id === 'cursed') {
+          for (let i = 0; i < 4; i++) {
+            const ang = (i * Math.PI) / 2 + rand(-0.2, 0.2);
+            const ex = clamp(sh.x + Math.cos(ang) * 190, 80, WORLD.w - 80);
+            const ey = clamp(sh.y + Math.sin(ang) * 170, 120, WORLD.h - 60);
+            spawnEnemy(pick(['bomber', 'viper', 'sniper', 'snake']), { x: ex, y: ey }, { forceElite: true });
+          }
+          for (let i = 0; i < 12; i++) dropItem('coin', sh.x, sh.y);
+          for (let i = 0; i < 3; i++) dropItem('ruby', sh.x, sh.y);
+          dropItem('chest', sh.x, sh.y);
         }
       }
     } else {
@@ -1804,38 +1985,40 @@ function update(dt) {
   if (stats.axe > 0) {
     p.axeT -= dt;
     if (p.axeT <= 0 && enemies.length > 0) {
-      p.axeT = Math.max(1.0, 2.3 - stats.axe * 0.22);
+      p.axeT = Math.max(0.95, 2.2 - stats.axe * 0.22);
       let target = null, md = 520;
       for (const e of enemies) {
-        if (e.dead || e.spawn > 0) continue;
+        if (e.dead || e.spawn > 0 || ((e.type === 'ghost' || e.type === 'necro_boss') && e.faded)) continue;
         const d = Math.hypot(e.x - p.x, e.y - p.y);
         if (d < md) { md = d; target = e; }
       }
       const baseAng = target ? Math.atan2(target.y - p.y, target.x - p.x) : p.aim;
+      const isAwakened = stats.axe >= 4;
       for (const an of spreadAngles(baseAng, stats.axe, 0.35)) {
         pshots.push({
           kind: 'axe', x: p.x, y: p.y - 34,
-          vx: Math.cos(an) * 460, vy: Math.sin(an) * 460,
+          vx: Math.cos(an) * (isAwakened ? 510 : 460), vy: Math.sin(an) * (isAwakened ? 510 : 460),
           ox: Math.cos(an), oy: Math.sin(an),
-          r: 18, dmg: stats.dmg + 1 + Math.floor(stats.axe / 2),
-          pierce: 99, life: 1.55, age: 0, rot: 0, hit: new Set()
+          r: isAwakened ? 24 : 18, dmg: stats.dmg + 1 + Math.floor(stats.axe / 2) + (isAwakened ? 2 : 0),
+          pierce: 99, life: isAwakened ? 1.85 : 1.55, age: 0, rot: 0, hit: new Set()
         });
       }
       play('swing2', 0.32, 0.2);
     }
   }
   if (stats.fire > 0) {
-    p.fireAng += dt * (2.6 + stats.fire * 0.2);
-    const n = stats.fire, R = 80;
+    const isAwakened = stats.fire >= 5;
+    p.fireAng += dt * (2.6 + stats.fire * 0.22 + (isAwakened ? 0.5 : 0));
+    const n = stats.fire, R = isAwakened ? 92 : 80;
     for (let i = 0; i < n; i++) {
       const a = p.fireAng + i * Math.PI * 2 / n;
       const fx = p.x + Math.cos(a) * R, fy = p.y - 35 + Math.sin(a) * R * 0.8;
       if (Math.random() < 0.5) particles.push({ x: fx, y: fy, vx: rand(-20, 20), vy: rand(-50, -10), life: 0.3, max: 0.3, color: pick(['#ffb02e', '#ff5a1f', '#ffe36b']), size: rand(3, 6) });
       for (const e of enemies) {
         if (e.dead || e.fireHit > time) continue;
-        if (Math.hypot(e.x - fx, e.y - e.r - fy) < e.r + 16) {
-          e.fireHit = time + 0.45;
-          damageEnemy(e, 1 + Math.floor(stats.fire / 3), fx, fy, 200, { color: '#ff8a2e', noFreeze: true, silent: true });
+        if (Math.hypot(e.x - fx, e.y - e.r - fy) < e.r + (isAwakened ? 22 : 16)) {
+          e.fireHit = time + (isAwakened ? 0.35 : 0.45);
+          damageEnemy(e, 1 + Math.floor(stats.fire / 2) + (isAwakened ? 1 : 0), fx, fy, 200, { color: '#ff8a2e', noFreeze: true, silent: true });
         }
       }
     }
@@ -1843,18 +2026,20 @@ function update(dt) {
   if (stats.bolt > 0) {
     p.boltT -= dt;
     if (p.boltT <= 0) {
-      p.boltT = Math.max(0.7, 2.6 - stats.bolt * 0.35);
+      const isAwakened = stats.bolt >= 5;
+      p.boltT = Math.max(0.68, 2.5 - stats.bolt * 0.32);
       let from = null, hitSet = new Set();
       let target = null, bd = 520;
-      for (const e of enemies) { if (e.dead || e.spawn > 0) continue; const d = Math.hypot(e.x - p.x, e.y - p.y); if (d < bd) { bd = d; target = e; } }
-      let jumps = stats.bolt;
+      for (const e of enemies) { if (e.dead || e.spawn > 0 || ((e.type === 'ghost' || e.type === 'necro_boss') && e.faded)) continue; const d = Math.hypot(e.x - p.x, e.y - p.y); if (d < bd) { bd = d; target = e; } }
+      let jumps = stats.bolt + (isAwakened ? 2 : 0);
       while (target && jumps-- >= 0) {
         const pts = from ? [from.x, from.y - from.r, target.x, target.y - target.r] : [target.x + rand(-30, 30), target.y - 500, target.x, target.y - target.r];
         bolts.push({ pts, life: 0.25 });
         hitSet.add(target);
-        damageEnemy(target, 2 + Math.floor(stats.bolt / 2), target.x, target.y - 10, 100, { color: '#fff36b', noFreeze: true, silent: true });
-        from = target; target = null; let nd = 200;
-        for (const e of enemies) { if (e.dead || hitSet.has(e) || e.spawn > 0) continue; const d = Math.hypot(e.x - from.x, e.y - from.y); if (d < nd) { nd = d; target = e; } }
+        if (isAwakened && !isBossType(target.type)) target.slow = Math.max(target.slow, 0.8);
+        damageEnemy(target, 2 + Math.floor(stats.bolt / 2) + (isAwakened ? 2 : 0), target.x, target.y - 10, 100, { color: '#fff36b', noFreeze: true, silent: true });
+        from = target; target = null; let nd = 210;
+        for (const e of enemies) { if (e.dead || hitSet.has(e) || e.spawn > 0 || ((e.type === 'ghost' || e.type === 'necro_boss') && e.faded)) continue; const d = Math.hypot(e.x - from.x, e.y - from.y); if (d < nd) { nd = d; target = e; } }
       }
       if (hitSet.size) { beep(900, 0.12, 'sawtooth', 0.04, -700); shake = Math.max(shake, 4); }
     }
@@ -1863,12 +2048,16 @@ function update(dt) {
   if (stats.ice > 0) {
     p.iceT -= dt;
     const tick = p.iceT <= 0;
-    if (tick) p.iceT = Math.max(0.5, 1.2 - stats.ice * 0.15);
+    const isAwakened = stats.ice >= 4;
+    if (tick) p.iceT = Math.max(0.48, 1.15 - stats.ice * 0.14);
     for (const e of enemies) {
-      if (e.dead || e.spawn > 0) continue;
+      if (e.dead || e.spawn > 0 || ((e.type === 'ghost' || e.type === 'necro_boss') && e.faded)) continue;
       if (Math.hypot(e.x - p.x, e.y - p.y) < iceR + e.r) {
-        e.slow = 0.3;
-        if (tick) damageEnemy(e, 1, undefined, undefined, 0, { color: '#bff', noFreeze: true, silent: true, noCrit: true });
+        e.slow = Math.max(e.slow, 0.35);
+        if (tick) {
+          if (isAwakened && !isBossType(e.type) && Math.random() < 0.28) e.freezeT = Math.max(e.freezeT || 0, 1.1);
+          damageEnemy(e, isAwakened ? 2 : 1, undefined, undefined, 0, { color: '#bff', noFreeze: true, silent: true, noCrit: true });
+        }
       }
     }
     if (Math.random() < 0.4) {
@@ -1879,16 +2068,16 @@ function update(dt) {
   if (stats.earth > 0) {
     p.earthT -= dt;
     if (p.earthT <= 0) {
-      p.earthT = Math.max(2.5, 4.5 - stats.earth * 0.5);
-      const eR = 120 + stats.earth * 40;
+      p.earthT = Math.max(2.6, 4.5 - stats.earth * 0.45);
+      const eR = 120 + stats.earth * 38;
       shake = Math.max(shake, 8);
       beep(120, 0.3, 'sawtooth', 0.08, -80);
       fxRings.push({ kind: 'nova', x: p.x, y: p.y, r: 20, maxR: eR, life: 0.32, max: 0.32, col: '#d49a62' });
       burst(p.x, p.y, '#99734e', 24, 280);
       for (const e of enemies) {
-        if (!e.dead && Math.hypot(e.x - p.x, e.y - p.y) < eR + e.r) {
-          damageEnemy(e, 2 + stats.earth, p.x, p.y, 450, { color: '#c79867' });
-          e.slow = 1.0;
+        if (!e.dead && e.spawn <= 0 && Math.hypot(e.x - p.x, e.y - p.y) < eR + e.r) {
+          damageEnemy(e, 2 + stats.earth, p.x, p.y, 400, { color: '#c79867' });
+          e.slow = Math.max(e.slow, 0.9);
         }
       }
       texts.push({ x: p.x, y: p.y - 60, txt: 'TREMOR!', life: 0.8, color: '#e0a96d', size: 12 });
@@ -1897,30 +2086,75 @@ function update(dt) {
   if (stats.phantom > 0) {
     p.phantomT -= dt;
     if (p.phantomT <= 0) {
-      p.phantomT = Math.max(1.0, 2.8 - stats.phantom * 0.4);
-      let target = null, md = 450;
+      const isAwakened = stats.phantom >= 4;
+      p.phantomT = Math.max(0.95, 2.7 - stats.phantom * 0.4);
+      let target = null, md = 460;
       for (const e of enemies) {
-        if (e.dead || e.spawn > 0) continue;
+        if (e.dead || e.spawn > 0 || ((e.type === 'ghost' || e.type === 'necro_boss') && e.faded)) continue;
         const d = Math.hypot(e.x - p.x, e.y - p.y);
         if (d < md) { md = d; target = e; }
       }
       if (target) {
-        for (let i = 0; i < stats.phantom; i++) {
+        const cnt = stats.phantom + (isAwakened ? 1 : 0);
+        for (let i = 0; i < cnt; i++) {
           const an = Math.atan2(target.y - p.y, target.x - p.x) + rand(-0.3, 0.3);
           pshots.push({
-            kind: 'dagger', x: p.x, y: p.y - 30, vx: Math.cos(an) * 440, vy: Math.sin(an) * 440,
-            r: 10, dmg: stats.dmg + 2, pierce: 1, life: 1.8, target, hit: new Set()
+            kind: 'dagger', x: p.x, y: p.y - 30, vx: Math.cos(an) * 460, vy: Math.sin(an) * 460,
+            r: 10, dmg: stats.dmg + 2 + (isAwakened ? 1 : 0), pierce: isAwakened ? 2 : 1, life: 1.8, target, hit: new Set()
           });
         }
         play('swing1', 0.3, 0.2);
       }
     }
   }
+  if (stats.vortex > 0) {
+    p.vortexT = (p.vortexT || 3.5) - dt;
+    if (p.vortexT <= 0 && enemies.length > 0) {
+      p.vortexT = Math.max(3.2, 5.8 - stats.vortex * 0.55);
+      let vTarget = null, md = 420;
+      for (const e of enemies) {
+        if (e.dead || e.spawn > 0) continue;
+        const d = Math.hypot(e.x - p.x, e.y - p.y);
+        if (d < md) { md = d; vTarget = e; }
+      }
+      const vx0 = vTarget ? vTarget.x : p.x + Math.cos(p.aim) * 140;
+      const vy0 = vTarget ? vTarget.y : p.y + Math.sin(p.aim) * 140;
+      puddles.push({ kind: 'vortex', x: vx0, y: vy0, r: 82 + stats.vortex * 18, life: 2.4, max: 2.4, tick: 0.25 });
+      beep(220, 0.25, 'sine', 0.05, -120);
+    }
+  }
 
-  // ---------- POÇAS CÍTRICAS (Tuiuba) ----------
+  // ---------- POÇAS CÍTRICAS (Tuiuba), VÓRTICE ABISSAL & ÁCIDO TÓXICO ----------
   for (const pd of puddles) {
     pd.life -= dt; pd.tick -= dt;
-    if (pd.tick <= 0) {
+    if (pd.kind === 'vortex') {
+      for (const e of enemies) {
+        if (e.dead || e.spawn > 0) continue;
+        const dx = pd.x - e.x, dy = pd.y - e.y, d = Math.hypot(dx, dy);
+        if (d < pd.r * 1.45 && d > 8) {
+          const pullStr = (isBossType(e.type) ? 45 : 195) * dt;
+          e.x += (dx / d) * pullStr;
+          e.y += (dy / d) * pullStr;
+        }
+      }
+      if (Math.random() < 0.5) {
+        const a = rand(0, Math.PI * 2), rr = rand(12, pd.r);
+        particles.push({ x: pd.x + Math.cos(a) * rr, y: pd.y + Math.sin(a) * rr * 0.6, vx: -Math.cos(a) * 65, vy: -Math.sin(a) * 45, life: 0.3, max: 0.3, color: pick(['#d26bff', '#7a28ff', '#ffffff']), size: 3 });
+      }
+      if (pd.tick <= 0) {
+        pd.tick = 0.42;
+        for (const e of enemies) {
+          if (!e.dead && e.spawn <= 0 && Math.hypot(e.x - pd.x, e.y - pd.y) < pd.r + e.r * 0.5) {
+            e.slow = Math.max(e.slow, 0.4);
+            damageEnemy(e, 1 + Math.floor((stats.vortex || 1) / 2), pd.x, pd.y, -80, { color: '#d26bff', noFreeze: true, silent: true, noCrit: true });
+          }
+        }
+      }
+    } else if (pd.kind === 'acid') {
+      if (Math.hypot(p.x - pd.x, p.y - pd.y) < pd.r + 10) {
+        hurtPlayer(1, pd.x, pd.y);
+      }
+    } else if (pd.tick <= 0) {
       pd.tick = 0.45;
       for (const e of enemies) {
         if (!e.dead && e.spawn <= 0 && Math.hypot(e.x - pd.x, e.y - pd.y) < pd.r + e.r * 0.5) {
@@ -2153,6 +2387,7 @@ function hurtPlayer(dmg, fx, fy) {
     texts.push({ x: p.x, y: p.y - 115, txt: 'BLOQUEADO!', life: 0.9, color: '#7fe8ff', size: 13 });
     return;
   }
+  if (dmg > 1 && stats.armor && Math.random() < stats.armor * 0.25) dmg = Math.max(1, dmg - 1);
   p.hp -= dmg;
   p.inv = stats.invTime;
   p.combo = 0; p.bestStreakMilestone = 0;
@@ -2174,6 +2409,19 @@ function updateEnemy(e, dt) {
   e.slow = Math.max(0, e.slow - dt);
   e.freezeT = Math.max(0, (e.freezeT || 0) - dt);
   if (e.spawn > 0) { e.spawn -= dt; return; }
+  if (e.poisonT > 0) {
+    e.poisonT -= dt;
+    e.poisonTick = (e.poisonTick || 0) - dt;
+    if (e.poisonTick <= 0) {
+      e.poisonTick = 0.55;
+      damageEnemy(e, e.poisonDmg || 1, undefined, undefined, 0, { color: '#5dff6b', noFreeze: true, silent: true, noCrit: true, isPoison: true });
+      if (e.dead) return;
+    }
+  }
+  if (e.bounty) {
+    e.bountyT -= dt;
+    if (e.bountyT <= 0) { e.bounty = false; }
+  }
   if (e.freezeT > 0 && !isBossType(e.type)) {
     e.kx *= Math.pow(0.003, dt); e.ky *= Math.pow(0.003, dt);
     e.x += e.kx * dt; e.y += e.ky * dt;
@@ -2191,6 +2439,25 @@ function updateEnemy(e, dt) {
       sx *= hop * 1.9; sy *= hop * 1.9; e.z = hop * 12;
       break;
     }
+    case 'bomber': {
+      const hop = Math.max(0.2, Math.abs(Math.sin(e.t * 9)));
+      sx *= 1.15; sy *= 1.15; e.z = hop * 9;
+      if (d < 52 && e.act > 0) {
+        e.act = -1;
+        hazards.push({ kind: 'meteor', x: e.x, y: e.y, r: 72, t: 0, dur: 0.55 });
+      }
+      break;
+    }
+    case 'viper': {
+      const zig = Math.sin(e.t * 9) * 115;
+      sx += -uy * zig; sy += ux * zig;
+      e.act -= dt;
+      if (e.act <= 0) {
+        e.act = rand(2.2, 3.4);
+        if (puddles.length < 22) puddles.push({ kind: 'acid', x: e.x, y: e.y, r: 28, life: 2.6, max: 2.6, tick: 0.4 });
+      }
+      break;
+    }
     case 'bat':
       sx += Math.cos(e.t * 6) * 90; sy += Math.sin(e.t * 7) * 90;
       break;
@@ -2206,11 +2473,73 @@ function updateEnemy(e, dt) {
       e.act -= dt;
       if (e.act <= 0 && d < 600) { e.act = rand(1.8, 2.6); enemyShoot(e, Math.atan2(p.y - 35 - (e.y - e.r * 1.2), dx), 230); beep(500, 0.08, 'sine', 0.025, -200); }
       break;
+    case 'sniper':
+      if (d < 260) { sx = -sx * 0.9; sy = -sy * 0.9; } else if (d < 380) { sx = 0; sy = 0; }
+      e.act -= dt;
+      if (e.mode === 'move' && e.act <= 0 && d < 680) {
+        e.mode = 'lock'; e.act = 0.75;
+        e.aimAng = Math.atan2(p.y - 35 - (e.y - e.r * 1.2), dx);
+      } else if (e.mode === 'lock') {
+        sx = sy = 0;
+        if (e.act > 0.2) e.aimAng = Math.atan2(p.y - 35 - (e.y - e.r * 1.2), dx);
+        if (e.act <= 0) {
+          e.mode = 'move'; e.act = rand(2.2, 3.2);
+          enemyShoot(e, e.aimAng, 420, 7, 'orange');
+          beep(780, 0.1, 'sawtooth', 0.04, -300);
+        }
+      }
+      break;
     case 'ghost': {
       const cyc = e.t % 5;
       e.faded = cyc > 3.6;
       const s = 0.7 + Math.sin(e.t * 2) * 0.5;
       sx *= s; sy *= s;
+      break;
+    }
+    case 'necromancer': {
+      if (d < 240) { sx = -sx * 0.85; sy = -sy * 0.85; } else if (d < 340) { sx = -uy * e.speed * 0.7; sy = ux * e.speed * 0.7; }
+      e.act -= dt;
+      if (e.act <= 0 && d < 640) {
+        e.act = rand(3.2, 4.5);
+        const a = Math.atan2(p.y - 35 - (e.y - e.r), dx);
+        enemyShoot(e, a - 0.18, 210, 8, 'purple');
+        enemyShoot(e, a + 0.18, 210, 8, 'purple');
+        if (enemies.length < 55) {
+          spawnEnemy(pick(['bat', 'minislime', 'worm']), { x: e.x + rand(-45, 45), y: e.y + rand(-45, 45) }, { noElite: true });
+          burst(e.x, e.y - 24, '#d26bff', 12, 180);
+        }
+      }
+      break;
+    }
+    case 'golem': {
+      e.shieldOn = (e.t % 4.5) > 2.6;
+      if (e.shieldOn) { sx *= 0.55; sy *= 0.55; }
+      e.act -= dt;
+      if (e.act <= 0 && d < 220) {
+        e.act = rand(3.0, 4.2);
+        fxRings.push({ kind: 'nova', x: e.x, y: e.y, r: 14, maxR: 110, life: 0.3, max: 0.3, col: '#ff9a2e' });
+        for (let i = 0; i < 6; i++) enemyShoot(e, (i * Math.PI) / 3, 175, 8, 'orange');
+        shake = Math.max(shake, 5);
+      }
+      break;
+    }
+    case 'goblin': {
+      // Foge do jogador e solta moedas pelo caminho!
+      sx = -ux * e.speed; sy = -uy * e.speed;
+      if (e.x < 140 || e.x > WORLD.w - 140) sx = -uy * e.speed;
+      if (e.y < 160 || e.y > WORLD.h - 120) sy = ux * e.speed;
+      e.coinT = (e.coinT || 0.6) - dt;
+      if (e.coinT <= 0) {
+        e.coinT = 0.85;
+        dropItem('coin', e.x, e.y);
+      }
+      e.escapeT = (e.escapeT || 16) - dt;
+      if (e.escapeT <= 0) {
+        e.dead = true;
+        burst(e.x, e.y - 16, '#ffd23f', 20, 220);
+        texts.push({ x: e.x, y: e.y - 40, txt: 'DUENDE ESCAPOU!', life: 1.4, color: '#ffb347', size: 11 });
+        return;
+      }
       break;
     }
     case 'bigworm':
@@ -2236,6 +2565,18 @@ function updateEnemy(e, dt) {
       leviathanAI(e, dt, ux, uy, d);
       sx = e.vx; sy = e.vy;
       break;
+    case 'necro_boss':
+      necroBossAI(e, dt, ux, uy, d);
+      sx = e.vx; sy = e.vy;
+      break;
+    case 'hydra_boss':
+      hydraBossAI(e, dt, ux, uy, d);
+      sx = e.vx; sy = e.vy;
+      break;
+    case 'beholder_boss':
+      beholderBossAI(e, dt, ux, uy, d);
+      sx = e.vx; sy = e.vy;
+      break;
   }
 
   e.kx *= Math.pow(0.003, dt); e.ky *= Math.pow(0.003, dt);
@@ -2253,7 +2594,7 @@ function updateEnemy(e, dt) {
   }
   if (!MON[e.type].fly && !isBossType(e.type)) collideStatic(e, e.r);
   else { e.x = clamp(e.x, 40, WORLD.w - 40); e.y = clamp(e.y, 90, WORLD.h - 20); }
-  if (!(e.type === 'ghost' && e.faded) && Math.hypot(e.x - p.x, e.y - p.y) < e.r + 14) hurtPlayer(e.dmg, e.x, e.y);
+  if (!((e.type === 'ghost' || e.type === 'necro_boss') && e.faded) && e.type !== 'goblin' && Math.hypot(e.x - p.x, e.y - p.y) < e.r + 14) hurtPlayer(e.dmg, e.x, e.y);
 }
 
 function bossAI(e, dt, ux, uy, d) {
@@ -2340,6 +2681,148 @@ function leviathanAI(e, dt, ux, uy, d) {
       for (let i = 0; i < n; i++) spawnEnemy(pick(['snake', 'worm', 'eyeball']), { x: e.x + rand(-100, 100), y: e.y + rand(-100, 100) }, { noElite: true });
       burst(e.x, e.y - 50, '#7dff6b', 30, 260);
       e.phase = 'chase'; e.pt = 2.3;
+    }
+  }
+}
+
+function necroBossAI(e, dt, ux, uy, d) {
+  const p = player;
+  const enraged = e.hp < e.maxHp / 2;
+  e.pt -= dt;
+  e.vx = e.vy = 0;
+  e.faded = false;
+  if (e.phase === 'chase') {
+    e.vx = ux * e.speed * (enraged ? 1.3 : 1);
+    e.vy = uy * e.speed * (enraged ? 1.3 : 1);
+    if (e.pt <= 0) {
+      e.phase = ['teleport', 'volley', 'summon', 'volley'][e.cycle++ % 4];
+      e.pt = e.phase === 'teleport' ? 0.65 : 0.45;
+      e.shots = enraged ? 6 : 4;
+    }
+  } else if (e.phase === 'teleport') {
+    e.faded = true;
+    if (e.pt <= 0) {
+      const ang = rand(0, Math.PI * 2), dist = rand(210, 310);
+      e.x = clamp(p.x + Math.cos(ang) * dist, 100, WORLD.w - 100);
+      e.y = clamp(p.y + Math.sin(ang) * dist, 140, WORLD.h - 80);
+      e.faded = false;
+      fxRings.push({ kind: 'nova', x: e.x, y: e.y - 20, r: 14, maxR: 130, life: 0.32, max: 0.32, col: '#d26bff' });
+      for (let i = 0; i < 12; i++) enemyShoot(e, (i * Math.PI * 2) / 12, 200, 8, 'purple');
+      beep(420, 0.15, 'sine', 0.05, 250);
+      e.phase = 'chase'; e.pt = 1.9;
+    }
+  } else if (e.phase === 'volley') {
+    if (e.pt <= 0) {
+      const base = Math.atan2(p.y - 35 - (e.y - e.r), p.x - e.x);
+      for (let i = -2; i <= 2; i++) enemyShoot(e, base + i * 0.22, 235, 8, 'purple');
+      beep(310, 0.1, 'triangle', 0.04, -100);
+      e.shots--; e.pt = 0.35;
+      if (e.shots <= 0) { e.phase = 'chase'; e.pt = 2.1; }
+    }
+  } else if (e.phase === 'summon') {
+    if (e.pt <= 0) {
+      const cnt = enraged ? 5 : 3;
+      for (let i = 0; i < cnt; i++) spawnEnemy(pick(['ghost', 'bomber', 'bat']), { x: e.x + rand(-110, 110), y: e.y + rand(-110, 110) }, { noElite: true });
+      burst(e.x, e.y - 45, '#d26bff', 32, 260);
+      e.phase = 'chase'; e.pt = 2.4;
+    }
+  }
+}
+
+function hydraBossAI(e, dt, ux, uy, d) {
+  const p = player;
+  const enraged = e.hp < e.maxHp / 2;
+  e.pt -= dt;
+  e.vx = e.vy = 0;
+  if (e.phase === 'chase') {
+    e.vx = ux * e.speed * (enraged ? 1.35 : 1);
+    e.vy = uy * e.speed * (enraged ? 1.35 : 1);
+    if (e.pt <= 0) {
+      e.phase = ['bloom', 'acid_rain', 'pull', 'summon'][e.cycle++ % 4];
+      e.pt = 0.5;
+      e.shots = enraged ? 6 : 4;
+      e.spinA = rand(0, Math.PI * 2);
+    }
+  } else if (e.phase === 'bloom') {
+    e.mode = 'open';
+    if (e.pt <= 0) {
+      e.spinA += 0.35;
+      const n = enraged ? 12 : 9;
+      for (let i = 0; i < n; i++) enemyShoot(e, e.spinA + (i * Math.PI * 2) / n, 185, 9, 'green');
+      beep(260, 0.12, 'triangle', 0.04, -90);
+      e.shots--; e.pt = 0.36;
+      if (e.shots <= 0) { e.mode = 'move'; e.phase = 'chase'; e.pt = 2.1; }
+    }
+  } else if (e.phase === 'acid_rain') {
+    if (e.pt <= 0) {
+      for (let i = 0; i < (enraged ? 5 : 3); i++) {
+        const ax = clamp(p.x + rand(-200, 200), 90, WORLD.w - 90);
+        const ay = clamp(p.y + rand(-160, 160), 120, WORLD.h - 70);
+        puddles.push({ kind: 'acid', x: ax, y: ay, r: 44, life: 4.0, max: 4.0, tick: 0.4 });
+        hazards.push({ kind: 'meteor', x: ax, y: ay, r: 64, t: 0, dur: 1.1 });
+      }
+      e.phase = 'chase'; e.pt = 2.2;
+    }
+  } else if (e.phase === 'pull') {
+    if (d < 440 && d > 40) {
+      p.x -= ux * 115 * dt;
+      p.y -= uy * 115 * dt;
+      collideStatic(p, 14);
+    }
+    if (Math.random() < 0.5) particles.push({ x: p.x + rand(-20, 20), y: p.y - 20, vx: -ux * 80, vy: -uy * 80, life: 0.3, max: 0.3, color: '#6eff6b', size: 4 });
+    if (e.pt < -1.1) {
+      for (let i = 0; i < 10; i++) enemyShoot(e, (i * Math.PI * 2) / 10, 200, 8, 'green');
+      e.phase = 'chase'; e.pt = 2.0;
+    }
+  } else if (e.phase === 'summon') {
+    if (e.pt <= 0) {
+      for (let i = 0; i < (enraged ? 4 : 2); i++) spawnEnemy(pick(['viper', 'flower', 'bee']), { x: e.x + rand(-120, 120), y: e.y + rand(-120, 120) }, { noElite: true });
+      e.phase = 'chase'; e.pt = 2.4;
+    }
+  }
+}
+
+function beholderBossAI(e, dt, ux, uy, d) {
+  const p = player;
+  const enraged = e.hp < e.maxHp / 2;
+  e.pt -= dt;
+  e.vx = e.vy = 0;
+  if (e.phase === 'chase') {
+    e.vx = ux * e.speed * (enraged ? 1.3 : 1);
+    e.vy = uy * e.speed * (enraged ? 1.3 : 1);
+    if (e.pt <= 0) {
+      e.phase = ['laser_fan', 'charge', 'rings', 'meteors'][e.cycle++ % 4];
+      e.pt = e.phase === 'charge' ? 0.8 : 0.45;
+      e.shots = enraged ? 6 : 4;
+      if (e.phase === 'charge') { e.ca = Math.atan2(p.y - e.y, p.x - e.x); play('giant1', 0.5, 0.2); }
+    }
+  } else if (e.phase === 'laser_fan') {
+    if (e.pt <= 0) {
+      const base = Math.atan2(p.y - 35 - (e.y - e.r), p.x - e.x);
+      for (let i = -3; i <= 3; i++) enemyShoot(e, base + i * 0.16, 310, 8, 'orange');
+      beep(660, 0.1, 'sawtooth', 0.04, -240);
+      e.shots--; e.pt = 0.34;
+      if (e.shots <= 0) { e.phase = 'chase'; e.pt = 2.0; }
+    }
+  } else if (e.phase === 'charge') {
+    if (e.pt > 0) { e.ca = e.pt > 0.28 ? Math.atan2(p.y - e.y, p.x - e.x) : e.ca; }
+    else {
+      e.vx = Math.cos(e.ca) * 780; e.vy = Math.sin(e.ca) * 780;
+      if (e.pt < -0.55) { e.phase = 'chase'; e.pt = 1.7; shake = 9; }
+    }
+  } else if (e.phase === 'rings') {
+    if (e.pt <= 0) {
+      const n = enraged ? 16 : 12;
+      for (let i = 0; i < n; i++) enemyShoot(e, e.shots * 0.25 + (i * Math.PI * 2) / n, 205, 8, i % 2 === 0 ? 'purple' : 'orange');
+      e.shots--; e.pt = 0.42;
+      if (e.shots <= 0) { e.phase = 'chase'; e.pt = 2.1; }
+    }
+  } else if (e.phase === 'meteors') {
+    if (e.pt <= 0) {
+      for (let i = 0; i < (enraged ? 5 : 4); i++) {
+        hazards.push({ kind: 'meteor', x: clamp(p.x + rand(-190, 190), 90, WORLD.w - 90), y: clamp(p.y + rand(-160, 160), 120, WORLD.h - 60), r: 75, t: 0, dur: 1.15 });
+      }
+      e.phase = 'chase'; e.pt = 2.2;
     }
   }
 }
@@ -2456,8 +2939,8 @@ function drawEnemy(e) {
   const img = IMG['m_' + d.img], wimg = WHITE['m_' + d.img];
   const s = e.scale * (e.spawn > 0 ? Math.max(0.05, 1 - e.spawn / 0.7) : 1);
   let row = e.row, col = Math.floor(e.t * (e.type === 'bat' || e.type === 'bee' ? 12 : 7)) % 3;
-  if (e.type === 'slime') col = e.z > 6 ? 2 : e.z > 1 ? 1 : 0;
-  if (e.type === 'flower') { row = e.mode === 'open' ? 1 + (Math.floor(e.t * 10) % 3) : 0; col = Math.floor(e.t * 5) % 3; }
+  if (e.type === 'slime' || e.type === 'bomber') col = e.z > 6 ? 2 : e.z > 1 ? 1 : 0;
+  if (e.type === 'flower' || e.type === 'hydra_boss') { row = e.mode === 'open' ? 1 + (Math.floor(e.t * 10) % 3) : 0; col = Math.floor(e.t * 5) % 3; }
   const w = d.fw * s, h = d.fh * s;
   const dx = e.x - w / 2, dy = e.y - h + 4 * s - (e.z || 0);
 
@@ -2466,19 +2949,42 @@ function drawEnemy(e) {
     ctx.beginPath(); ctx.ellipse(e.x, e.y, e.r * 1.4, e.r * 0.55, 0, 0, Math.PI * 2); ctx.stroke();
   }
   if (d.shadow) shadow(e.x, e.y, e.r * 1.05, e.r * 0.4);
-  if (e.elite || e.type === 'leviathan') {
+
+  // Auras distintas para novos inimigos, elites, comandantes e chefões
+  const specialAura = e.elite || e.bounty || isBossType(e.type) || ['bomber', 'viper', 'sniper', 'necromancer', 'golem', 'goblin'].includes(e.type);
+  if (specialAura) {
     ctx.save(); ctx.globalCompositeOperation = 'lighter';
-    const auraCol = e.type === 'leviathan' ? `rgba(120,255,110,${0.22 + 0.1 * Math.sin(e.t * 7)})` : `rgba(255,200,60,${0.25 + 0.1 * Math.sin(e.t * 8)})`;
+    let auraCol = `rgba(255,200,60,${0.25 + 0.1 * Math.sin(e.t * 8)})`;
+    if (e.type === 'leviathan' || e.type === 'viper' || e.type === 'hydra_boss') auraCol = `rgba(100,255,100,${0.24 + 0.1 * Math.sin(e.t * 7)})`;
+    else if (e.type === 'bomber') auraCol = `rgba(255,70,25,${0.32 + 0.2 * Math.sin(e.t * 16)})`;
+    else if (e.type === 'necromancer' || e.type === 'necro_boss') auraCol = `rgba(195,80,255,${0.28 + 0.12 * Math.sin(e.t * 8)})`;
+    else if (e.type === 'sniper' || e.type === 'beholder_boss') auraCol = `rgba(75,225,255,${0.25 + 0.12 * Math.sin(e.t * 9)})`;
+    else if (e.type === 'golem') auraCol = `rgba(255,155,55,${0.24 + 0.1 * Math.sin(e.t * 6)})`;
+    else if (e.type === 'goblin' || e.bounty) auraCol = `rgba(255,220,40,${0.38 + 0.16 * Math.sin(e.t * 12)})`;
     ctx.fillStyle = auraCol;
-    ctx.beginPath(); ctx.ellipse(e.x, e.y - h * 0.45, w * 0.55, h * 0.55, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(e.x, e.y - h * 0.45, w * 0.56, h * 0.56, 0, 0, Math.PI * 2); ctx.fill();
     ctx.restore();
   }
+
+  // Laser de Mira do Sniper
+  if (e.type === 'sniper' && e.mode === 'lock' && e.aimAng !== undefined) {
+    ctx.save();
+    ctx.strokeStyle = `rgba(255,55,55,${0.45 + 0.4 * Math.sin(e.t * 32)})`;
+    ctx.lineWidth = e.act < 0.22 ? 3.5 : 1.8;
+    ctx.setLineDash([8, 6]);
+    ctx.beginPath();
+    ctx.moveTo(e.x, e.y - e.r * 1.2);
+    ctx.lineTo(e.x + Math.cos(e.aimAng) * 620, e.y - e.r * 1.2 + Math.sin(e.aimAng) * 620);
+    ctx.stroke();
+    ctx.restore();
+  }
+
   if (isBossType(e.type) && e.phase === 'charge' && e.pt > 0) {
     ctx.strokeStyle = `rgba(255,40,40,${0.3 + 0.3 * Math.sin(e.t * 30)})`; ctx.lineWidth = e.r * 1.2;
     ctx.beginPath(); ctx.moveTo(e.x, e.y - 20); ctx.lineTo(e.x + Math.cos(e.ca) * 600, e.y - 20 + Math.sin(e.ca) * 600); ctx.stroke();
   }
   let alpha = 1;
-  if (e.type === 'ghost') alpha = e.faded ? 0.22 : 0.85;
+  if (e.type === 'ghost' || e.type === 'necro_boss') alpha = e.faded ? 0.22 : 0.88;
   ctx.globalAlpha = alpha;
   ctx.drawImage(img, col * d.fw, row * d.fh, d.fw, d.fh, Math.round(dx), Math.round(dy), w, h);
   if (e.hurt > 0) {
@@ -2488,6 +2994,10 @@ function drawEnemy(e) {
     ctx.globalAlpha = 0.6; ctx.globalCompositeOperation = 'lighter';
     ctx.drawImage(wimg, col * d.fw, row * d.fh, d.fw, d.fh, Math.round(dx), Math.round(dy), w, h);
     ctx.globalCompositeOperation = 'source-over';
+  } else if (e.poisonT > 0) {
+    ctx.globalAlpha = 0.35; ctx.globalCompositeOperation = 'lighter';
+    ctx.drawImage(wimg, col * d.fw, row * d.fh, d.fw, d.fh, Math.round(dx), Math.round(dy), w, h);
+    ctx.globalCompositeOperation = 'source-over';
   } else if (e.slow > 0) {
     ctx.globalAlpha = 0.32; ctx.globalCompositeOperation = 'lighter';
     ctx.drawImage(wimg, col * d.fw, row * d.fh, d.fw, d.fh, Math.round(dx), Math.round(dy), w, h);
@@ -2495,11 +3005,25 @@ function drawEnemy(e) {
   }
   ctx.globalAlpha = 1;
 
+  if (e.shieldOn) {
+    ctx.save();
+    ctx.strokeStyle = 'rgba(110,235,255,0.8)';
+    ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.arc(e.x, e.y - h * 0.45, e.r * 1.25, 0, Math.PI * 2); ctx.stroke();
+    ctx.restore();
+  }
+  if (e.type === 'goblin') {
+    txt('💰 DUENDE', e.x, dy - 12, 7.5, '#ffd23f');
+  } else if (e.bounty) {
+    txt('🎯 ALVO (' + Math.ceil(e.bountyT) + 's)', e.x, dy - 12, 7.5, '#ff6438');
+  }
+
   if (e.hp < e.maxHp && !isBossType(e.type) && e.spawn <= 0) {
     const bw = Math.max(28, e.r * 2), by = dy - 8;
     ctx.fillStyle = '#1a0d12'; ctx.fillRect(e.x - bw / 2 - 2, by - 2, bw + 4, 8);
     ctx.fillStyle = '#5a1f2a'; ctx.fillRect(e.x - bw / 2, by, bw, 4);
-    ctx.fillStyle = e.elite ? '#ffc23d' : '#ff4d5e'; ctx.fillRect(e.x - bw / 2, by, bw * Math.max(0, e.hp / e.maxHp), 4);
+    ctx.fillStyle = e.type === 'goblin' || e.bounty || e.elite ? '#ffc23d' : (e.poisonT > 0 ? '#5dff6b' : '#ff4d5e');
+    ctx.fillRect(e.x - bw / 2, by, bw * Math.max(0, e.hp / e.maxHp), 4);
   }
 }
 
@@ -2778,14 +3302,33 @@ function drawWorld() {
   ctx.fillRect(-2000, -2000, WORLD.w + 4000, WORLD.h + 4000);
   ctx.drawImage(ground, 0, 0);
 
-  // Poças cítricas (Tuiuba)
+  // Poças cítricas (Tuiuba), Vórtice Abissal & Ácido Tóxico
   for (const pd of puddles) {
     ctx.save();
-    ctx.globalAlpha = Math.min(0.55, pd.life * 0.4);
-    ctx.fillStyle = '#ff8c1a';
-    ctx.beginPath(); ctx.ellipse(pd.x, pd.y, pd.r, pd.r * 0.58, 0, 0, Math.PI * 2); ctx.fill();
-    ctx.fillStyle = '#ffd24d';
-    ctx.beginPath(); ctx.ellipse(pd.x - pd.r * 0.15, pd.y - 2, pd.r * 0.55, pd.r * 0.3, 0, 0, Math.PI * 2); ctx.fill();
+    if (pd.kind === 'vortex') {
+      ctx.globalCompositeOperation = 'lighter';
+      const g = ctx.createRadialGradient(pd.x, pd.y, 4, pd.x, pd.y, pd.r);
+      g.addColorStop(0, 'rgba(30, 5, 55, 0.9)');
+      g.addColorStop(0.5, 'rgba(165, 65, 255, 0.55)');
+      g.addColorStop(1, 'rgba(90, 20, 180, 0)');
+      ctx.fillStyle = g;
+      ctx.beginPath(); ctx.ellipse(pd.x, pd.y, pd.r, pd.r * 0.65, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.strokeStyle = 'rgba(220, 140, 255, 0.75)';
+      ctx.lineWidth = 2.5;
+      ctx.beginPath(); ctx.ellipse(pd.x, pd.y, pd.r * (0.4 + 0.3 * Math.sin(time * 8)), pd.r * 0.38, time * 4, 0, Math.PI * 2); ctx.stroke();
+    } else if (pd.kind === 'acid') {
+      ctx.globalAlpha = Math.min(0.6, pd.life * 0.4);
+      ctx.fillStyle = '#38d64a';
+      ctx.beginPath(); ctx.ellipse(pd.x, pd.y, pd.r, pd.r * 0.6, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#9eff7a';
+      ctx.beginPath(); ctx.ellipse(pd.x - pd.r * 0.15, pd.y - 2, pd.r * 0.5, pd.r * 0.28, 0, 0, Math.PI * 2); ctx.fill();
+    } else {
+      ctx.globalAlpha = Math.min(0.55, pd.life * 0.4);
+      ctx.fillStyle = '#ff8c1a';
+      ctx.beginPath(); ctx.ellipse(pd.x, pd.y, pd.r, pd.r * 0.58, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#ffd24d';
+      ctx.beginPath(); ctx.ellipse(pd.x - pd.r * 0.15, pd.y - 2, pd.r * 0.55, pd.r * 0.3, 0, 0, Math.PI * 2); ctx.fill();
+    }
     ctx.restore();
   }
 
@@ -2855,7 +3398,8 @@ function drawWorld() {
   ctx.restore();
 
   const g = ctx.createRadialGradient(W / 2, H / 2, Math.min(W, H) * 0.4, W / 2, H / 2, Math.max(W, H) * 0.75);
-  g.addColorStop(0, 'rgba(0,0,0,0)'); g.addColorStop(1, 'rgba(0,0,10,0.5)');
+  g.addColorStop(0, 'rgba(0,0,0,0)');
+  g.addColorStop(1, waveEvent === 'bloodmoon' ? 'rgba(65,0,15,0.58)' : 'rgba(0,0,10,0.5)');
   ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
   if (player && player.inv > stats.invTime - 0.3 && !player.dash && !player.ult && player.hp < stats.maxHp && state === 'play') {
     ctx.fillStyle = `rgba(255,0,0,${(player.inv - (stats.invTime - 0.3)) * 0.8})`; ctx.fillRect(0, 0, W, H);
@@ -3036,8 +3580,10 @@ function drawHUD() {
   if (boss) {
     const bw = Math.min(600, W * 0.6);
     const bName = MON[boss.type].bossName || 'CHEFÃO';
-    txt(bName, W / 2, 26, 12, boss.type === 'leviathan' ? '#8cff7a' : '#ffb35d');
-    bar(W / 2 - bw / 2, 34, bw, 14, boss.hp / boss.maxHp, boss.hp < boss.maxHp / 2 ? '#ff3b3b' : (boss.type === 'leviathan' ? '#4ad66d' : '#ff8a2e'), '#3a1410');
+    const bCol = boss.type === 'leviathan' || boss.type === 'hydra_boss' ? '#8cff7a' : boss.type === 'necro_boss' ? '#e29eff' : boss.type === 'beholder_boss' ? '#7fe8ff' : '#ffb35d';
+    const barCol = boss.hp < boss.maxHp / 2 ? '#ff3b3b' : (boss.type === 'leviathan' || boss.type === 'hydra_boss' ? '#4ad66d' : boss.type === 'necro_boss' ? '#b855ff' : boss.type === 'beholder_boss' ? '#3ac2ff' : '#ff8a2e');
+    txt(bName, W / 2, 26, 12, bCol);
+    bar(W / 2 - bw / 2, 34, bw, 14, boss.hp / boss.maxHp, barCol, '#3a1410');
   }
   if (banner) {
     const a = Math.min(1, banner.life * 2, (banner.max - banner.life) * 4);
@@ -3059,9 +3605,13 @@ function drawHUD() {
   const left = enemies.length + toSpawn;
   if (!touch.active && left > 0) txt('INIMIGOS: ' + left, W - 20, H - 45, 10, '#ddd', 'right');
 
-  // Setas indicadoras fora da tela (Chefões, Últimos Inimigos e Santuários)
+  // Setas indicadoras fora da tela (Chefões, Duende, Alvos, Últimos Inimigos e Santuários)
   const poi = [];
-  for (const e of enemies) if (isBossType(e.type) || left <= 5) poi.push({ x: e.x, y: e.y, col: isBossType(e.type) ? '#ff7a3d' : '#ff4d5e' });
+  for (const e of enemies) {
+    if (isBossType(e.type) || e.type === 'goblin' || e.bounty || left <= 5) {
+      poi.push({ x: e.x, y: e.y, col: e.type === 'goblin' || e.bounty ? '#ffd23f' : (isBossType(e.type) ? '#ff7a3d' : '#ff4d5e') });
+    }
+  }
   for (const sh of shrines) poi.push({ x: sh.x, y: sh.y, col: sh.col });
   for (const k of pickups) if (k.kind === 'chest') poi.push({ x: k.x, y: k.y, col: '#ffd23f' });
 
