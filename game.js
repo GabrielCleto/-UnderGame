@@ -54,6 +54,10 @@ const IMAGE_LIST = {
   portrait_amxral: 'assets/amxral_portrait.png',
   portrait_tuiuba: 'assets/tuiuba_portrait.png',
   manguinha_atk: 'assets/manguinha_attack_strip.png',
+  chaos_imp: 'assets/new_monsters/chaos_imp.png',
+  void_spider: 'assets/new_monsters/void_spider.png',
+  boss_void_overlord: 'assets/new_monsters/boss_void_overlord.png',
+  boss_magma_colossus: 'assets/new_monsters/boss_magma_colossus.png',
   terraria_star: 'assets/icons/terraria_star.png',
   orange_ball: 'assets/icons/orange_pure.png',
   orange_splash: 'assets/icons/orange_splash.png',
@@ -319,6 +323,10 @@ const MON = {
   goblin: { img: 'small_worm', fw: 32, fh: 32, hp: 16, speed: 168, r: 16, dmg: 0, xp: 10, score: 250, scale: 1.9, shadow: true },
   boss: { img: 'pumpking', fw: 46, fh: 46, hp: 95, speed: 80, r: 40, dmg: 2, xp: 35, score: 600, scale: 3.2, shadow: true, bossName: 'REI ABÓBORA', isBoss: true },
   leviathan: { img: 'big_worm', fw: 35, fh: 50, hp: 120, speed: 94, r: 42, dmg: 2, xp: 45, score: 750, scale: 3.1, shadow: true, bossName: 'LEVIATÃ ABISSAL', isBoss: true },
+  chaos_imp: { img: 'chaos_imp', fw: 32, fh: 32, hp: 6, speed: 125, r: 14, dmg: 2, xp: 3, score: 35, scale: 1.5, fly: true },
+  void_spider: { img: 'void_spider', fw: 40, fh: 32, hp: 8, speed: 140, r: 16, dmg: 2, xp: 4, score: 40, scale: 1.4, shadow: true },
+  boss_void_overlord: { img: 'boss_void_overlord', fw: 64, fh: 64, hp: 260, speed: 68, r: 38, dmg: 3, xp: 60, score: 1000, scale: 2.3, isBoss: true, bossName: 'SOBERANO DO VAZIO', shadow: true },
+  boss_magma_colossus: { img: 'boss_magma_colossus', fw: 64, fh: 64, hp: 320, speed: 52, r: 42, dmg: 4, xp: 75, score: 1200, scale: 2.4, isBoss: true, bossName: 'COLOSSO DE MAGMA', shadow: true },
   necro_boss: { img: 'ghost', fw: 40, fh: 46, hp: 140, speed: 86, r: 38, dmg: 2, xp: 55, score: 900, scale: 2.8, fly: true, shadow: true, bossName: 'SOBERANO NECROMANTE', isBoss: true },
   hydra_boss: { img: 'man_eater_flower', fw: 60, fh: 76, hp: 165, speed: 52, r: 44, dmg: 2, xp: 65, score: 1100, scale: 2.35, shadow: true, bossName: 'IMPERATRIZ CARNÍVORA', isBoss: true },
   beholder_boss: { img: 'eyeball', fw: 32, fh: 38, hp: 185, speed: 88, r: 40, dmg: 2, xp: 75, score: 1300, scale: 3.3, fly: true, shadow: true, bossName: 'OLHO ASTRAL SUPREMO', isBoss: true },
@@ -1640,8 +1648,10 @@ function update(dt) {
         else if (roll < 0.34 && wave >= 3) { waveEvent = 'golden'; }
         else if (roll < 0.50) { waveEvent = 'swarm'; toSpawn = Math.round(toSpawn * 1.35); }
         else if (roll < 0.65 && wave >= 4) { waveEvent = 'bloodmoon'; }
-        else if (roll < 0.78 && wave >= 3) { waveEvent = 'ambush'; }
-        else if (roll < 0.88 && wave >= 4) { waveEvent = 'bounty'; }
+        else if (roll < 0.76 && wave >= 3) { waveEvent = 'ambush'; }
+        else if (roll < 0.85 && wave >= 4) { waveEvent = 'bounty'; }
+        else if (roll < 0.93 && wave >= 5) { waveEvent = 'void_eclipse'; }
+        else if (wave >= 6) { waveEvent = 'magma_surge'; }
       }
       if (stats.nukeNext) {
         stats.nukeNext = false;
@@ -1649,7 +1659,7 @@ function update(dt) {
         texts.push({ x: p.x, y: p.y - 140, txt: 'PERGAMINHO ATIVADO!', life: 2, color: '#ffd23f', size: 14 });
       }
       if (isBoss) {
-        const bossCycle = ['boss', 'leviathan', 'necro_boss', 'hydra_boss', 'beholder_boss'];
+        const bossCycle = ['boss', 'leviathan', 'necro_boss', 'boss_void_overlord', 'hydra_boss', 'boss_magma_colossus', 'beholder_boss'];
         const bIdx = (Math.floor(wave / 5) - 1) % bossCycle.length;
         const bType = bossCycle[bIdx];
         const bObj = spawnEnemy(bType, spawnPos(340, 440, 60));
@@ -1680,6 +1690,8 @@ function update(dt) {
           : waveEvent === 'bloodmoon' ? '🩸 LUA DE SANGUE: INIMIGOS FEROZES + DOBRO DE RECOMPENSAS!'
           : waveEvent === 'ambush' ? '⚔ CERCO RELÂMPAGO: QUEBRE O CÍRCULO INIMIGO!'
           : waveEvent === 'bounty' ? '🎯 CAÇADA AO COMANDANTE: DERROTE O ALVO P/ +1 NÍVEL!'
+          : waveEvent === 'void_eclipse' ? '⚡ ECLIPSE DO VAZIO: TEMPESTADE CÓSMICA & HORDAS ASTRAIS!'
+          : waveEvent === 'magma_surge' ? '🌋 SURTO DE MAGMA: O CHÃO É LAVA & GIGANTES DE FOGO!'
           : (wave === 1 ? 'Sobreviva!' : 'Prepare-se!');
         banner = { txt: 'ONDA ' + wave, sub: evSub, life: 2.6, max: 2.6, boss: waveEvent === 'meteors' || waveEvent === 'bloodmoon' };
         SFX.wave();
@@ -2367,6 +2379,7 @@ function update(dt) {
   cam.y += (p.y - 40 - cam.y) * Math.min(1, dt * 8);
   clampCam();
   shake = Math.max(0, shake - dt * 40);
+  updateAmbientAtmosphere(dt);
   trauma = Math.max(0, trauma - dt * 1.35);
 }
 
@@ -3063,7 +3076,16 @@ function drawEnemy(e) {
   const d = MON[e.type];
   const img = IMG['m_' + d.img], wimg = WHITE['m_' + d.img];
   const s = e.scale * (e.spawn > 0 ? Math.max(0.05, 1 - e.spawn / 0.7) : 1);
-  let row = e.row, col = Math.floor(e.t * (e.type === 'bat' || e.type === 'bee' ? 12 : 7)) % 3;
+  let row = e.row, col = 0;
+  if (['chaos_imp', 'void_spider', 'boss_void_overlord', 'boss_magma_colossus'].includes(e.type)) {
+    const isAtk = (e.mode === 'shoot' || e.act < 0.35 || e.phase === 'charge');
+    const animFrames = isAtk ? [4, 5] : [0, 1, 2, 3];
+    const fps = isAtk ? 8 : (e.type === 'chaos_imp' ? 12 : 6);
+    col = animFrames[Math.floor(e.t * fps) % animFrames.length];
+    row = 0;
+  } else {
+    col = Math.floor(e.t * (e.type === 'bat' || e.type === 'bee' ? 12 : 7)) % 3;
+  }
   if (e.type === 'slime' || e.type === 'bomber') col = e.z > 6 ? 2 : e.z > 1 ? 1 : 0;
   if (e.type === 'flower' || e.type === 'hydra_boss') { row = e.mode === 'open' ? 1 + (Math.floor(e.t * 10) % 3) : 0; col = Math.floor(e.t * 5) % 3; }
   const w = d.fw * s, h = d.fh * s;
@@ -3427,6 +3449,51 @@ function drawPickup(k) {
   }
 }
 
+
+// =====================================================================
+//  ATMOSFERA & PARTÍCULAS AMBIENTAIS (High Production Polish)
+// =====================================================================
+let ambientDust = [];
+function updateAmbientAtmosphere(dt) {
+  if (ambientDust.length < 35) {
+    ambientDust.push({
+      x: rand(0, WORLD.w), y: rand(0, WORLD.h),
+      vx: rand(-12, 12), vy: rand(-18, -6),
+      size: rand(1.5, 3.2),
+      alpha: rand(0.2, 0.65),
+      col: waveEvent === 'bloodmoon' ? '#ff4d60' : (waveEvent === 'void_eclipse' ? '#c06bff' : '#d2f2ff'),
+      t: rand(0, 10)
+    });
+  }
+  for (const p of ambientDust) {
+    p.x += p.vx * dt;
+    p.y += p.vy * dt;
+    p.t += dt;
+    if (p.y < 0) { p.y = WORLD.h; p.x = rand(0, WORLD.w); }
+    if (p.x < 0) p.x = WORLD.w;
+    if (p.x > WORLD.w) p.x = 0;
+  }
+}
+
+function drawAmbientAtmosphere() {
+  const z = (cam && cam.zoom) || getCamZoom();
+  const halfW = (W / 2) / z, halfH = (H / 2) / z;
+  const viewL = cam.x - halfW - 40, viewR = cam.x + halfW + 40;
+  const viewT = cam.y - halfH - 40, viewB = cam.y + halfH + 40;
+
+  ctx.save();
+  for (const p of ambientDust) {
+    if (p.x < viewL || p.x > viewR || p.y < viewT || p.y > viewB) continue;
+    const a = p.alpha * (0.6 + 0.4 * Math.sin(p.t * 3));
+    ctx.fillStyle = p.col;
+    ctx.globalAlpha = a;
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.restore();
+}
+
 function drawWorld() {
   const sqTrauma = trauma * trauma;
   const shakeOffset = sqTrauma * 22;
@@ -3508,6 +3575,7 @@ function drawWorld() {
   for (const o of list) o.d();
 
   if (player && state !== 'menu' && state !== 'select_char') drawFireballs();
+  drawAmbientAtmosphere();
   for (const s of slashes) drawSlash(s);
   for (const s of pshots) drawShot(s);
   for (const b of ebullets) drawBullet(b);
@@ -3653,7 +3721,57 @@ function drawMinimap() {
   ctx.restore();
 }
 
+
+// =====================================================================
+//  BARRA DE CHEFÃO CINEMÁTICA (Top Screen Boss Bar)
+// =====================================================================
+function drawBossBar() {
+  if (!boss || boss.dead || boss.hp <= 0 || state !== 'play') return;
+  const bw = Math.min(520, W - 40);
+  const bh = 14;
+  const bx = W / 2 - bw / 2;
+  const by = 24;
+
+  const d = MON[boss.type];
+  const bossTitle = (d && d.bossName) ? d.bossName : 'CHEFÃO';
+
+  ctx.save();
+  ctx.fillStyle = 'rgba(12, 8, 16, 0.88)';
+  ctx.fillRect(bx - 4, by - 18, bw + 8, bh + 26);
+  ctx.strokeStyle = '#ffd23f';
+  ctx.lineWidth = 2;
+  ctx.strokeRect(bx - 2, by - 16, bw + 4, bh + 22);
+
+  txt('☠ ' + bossTitle.toUpperCase() + ' ☠', W / 2, by - 4, 8.5, '#ffd23f');
+
+  ctx.fillStyle = '#220810';
+  ctx.fillRect(bx, by, bw, bh);
+
+  const frac = clamp(boss.hp / boss.maxHp, 0, 1);
+  const hpFillW = Math.round(bw * frac);
+  const g = ctx.createLinearGradient(bx, by, bx, by + bh);
+  g.addColorStop(0, '#ff4a60');
+  g.addColorStop(0.5, '#d61b36');
+  g.addColorStop(1, '#85071b');
+  ctx.fillStyle = g;
+  ctx.fillRect(bx, by, hpFillW, bh);
+
+  ctx.fillStyle = 'rgba(255, 255, 255, 0.25)';
+  ctx.fillRect(bx, by, hpFillW, Math.round(bh / 2));
+
+  // Studs
+  ctx.fillStyle = '#ffe055';
+  ctx.fillRect(bx - 3, by - 16, 3, 3);
+  ctx.fillRect(bx + bw, by - 16, 3, 3);
+  ctx.fillRect(bx - 3, by + bh + 3, 3, 3);
+  ctx.fillRect(bx + bw, by + bh + 3, 3, 3);
+
+  txt(boss.hp + ' / ' + boss.maxHp, W / 2, by + bh - 3, 6.5, '#ffffff');
+  ctx.restore();
+}
+
 function drawHUD() {
+  drawBossBar();
   const p = player;
   const isCompactH = H < 520;
   const heartSz = isCompactH ? 24 : 34;
@@ -4050,7 +4168,13 @@ function drawLevelUp() {
       const lift = sel ? -4 : 0;
       panel(x, y0 + lift, cw, ch, sel);
       const lvl = ups[u.id] || 0;
-      txt(lvl ? 'NV ' + (lvl + 1) : 'NOVO!', x + cw / 2, y0 + lift + 18, 8, lvl ? '#9fd0ff' : '#7dff7d');
+      const isLegendary = (lvl >= 4 || u.id === 'reforge');
+      const isEpic = (lvl >= 2 || ['vortex', 'berserk', 'venom', 'ricochet'].includes(u.id));
+      const isRare = (lvl >= 1);
+      const rarityName = isLegendary ? '★ LENDÁRIO ★' : isEpic ? '◆ ÉPICO ◆' : isRare ? '▲ RARO ▲' : '● COMUM ●';
+      const rarityCol = isLegendary ? '#ffd23f' : isEpic ? '#d465ff' : isRare ? '#4fe3ff' : '#9bb5cf';
+      txt(rarityName, x + cw / 2, y0 + lift + 15, 6.5, rarityCol);
+      txt(lvl ? 'NV ' + (lvl + 1) : 'NOVO!', x + cw / 2, y0 + lift + 27, 7.5, lvl ? '#9fd0ff' : '#7dff7d');
 
       const iconSz = 50;
       ctx.drawImage(IMG['i_' + u.icon], x + cw / 2 - iconSz / 2, y0 + lift + 24, iconSz, iconSz);
