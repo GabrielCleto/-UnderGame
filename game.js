@@ -3337,7 +3337,7 @@ function drawEnemy(e) {
   ctx.globalAlpha = alpha;
   ctx.save();
   ctx.translate(e.x, e.y);
-  const flipH = ['chaos_imp', 'void_spider', 'boss_void_overlord'].includes(e.type) && (p && p.x < e.x);
+  const flipH = ['chaos_imp', 'void_spider', 'boss_void_overlord'].includes(e.type) && (typeof player !== 'undefined' && player && player.x < e.x);
   if (flipH) {
     ctx.scale(-1, 1);
   }
