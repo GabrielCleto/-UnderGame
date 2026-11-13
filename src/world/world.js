@@ -93,10 +93,11 @@ function buildWorld() {
 
 function refillBarrels(n) {
   let tries = 0, made = 0;
-  const cur = props.filter(p => p.kind === 'barrel' || p.kind === 'tnt').length;
+  const cur = props.filter(p => p.kind === 'barrel' || p.kind === 'tnt' || p.kind === 'lucky').length;
   while (cur + made < n && tries++ < 300) {
-    const isTnt = Math.random() < 0.3;
-    const p = { kind: isTnt ? 'tnt' : 'barrel', x: rand(80, WORLD.w - 80), y: rand(120, WORLD.h - 60), r: 15, hp: isTnt ? 1 : 2, hurt: 0 };
+    const roll = Math.random();
+    const kind = roll < 0.16 ? 'lucky' : roll < 0.44 ? 'tnt' : 'barrel';
+    const p = { kind, x: rand(80, WORLD.w - 80), y: rand(120, WORLD.h - 60), r: 15, hp: kind === 'barrel' ? 2 : 1, hurt: 0 };
     if (blocked(p.x, p.y, 40)) continue;
     if (player && Math.hypot(p.x - player.x, p.y - player.y) < 220) continue;
     props.push(p); made++;

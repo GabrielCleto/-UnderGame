@@ -68,6 +68,24 @@ function damageEnemy(e, dmg, fromX, fromY, power = 380, opts = {}) {
   if (pref && pref.dmgMul && !opts.noCrit) { dmg = Math.max(1, Math.round(dmg * pref.dmgMul)); }
   if (pref && pref.kbMul && power) { power *= pref.kbMul; }
   if (pref && pref.id === 'mythical' && player && player.ultMeter < 100) { player.ultMeter = Math.min(100, player.ultMeter + 0.6); }
+  if (stats.infPower) dmg = Math.ceil(dmg * (1 + 0.25 * stats.infPower));
+  if (stats.bloodOrb && player && player.hp <= stats.maxHp * 0.5) dmg = Math.ceil(dmg * (1 + 0.20 * stats.bloodOrb));
+  if (e.type === 'twilight_lich' && (e.lichShields || 0) > 0) {
+    e.lichShieldHits = (e.lichShieldHits || 0) + 1;
+    dmg = Math.max(1, Math.ceil(dmg * 0.35));
+    if (e.lichShieldHits >= 4) {
+      e.lichShields--; e.lichShieldHits = 0;
+      SFX.shieldBreak();
+      fxRings.push({ kind: 'nova', x: e.x, y: e.y - 30, r: 16, maxR: 110, life: 0.3, max: 0.3, col: '#ffe042' });
+      texts.push({ x: e.x, y: e.y - 80, txt: 'ESCUDO DO LICH QUEBRADO!', life: 1.1, color: '#ffe042', size: 11 });
+    }
+  }
+  if (crit && stats.infPower && !opts.isNova) {
+    fxRings.push({ kind: 'nova', x: e.x, y: e.y - 16, r: 10, maxR: 95, life: 0.25, max: 0.25, col: '#c844ff' });
+  }
+  if (stats.bloodOrb && player && player.combo > 0 && player.combo % 12 === 0) {
+    player.hp = Math.min(stats.maxHp, player.hp + 1);
+  }
   if (e.shieldOn && !opts.ignoreShield) {
     dmg = Math.max(1, Math.ceil(dmg * 0.4));
     power *= 0.25;
@@ -444,9 +462,34 @@ function hitBarrel(b) {
   if (b.dead) return;
   b.hp--; b.hurt = 0.15;
   SFX.barrel();
-  burst(b.x, b.y - 25, b.kind === 'tnt' ? '#ff5533' : '#8a5a2b', 6, 160);
+  burst(b.x, b.y - 25, b.kind === 'tnt' ? '#ff5533' : b.kind === 'lucky' ? '#ffe042' : '#8a5a2b', 6, 160);
   if (b.hp <= 0) {
     b.dead = true;
+    if (b.kind === 'lucky') {
+      SFX.luckyOpen();
+      fxRings.push({ kind: 'nova', x: b.x, y: b.y - 16, r: 12, maxR: 130, life: 0.35, max: 0.35, col: '#ffe042' });
+      burst(b.x, b.y - 20, '#ffe042', 24, 260);
+      const luckRoll = Math.random();
+      if (luckRoll < 0.30) {
+        for (let i = 0; i < 8; i++) dropItem('coin', b.x, b.y);
+        dropItem('ruby', b.x, b.y);
+        texts.push({ x: b.x, y: b.y - 45, txt: '🍀 LUCKY: CHUVA DE OURO!', life: 1.5, color: '#ffe042', size: 12 });
+      } else if (luckRoll < 0.58) {
+        player.ultMeter = 100;
+        player.frenzyT = Math.max(player.frenzyT || 0, 7);
+        texts.push({ x: b.x, y: b.y - 45, txt: '⚡ LUCKY: PODER DO INFINITO!', life: 1.5, color: '#d66fff', size: 12 });
+      } else if (luckRoll < 0.80) {
+        spawnTerrariaFallenStar(b.x + rand(-80, 80), b.y + rand(-80, 80));
+        dropItem('potion', b.x, b.y);
+        texts.push({ x: b.x, y: b.y - 45, txt: '☄ LUCKY: ESTRELA CADENTE!', life: 1.5, color: '#62f6ff', size: 12 });
+      } else {
+        for (let i = 0; i < 4; i++) spawnEnemy(pick(['slime', 'chaos_imp', 'bat']), { x: clamp(b.x + rand(-70, 70), 60, WORLD.w - 60), y: clamp(b.y + rand(-70, 70), 100, WORLD.h - 40) }, { noElite: true });
+        dropItem('chest', b.x, b.y);
+        texts.push({ x: b.x, y: b.y - 45, txt: '🎲 LUCKY: EMBOSCADA + BAÚ!', life: 1.6, color: '#ff8a3d', size: 12 });
+      }
+      score += 35;
+      return;
+    }
     if (b.kind === 'tnt') {
       triggerExplosion(b.x, b.y - 10, 140, 8 + wave * 2, true);
       score += 20;

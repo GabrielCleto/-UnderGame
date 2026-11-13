@@ -26,6 +26,9 @@ const UPGRADES = [
   { id: 'vamp', name: 'Rubi Vampiro', icon: 'I_Ruby', max: 3, desc: l => 'Chance de curar 1 de vida ao derrotar inimigos', apply: s => (s.vamp += 1) },
   { id: 'dash', name: 'Giro Cortante', icon: 'S_Buff04', max: 4, desc: l => 'Giro recarrega 16% mais rápido e causa +2 de dano', apply: s => { s.dashCd *= 0.84; s.dashDmg += 2; } },
   { id: 'armor', name: 'Jaqueta Blindada', icon: 'A_Armour01', max: 3, desc: l => 'Mais tempo invencível após dano e reduz dano pesado em ondas altas', apply: s => { s.invTime += 0.3; s.armor = (s.armor || 0) + 1; } },
+  { id: 'bloodOrb', name: 'Orbe de Sangue', icon: 'mod_blood_orb', max: 3, desc: l => 'Blood Magic: +20% dano com vida baixa e cura 1 HP a cada 12 acertos de combo', apply: s => { s.bloodOrb = (s.bloodOrb || 0) + 1; SFX.bloodRite(); } },
+  { id: 'infPower', name: 'Joia do Poder', icon: 'mod_gem_power', max: 3, desc: l => 'Joia do Infinito: +25% de dano total e onda cósmica roxa em críticos', apply: s => { s.infPower = (s.infPower || 0) + 1; SFX.bloodRite(); } },
+  { id: 'infTime', name: 'Joia do Tempo', icon: 'mod_gem_time', max: 3, desc: l => 'Joia do Infinito: ataques +16% velozes e desacelera projéteis inimigos próximos', apply: s => { s.infTime = (s.infTime || 0) + 1; s.atkRate *= 1.16; s.dashCd *= 0.90; SFX.bloodRite(); } },
 ];
 
 // =====================================================================
@@ -73,6 +76,8 @@ const SHOP_ITEMS = [
   { id: 'shield_orb', name: 'Orbe de Escudo', icon: 'S_Buff03', baseCost: 18, stepCost: 10, get cost() { return getShopCost(this); }, desc: 'Concede +2 Escudos Orbitais que bloqueiam dano', buy: (s, p) => { p.shields = Math.min(4, (p.shields || 0) + 2); SFX.shrine(); } },
   { id: 'mystery', name: 'Tomo do Destino', icon: 'I_Book', baseCost: 24, stepCost: 14, get cost() { return getShopCost(this); }, desc: 'Concede +100% Fúria, Ímã Global e +10% Crítico na próxima onda', buy: (s, p) => { p.ultMeter = 100; p.frenzyT = Math.max(p.frenzyT, 8); for (const k of pickups) k.pull = true; SFX.ult(); } },
   { id: 'medal', name: 'Medalha Honra', icon: 'Ac_Medal01', baseCost: 42, stepCost: 28, get cost() { return getShopCost(this); }, desc: 'Aumenta permanentemente o dano principal e de giro em +1', buy: (s, p) => { s.dmg += 1; s.dashDmg += 1; SFX.level(); } },
+  { id: 'blood_pact', name: 'Pacto de Sangue', icon: 'mod_blood_orb', baseCost: 10, stepCost: 8, get cost() { return getShopCost(this); }, desc: 'Blood Magic: sacrifica 1 coração (se >1) por +1 Dano permanente e 100% Fúria', buy: (s, p) => { if (p.hp > 2) p.hp -= 2; s.dmg += 1; p.ultMeter = 100; SFX.bloodRite(); texts.push({ x: p.x, y: p.y - 95, txt: '🩸 PACTO DE SANGUE!', life: 1.5, color: '#ff385c', size: 13 }); } },
+  { id: 'gauntlet', name: 'Manopla do Infinito', icon: 'mod_gauntlet', baseCost: 55, stepCost: 35, get cost() { return getShopCost(this); }, desc: 'Estalo Cósmico: +2 Dano, +10% Crítico e pulveriza metade dos inimigos ao iniciar onda', buy: (s, p) => { s.dmg += 2; s.crit += 0.10; s.gauntletSnap = true; SFX.bloodRite(); texts.push({ x: p.x, y: p.y - 105, txt: '⚡ ESTALO DO INFINITO!', life: 1.8, color: '#ffd23f', size: 14 }); } },
 ];
 let shopSel = 0;
 

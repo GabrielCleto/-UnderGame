@@ -205,6 +205,28 @@ function updateEnemy(e, dt) {
       beholderBossAI(e, dt, ux, uy, d);
       sx = e.vx; sy = e.vy;
       break;
+    case 'carminite_ghast': {
+      const keep = 210;
+      const str = Math.sin(e.t * 2.2) * 48;
+      if (d > keep + 40) { sx = ux * e.speed; sy = uy * e.speed; }
+      else if (d < keep - 40) { sx = -ux * e.speed * 0.85; sy = -uy * e.speed * 0.85; }
+      else { sx = -uy * str; sy = ux * str; }
+      e.act -= dt;
+      if (e.act <= 0) {
+        e.act = 2.1;
+        const baseA = Math.atan2(p.y - e.y, p.x - e.x);
+        for (const off of [-0.16, 0, 0.16]) enemyShoot(e, baseA + off, 235, 7, 'orange');
+      }
+      break;
+    }
+    case 'twilight_lich':
+      twilightLichAI(e, dt, ux, uy, d);
+      sx = e.vx; sy = e.vy;
+      break;
+    case 'aether_slider':
+      aetherSliderAI(e, dt, ux, uy, d);
+      sx = e.vx; sy = e.vy;
+      break;
   }
 
   e.kx *= Math.pow(0.003, dt); e.ky *= Math.pow(0.003, dt);
@@ -605,3 +627,55 @@ function bossMagmaColossusAI(e, dt, ux, uy, d) {
   }
 }
 
+
+function twilightLichAI(e, dt, ux, uy, d) {
+  const p = player;
+  if (e.lichShields === undefined) { e.lichShields = 3; e.lichShieldHits = 0; SFX.bossAwake(); }
+  const enraged = e.hp < e.maxHp * 0.5;
+  e.pt -= dt;
+  const ang = Math.atan2(p.y - e.y, p.x - e.x);
+  if (d > 240) { e.vx = ux * e.speed; e.vy = uy * e.speed; }
+  else if (d < 150) { e.vx = -ux * e.speed * 0.8; e.vy = -uy * e.speed * 0.8; }
+  else { e.vx = -uy * e.speed * 0.9; e.vy = ux * e.speed * 0.9; }
+  if (e.pt <= 0) {
+    e.pt = enraged ? 1.35 : 1.9;
+    const roll = Math.random();
+    if (roll < 0.55) {
+      const n = enraged ? 5 : 3;
+      for (let i = 0; i < n; i++) enemyShoot(e, ang + (i - (n - 1) / 2) * 0.22, 230, 8, 'purple');
+    } else if (roll < 0.85) {
+      for (let i = 0; i < 8; i++) enemyShoot(e, e.t + (i * Math.PI * 2) / 8, 195, 7, 'yellow');
+    } else if (enemies.length < 18) {
+      spawnEnemy(pick(['ghost', 'bat']), { x: e.x + rand(-60, 60), y: e.y + rand(-60, 60) }, { noElite: true });
+    }
+  }
+}
+
+function aetherSliderAI(e, dt, ux, uy, d) {
+  const p = player;
+  if (!e.phase) { e.phase = 'hover'; e.pt = 1.1; SFX.bossAwake(); }
+  const enraged = e.hp < e.maxHp * 0.5;
+  e.pt -= dt;
+  if (e.phase === 'hover') {
+    e.vx = ux * e.speed * 0.5; e.vy = uy * e.speed * 0.5;
+    if (e.pt <= 0) {
+      e.phase = 'charge'; e.pt = enraged ? 0.55 : 0.72;
+      const dx = Math.abs(p.x - e.x), dy = Math.abs(p.y - e.y);
+      if (dx > dy) { e.ca = p.x > e.x ? 0 : Math.PI; } else { e.ca = p.y > e.y ? Math.PI / 2 : -Math.PI / 2; }
+      SFX.bossAwake();
+    }
+  } else if (e.phase === 'charge') {
+    const spd = enraged ? 480 : 390;
+    e.vx = Math.cos(e.ca) * spd; e.vy = Math.sin(e.ca) * spd;
+    if (Math.random() < 0.65) particles.push({ x: e.x, y: e.y - 20, vx: rand(-40, 40), vy: rand(-40, 40), life: 0.25, max: 0.25, color: '#62f6ff', size: 4 });
+    if (e.pt <= 0) {
+      e.phase = 'cooldown'; e.pt = enraged ? 0.65 : 0.95; e.vx = 0; e.vy = 0;
+      shake = Math.max(shake, 6); SFX.explode();
+      fxRings.push({ kind: 'nova', x: e.x, y: e.y - 16, r: 16, maxR: 135, life: 0.3, max: 0.3, col: '#62f6ff' });
+      for (let i = 0; i < (enraged ? 10 : 6); i++) enemyShoot(e, (i * Math.PI * 2) / (enraged ? 10 : 6), 210, 7, 'cyan');
+    }
+  } else {
+    e.vx = 0; e.vy = 0;
+    if (e.pt <= 0) { e.phase = 'hover'; e.pt = enraged ? 0.9 : 1.25; }
+  }
+}

@@ -31,7 +31,8 @@ const IMAGE_LIST = {
 const MONSTER_SPRITES = [
   'slime', 'bat', 'bee', 'snake', 'small_worm', 'eyeball', 'ghost',
   'big_worm', 'man_eater_flower', 'pumpking',
-  'chaos_imp', 'void_spider', 'boss_void_overlord', 'boss_magma_colossus'
+  'chaos_imp', 'void_spider', 'boss_void_overlord', 'boss_magma_colossus',
+  'twilight_lich', 'aether_slider', 'carminite_ghast'
 ];
 MONSTER_SPRITES.forEach(m => {
   IMAGE_LIST['m_' + m] = `assets/sprites/monsters/${m}.png`;
@@ -41,7 +42,8 @@ MONSTER_SPRITES.forEach(m => {
   'I_GoldCoin', 'I_Sapphire', 'I_Ruby', 'P_Red01', 'P_Red02', 'A_Shoes03', 'Ac_Ring01', 'I_Clock', 'I_Clover', 'S_Buff04',
   'S_Buff08', 'S_Fire01', 'S_Fire02', 'S_Ice01', 'S_Holy01', 'S_Light01', 'S_Light02', 'S_Light03', 'S_Light04', 'S_Magic02',
   'I_Chest01', 'A_Armour01', 'I_Diamond', 'heart_full', 'heart_empty', 'S_Dagger03', 'S_Earth01', 'S_Axe03', 'I_Book',
-  'Ac_Medal01', 'S_Buff01', 'S_Buff03', 'S_Magic03', 'S_Magic04', 'P_Medicine01'
+  'Ac_Medal01', 'S_Buff01', 'S_Buff03', 'S_Magic03', 'S_Magic04', 'P_Medicine01',
+  'mod_gauntlet', 'mod_gem_power', 'mod_gem_time', 'mod_blood_orb', 'mod_air_sigil', 'mod_charm', 'mod_carminite', 'mod_ambrosium'
 ].forEach(i => (IMAGE_LIST['i_' + i] = `assets/icons/${i}.png`));
 
 function makeWhite(img) {

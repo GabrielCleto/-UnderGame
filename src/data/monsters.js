@@ -26,6 +26,9 @@ const MON = {
   necro_boss: { img: 'ghost', fw: 40, fh: 46, hp: 580, speed: 88, r: 38, dmg: 2, xp: 75, score: 1100, scale: 2.8, fly: true, shadow: true, bossName: 'SOBERANO NECROMANTE', isBoss: true },
   hydra_boss: { img: 'man_eater_flower', fw: 60, fh: 76, hp: 680, speed: 54, r: 44, dmg: 3, xp: 85, score: 1300, scale: 2.35, shadow: true, bossName: 'IMPERATRIZ CARNÍVORA', isBoss: true },
   beholder_boss: { img: 'eyeball', fw: 32, fh: 38, hp: 780, speed: 84, r: 42, dmg: 3, xp: 95, score: 1500, scale: 3.3, fly: true, shadow: true, bossName: 'OLHO ASTRAL SUPREMO', isBoss: true },
+  carminite_ghast: { img: 'carminite_ghast', fw: 32, fh: 32, hp: 10, speed: 112, r: 15, dmg: 2, xp: 4, score: 42, scale: 1.55, fly: true },
+  twilight_lich: { img: 'twilight_lich', fw: 64, fh: 64, hp: 640, speed: 78, r: 40, dmg: 3, xp: 85, score: 1350, scale: 2.3, fly: true, shadow: true, bossName: 'LICH DO CREPÚSCULO', isBoss: true },
+  aether_slider: { img: 'aether_slider', fw: 64, fh: 64, hp: 760, speed: 68, r: 42, dmg: 4, xp: 90, score: 1450, scale: 2.2, shadow: true, bossName: 'COLOSSO RÚNICO (SLIDER)', isBoss: true },
 };
 
 
@@ -43,7 +46,7 @@ function wavePool() {
   const p = [['slime', 5], ['worm', 3]];
   if (wave >= 2) p.push(['bat', 3], ['snake', 2], ['chaos_imp', 3]);
   if (wave >= 3) p.push(['bee', 2], ['bomber', 2], ['void_spider', 3]);
-  if (wave >= 4) p.push(['eyeball', 2], ['bigslime', 1], ['viper', 2], ['chaos_imp', 2]);
+  if (wave >= 4) p.push(['eyeball', 2], ['bigslime', 1], ['viper', 2], ['chaos_imp', 2], ['carminite_ghast', 2]);
   if (wave >= 6) p.push(['ghost', 2], ['flower', 1], ['sniper', 2], ['void_spider', 2]);
   if (wave >= 7) p.push(['bigworm', 2], ['necromancer', 2], ['chaos_imp', 2]);
   if (wave >= 9) p.push(['golem', 2], ['sniper', 2], ['bomber', 3], ['void_spider', 2]);

@@ -24,6 +24,19 @@ function drawRock(o) {
 function drawBarrel(b) {
   const sx = b.hurt > 0 ? rand(-2, 2) : 0;
   shadow(b.x, b.y - 4, 17, 6, 0.3);
+  if (b.kind === 'lucky') {
+    const pulse = 0.35 + 0.25 * Math.sin(time * 8);
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    ctx.fillStyle = `rgba(255,220,50,${pulse})`;
+    ctx.beginPath(); ctx.ellipse(b.x, b.y - 22, 24, 24, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.restore();
+    ctx.fillStyle = '#4a2c0a'; ctx.fillRect(b.x - 18 + sx, b.y - 40, 36, 36);
+    ctx.fillStyle = '#e5a922'; ctx.fillRect(b.x - 16 + sx, b.y - 38, 32, 32);
+    ctx.fillStyle = '#ffe566'; ctx.fillRect(b.x - 14 + sx, b.y - 36, 28, 6);
+    txt('?', b.x + sx, b.y - 16, 15, '#ffffff');
+    return;
+  }
   if (b.kind === 'tnt') {
     const pulse = 0.25 + 0.2 * Math.sin(time * 10);
     ctx.save();
@@ -139,6 +152,9 @@ function drawEnemy(e) {
     const fps = isAtk ? 8 : (e.type === 'chaos_imp' ? 12 : 6);
     col = animFrames[Math.floor(e.t * fps) % animFrames.length];
     row = 0;
+  } else if (['twilight_lich', 'aether_slider', 'carminite_ghast'].includes(e.type)) {
+    col = Math.floor(e.t * 8) % 4;
+    row = 0;
   } else {
     col = Math.floor(e.t * (e.type === 'bat' || e.type === 'bee' ? 12 : 7)) % 3;
   }
@@ -166,6 +182,19 @@ function drawEnemy(e) {
     else if (e.type === 'goblin' || e.bounty) auraCol = `rgba(255,220,40,${0.38 + 0.16 * Math.sin(e.t * 12)})`;
     ctx.fillStyle = auraCol;
     ctx.beginPath(); ctx.ellipse(e.x, e.y - h * 0.45, w * 0.56, h * 0.56, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.restore();
+  }
+
+  if (e.type === 'twilight_lich' && (e.lichShields || 0) > 0) {
+    ctx.save();
+    for (let i = 0; i < e.lichShields; i++) {
+      const sa = e.t * 2.4 + (i * Math.PI * 2) / e.lichShields;
+      const shx = e.x + Math.cos(sa) * (e.r + 18);
+      const shy = e.y - 35 + Math.sin(sa) * 20;
+      ctx.fillStyle = 'rgba(255, 224, 90, 0.88)';
+      ctx.strokeStyle = '#6b4200'; ctx.lineWidth = 2;
+      ctx.fillRect(shx - 8, shy - 11, 16, 22); ctx.strokeRect(shx - 8, shy - 11, 16, 22);
+    }
     ctx.restore();
   }
 

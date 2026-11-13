@@ -36,7 +36,7 @@ function update(dt) {
         texts.push({ x: p.x, y: p.y - 140, txt: 'PERGAMINHO ATIVADO!', life: 2, color: '#ffd23f', size: 14 });
       }
       if (isBoss) {
-        const bossCycle = ['boss', 'leviathan', 'boss_void_overlord', 'boss_magma_colossus', 'necro_boss', 'hydra_boss', 'beholder_boss'];
+        const bossCycle = ['boss', 'leviathan', 'twilight_lich', 'boss_void_overlord', 'aether_slider', 'boss_magma_colossus', 'necro_boss', 'hydra_boss', 'beholder_boss'];
         const bIdx = (Math.floor(wave / 5) - 1) % bossCycle.length;
         const bType = bossCycle[bIdx];
         const bObj = spawnEnemy(bType, spawnPos(340, 440, 60));
@@ -130,6 +130,7 @@ function update(dt) {
       if (h.t >= h.dur) {
         h.dead = true;
         shake = Math.max(shake, 6);
+        SFX.meteorCrash();
         SFX.explode();
         fxRings.push({ kind: 'nova', x: h.targetX, y: h.targetY, r: 10, maxR: 125, life: 0.35, max: 0.35, col: '#62f6ff' });
         burst(h.targetX, h.targetY, '#ffe042', 25, 240);
@@ -645,9 +646,18 @@ function update(dt) {
   for (const e of enemies) updateEnemy(e, dt);
   enemies = enemies.filter(e => !e.dead);
 
+  if (stats.gauntletSnap && enemies.length >= 6) {
+    stats.gauntletSnap = false;
+    let snapped = 0;
+    for (const e of enemies) {
+      if (!e.dead && !isBossType(e.type) && snapped++ % 2 === 0) damageEnemy(e, 999, p.x, p.y, 120, { color: '#ffd23f', noFreeze: true });
+    }
+    fxRings.push({ kind: 'nova', x: p.x, y: p.y - 20, r: 20, maxR: 420, life: 0.5, max: 0.5, col: '#ffd23f' });
+  }
   // ---------- PROJÉTEIS & DISPAROS ----------
   for (const b of ebullets) {
-    b.x += b.vx * dt; b.y += b.vy * dt; b.life -= dt;
+    const timeSlow = (stats.infTime && Math.hypot(b.x - p.x, b.y - p.y) < 170) ? Math.max(0.45, 1 - 0.18 * stats.infTime) : 1;
+    b.x += b.vx * dt * timeSlow; b.y += b.vy * dt * timeSlow; b.life -= dt;
     if (b.life <= 0 || b.x < 0 || b.y < 0 || b.x > WORLD.w || b.y > WORLD.h) b.dead = true;
     if (!b.dead && Math.hypot(b.x - p.x, b.y - (p.y - 35)) < b.r + 16) { b.dead = true; hurtPlayer(1, b.x, b.y); }
   }

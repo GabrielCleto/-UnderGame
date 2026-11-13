@@ -5,6 +5,8 @@ const SND_LIST = {
   ui1: 'interface1.wav', ui2: 'interface2.wav', slime1: 'slime1.wav', slime3: 'slime3.wav', slime5: 'slime5.wav',
   mnstr1: 'mnstr1.wav', mnstr7: 'mnstr7.wav', giant1: 'giant1.wav', giant3: 'giant3.wav', shade: 'shade1.wav',
   bite: 'bite-small.wav',
+  meteor_crash: 'meteor_crash.ogg', shield_block: 'shield_block.ogg', boss_roar: 'boss_roar.ogg',
+  boss_awake: 'boss_awake.ogg', lucky_open: 'lucky_open.ogg', blood_rite: 'blood_rite.ogg',
 };
 const SND = {};
 for (const k in SND_LIST) { const a = new Audio('assets/audio/sfx/' + SND_LIST[k]); a.preload = 'auto'; SND[k] = a; }
@@ -145,8 +147,12 @@ const SFX = {
   level: () => { [523, 659, 784, 1046].forEach((f, i) => setTimeout(() => beep(f, 0.15, 'triangle', 0.06), i * 80)); },
   select: () => play('ui1', 0.5, 0),
   wave: () => [400, 500, 650, 800].forEach((f, i) => setTimeout(() => beep(f, 0.12, 'triangle', 0.05), i * 110)),
-  boss: () => play('giant1', 0.7, 0),
+  boss: () => { play('giant1', 0.65, 0); play('boss_roar', 0.6, 0.05); },
+  bossAwake: () => play('boss_awake', 0.7, 0.05),
   bossDie: () => play('giant3', 0.7, 0),
+  meteorCrash: () => play('meteor_crash', 0.65, 0.1),
+  luckyOpen: () => play('lucky_open', 0.65, 0.08),
+  bloodRite: () => play('blood_rite', 0.6, 0.05),
   ult: () => { play('magic', 0.6, 0); play('unsheathe', 0.5, 0); },
   over: () => [400, 300, 220, 150].forEach((f, i) => setTimeout(() => beep(f, 0.25, 'sawtooth', 0.05), i * 200)),
   barrel: () => play('bubble', 0.3, 0.2),
@@ -155,7 +161,7 @@ const SFX = {
   dodge: () => { play('clang', 0.45, 0.25); beep(920, 0.12, 'sine', 0.06, 480); },
   freezeBomb: () => { play('magic', 0.55, 0.3); beep(1100, 0.22, 'triangle', 0.06, -700); },
   magnet: () => { [440, 660, 880, 1320].forEach((f, i) => setTimeout(() => beep(f, 0.09, 'sine', 0.05), i * 50)); },
-  shieldBreak: () => { play('clang', 0.6, 0.1); beep(300, 0.2, 'sawtooth', 0.06, -150); },
+  shieldBreak: () => { play('shield_block', 0.65, 0.1); play('clang', 0.5, 0.1); beep(300, 0.2, 'sawtooth', 0.06, -150); },
   shopBuy: () => { play('coin', 0.6, 0.1); beep(880, 0.12, 'triangle', 0.05, 400); },
   shopNo: () => beep(180, 0.15, 'sawtooth', 0.05, -50),
 };
