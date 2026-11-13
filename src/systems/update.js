@@ -82,6 +82,14 @@ function update(dt) {
       if (wave > 1) p.hp = Math.min(stats.maxHp, p.hp + 1);
       if (wave >= 2 && (wave % 2 === 0 || shrines.length === 0)) spawnShrine();
       refillBarrels(15);
+      if (wave >= 1) {
+        const crystalsNow = props.filter(pr => pr.kind === 'crystal').length;
+        for (let c = crystalsNow; c < 3; c++) {
+          const cx = clamp(p.x + rand(-380, 380), 90, WORLD.w - 90);
+          const cy = clamp(p.y + rand(-300, 300), 120, WORLD.h - 60);
+          if (!blocked(cx, cy, 28)) props.push({ kind: 'crystal', x: cx, y: cy, r: 16, hp: 2, hurt: 0 });
+        }
+      }
       if (wave >= 4) {
         const totemsNow = props.filter(pr => pr.kind === 'totem').length;
         if (totemsNow < 2) {
@@ -159,7 +167,15 @@ function update(dt) {
     }
     if (h.t >= h.dur) {
       h.dead = true;
-      triggerExplosion(h.x, h.y, h.r, 7 + wave, false);
+      if (h.kind === 'boss_nova') {
+        SFX.explode();
+        shake = Math.max(shake, 6);
+        fxRings.push({ kind: 'nova', x: h.x, y: h.y, r: 12, maxR: h.r, life: 0.34, max: 0.34, col: '#c844ff' });
+        burst(h.x, h.y, '#e08aff', 18, 220);
+        if (Math.hypot(player.x - h.x, player.y - h.y) < h.r) hurtPlayer(2, h.x, h.y);
+      } else {
+        triggerExplosion(h.x, h.y, h.r, 7 + wave, false);
+      }
     }
   }
   hazards = hazards.filter(h => !h.dead);
@@ -361,10 +377,11 @@ function update(dt) {
   p.moving = ml > 0;
   if (p.moving) {
     p.idleT = 0;
+    if (Math.abs(mx) > Math.abs(my) + 0.05) p.dir = mx > 0 ? 'right' : 'left';
+    else p.dir = my > 0 ? 'down' : 'up';
     if (!p.attack) {
-      if (Math.abs(mx) > Math.abs(my) + 0.05) p.dir = mx > 0 ? 'right' : 'left';
-      else p.dir = my > 0 ? 'down' : 'up';
       if (Math.abs(mx) > 0.05) p.flip = mx < 0;
+      else if (p.dir === 'left' || p.dir === 'right') p.flip = p.dir === 'left';
     }
     p.stepT -= dt;
     if (p.stepT <= 0) {

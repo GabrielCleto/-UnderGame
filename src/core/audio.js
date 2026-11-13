@@ -127,8 +127,8 @@ function beep(freq = 440, dur = 0.1, type = 'square', vol = 0.05, slide = 0) {
 }
 
 const SFX = {
-  slash: () => play(pick(['swing1', 'swing2', 'swing3']), 0.35, 0.15),
-  hit: () => beep(140, 0.08, 'square', 0.05, -80),
+  slash: () => { play(pick(['swing1', 'swing2', 'swing3']), 0.35, 0.15); beep(240 * (0.92 + Math.random() * 0.16), 0.04, 'triangle', 0.018, -90); },
+  hit: () => beep(140 * (0.92 + Math.random() * 0.16), 0.08, 'square', 0.05, -80),
   starThrow: () => { play('magic', 0.45, 0.2); beep(700, 0.12, 'triangle', 0.06, 600); },
   orangeThrow: () => { play('swing1', 0.4, 0.25); beep(420, 0.08, 'triangle', 0.05, 300); },
   orangePop: () => { play('bubble', 0.5, 0.2); beep(260, 0.14, 'square', 0.06, -100); },
@@ -149,6 +149,8 @@ const SFX = {
   wave: () => [400, 500, 650, 800].forEach((f, i) => setTimeout(() => beep(f, 0.12, 'triangle', 0.05), i * 110)),
   boss: () => { play('giant1', 0.65, 0); play('boss_roar', 0.6, 0.05); },
   bossAwake: () => play('boss_awake', 0.7, 0.05),
+  bossTelegraph: () => { beep(165, 0.32, 'sawtooth', 0.06, 220); beep(95, 0.38, 'triangle', 0.07, 90); },
+  crystalShatter: () => { play('clang', 0.45, 0.1); [980, 1320, 1760].forEach((f, i) => setTimeout(() => beep(f * (0.95 + Math.random() * 0.1), 0.09, 'triangle', 0.045, -260), i * 32)); },
   bossDie: () => play('giant3', 0.7, 0),
   meteorCrash: () => play('meteor_crash', 0.65, 0.1),
   luckyOpen: () => play('lucky_open', 0.65, 0.08),

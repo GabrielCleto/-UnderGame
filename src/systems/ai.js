@@ -74,7 +74,7 @@ function updateEnemy(e, dt) {
       else { sx += Math.cos(e.t * 4) * 50; sy += Math.sin(e.t * 5) * 50; }
       break;
     case 'eyeball':
-      if (d < 220) { sx = -sx; sy = -sy; } else if (d < 300) { sx = -uy * e.speed; sy = ux * e.speed; }
+      if (d < 200) { sx = -sx; sy = -sy; } else if (d < 330) { const dir = (e.t % 6 < 3 ? 1 : -1); sx = -uy * e.speed * dir; sy = ux * e.speed * dir; }
       e.act -= dt;
       if (e.act <= 0 && d < 600) { e.act = rand(1.8, 2.6); enemyShoot(e, Math.atan2(p.y - 35 - (e.y - e.r * 1.2), dx), 230); beep(500, 0.08, 'sine', 0.025, -200); }
       break;
@@ -269,6 +269,16 @@ function updateEnemy(e, dt) {
         e.frostCd = 3.2;
         enemyShoot(e, Math.atan2(p.y - e.y, p.x - e.x), 210, 7, 'cyan');
       }
+    }
+  }
+  if (isBossType(e.type)) {
+    const isFury = e.hp < e.maxHp * 0.5;
+    e.novaCd = (e.novaCd || rand(3.5, 5.5)) - dt;
+    if (e.novaCd <= 0) {
+      e.novaCd = isFury ? rand(3.8, 5.2) : rand(6.2, 8.0);
+      SFX.bossTelegraph();
+      hazards.push({ kind: 'boss_nova', x: p.x, y: p.y, r: 95, t: 0, dur: 0.9 });
+      texts.push({ x: e.x, y: e.y - e.r - 24, txt: 'NOVA RÚNICA!', life: 0.9, color: '#e08aff', size: 10 });
     }
   }
   if (!((e.type === 'ghost' || e.type === 'necro_boss') && e.faded) && e.type !== 'goblin' && Math.hypot(e.x - p.x, e.y - p.y) < e.r + 14) {

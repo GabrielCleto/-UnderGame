@@ -35,9 +35,10 @@ function spawnEnemy(kind, at, opts = {}) {
 
   // Escalonamento implacável: inimigos ficam mais resistentes, velozes e letais conforme o jogador evolui seus atributos
   const attrScale = player ? Math.max(0, player.level - 1) * 0.14 + Math.max(0, stats.dmg - 1) * 0.22 + Math.max(0, stats.atkRate - 1) * 0.35 : 0;
-  const hpScale = 1.25 + (wave - 1) * 0.38 + Math.pow(Math.max(0, wave - 2), 1.68) * 0.20 + attrScale;
-  const hp = Math.max(2, Math.round(d.hp * hpMul * (isBossType(type) ? 1 : hpScale)));
-  const spdScale = (1.12 + Math.min(wave, 30) * 0.035 + Math.min(0.45, player ? (player.level - 1) * 0.025 : 0)) * (extra.mini ? 1.28 : 1) * (waveEvent === 'swarm' ? 1.18 : 1) * (waveEvent === 'bloodmoon' ? 1.22 : 1);
+  const diff = DIFFICULTY_MODES[difficultyIdx] || DIFFICULTY_MODES[0];
+  const hpScale = (1.25 + (wave - 1) * 0.38 + Math.pow(Math.max(0, wave - 2), 1.68) * 0.20 + attrScale) * diff.hpMul;
+  const hp = Math.max(2, Math.round(d.hp * hpMul * (isBossType(type) ? diff.hpMul : hpScale)));
+  const spdScale = (1.12 + Math.min(wave, 30) * 0.035 + Math.min(0.45, player ? (player.level - 1) * 0.025 : 0)) * diff.spdMul * (extra.mini ? 1.28 : 1) * (waveEvent === 'swarm' ? 1.18 : 1) * (waveEvent === 'bloodmoon' ? 1.22 : 1);
   const scaledDmg = d.dmg + (wave >= 5 ? 1 : 0) + (wave >= 10 && (elite || isBossType(type)) ? 1 : 0) + (wave >= 16 ? 1 : 0) + (waveEvent === 'bloodmoon' ? 1 : 0);
 
   const e = {
@@ -76,7 +77,7 @@ function damageEnemy(e, dmg, fromX, fromY, power = 380, opts = {}) {
   let crit = false;
   const pref = (player && player.prefix) || null;
   const critChance = stats.crit + (pref ? pref.critAdd : 0);
-  if (!opts.noCrit && Math.random() < critChance) { dmg *= 2; crit = true; }
+  if (!opts.noCrit && Math.random() < critChance) { dmg *= 2; crit = true; burst(e.x, e.y - e.r, '#ffe042', 12, 240); }
   if (pref && pref.dmgMul && !opts.noCrit) { dmg = Math.max(1, Math.round(dmg * pref.dmgMul)); }
   if (pref && pref.kbMul && power) { power *= pref.kbMul; }
   if (pref && pref.id === 'mythical' && player && player.ultMeter < 100) { player.ultMeter = Math.min(100, player.ultMeter + 0.6); }
@@ -185,8 +186,9 @@ function killEnemy(e) {
   bestiaryKills[e.type] = (bestiaryKills[e.type] || 0) + 1;
   localStorage.setItem('gabriel_bestiary', JSON.stringify(bestiaryKills));
   p.ultMeter = Math.min(100, p.ultMeter + (isBossType(e.type) ? 40 : e.elite ? 10 : 3.2));
+  const diff = DIFFICULTY_MODES[difficultyIdx] || DIFFICULTY_MODES[0];
   const mult = 1 + Math.floor(p.combo / 10) * 0.25;
-  score += Math.round(e.score * mult);
+  score += Math.round(e.score * mult * diff.scoreMul);
 
   for (const [cnt, title, col, bonusCoins] of STREAK_CALLS) {
     if (p.combo === cnt && p.bestStreakMilestone < cnt) {
@@ -324,6 +326,7 @@ function openLevelUp() {
   }
   levelChoices = choices; levelSel = 0;
   state = 'levelup';
+  panelOpenAt = performance.now();
   SFX.level();
 }
 function getRerollCost() {
@@ -556,6 +559,20 @@ function hitBarrel(b) {
         texts.push({ x: b.x, y: b.y - 45, txt: '🎲 LUCKY: EMBOSCADA + BAÚ!', life: 1.6, color: '#ff8a3d', size: 12 });
       }
       score += 35;
+      return;
+    }
+    if (b.kind === 'crystal') {
+      SFX.crystalShatter();
+      fxRings.push({ kind: 'nova', x: b.x, y: b.y - 14, r: 10, maxR: 165, life: 0.36, max: 0.36, col: '#62f6ff' });
+      burst(b.x, b.y - 16, '#8ef5ff', 20, 250);
+      for (const e of enemies) {
+        if (!e.dead && Math.hypot(e.x - b.x, e.y - b.y) < 165 + e.r) {
+          e.slow = Math.max(e.slow || 0, 2.5);
+          damageEnemy(e, 6 + wave, b.x, b.y, 420, { color: '#62f6ff' });
+        }
+      }
+      texts.push({ x: b.x, y: b.y - 44, txt: 'NOVA CRISTALINA!', life: 1.0, color: '#62f6ff', size: 11 });
+      score += 45;
       return;
     }
     if (b.kind === 'totem') {

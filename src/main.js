@@ -29,22 +29,38 @@ function loop(now) {
     ctx.fillStyle = '#0d0f14'; ctx.fillRect(0, 0, W, H);
     txt('Carregando... ' + Math.floor(loaded / total * 100) + '%', W / 2, H / 2, 16);
   } else {
-    if (state === 'loading') { reset(); state = 'menu'; }
+    if (state === 'loading') {
+      reset();
+      if (typeof location !== 'undefined' && location.search && location.search.includes('play')) {
+        startWithSelectedCharacter();
+      } else {
+        state = 'menu';
+      }
+    }
     if (state === 'menu') {
       time += dt;
       cam.x = WORLD.w / 2 + Math.cos(time * 0.15) * 500; cam.y = WORLD.h / 2 + Math.sin(time * 0.15) * 350;
       clampCam();
       if (anyPressed('tab', 'p')) { enterCharacterSelect(); }
-      else if (anyPressed('s')) { state = 'soul_shrine'; SFX.select(); }
-      else if (anyPressed('b')) { state = 'bestiary'; SFX.select(); }
+      else if (anyPressed('1')) { difficultyIdx = 0; localStorage.setItem('gabriel_diff', 0); SFX.select(); }
+      else if (anyPressed('2')) { difficultyIdx = 1; localStorage.setItem('gabriel_diff', 1); SFX.select(); }
+      else if (anyPressed('3')) { difficultyIdx = 2; localStorage.setItem('gabriel_diff', 2); SFX.select(); }
+      else if (anyPressed('s')) { state = 'soul_shrine'; panelOpenAt = performance.now(); SFX.select(); }
+      else if (anyPressed('b')) { state = 'bestiary'; panelOpenAt = performance.now(); SFX.select(); }
       else if (anyPressed('enter', ' ')) {
         startWithSelectedCharacter();
       } else if (mouse.click) {
-        if (inRect(mouse.x, mouse.y, menuSoulRect)) {
-          state = 'soul_shrine'; SFX.select();
+        let diffClicked = false;
+        menuDiffRects.forEach((r, idx) => {
+          if (inRect(mouse.x, mouse.y, r)) { difficultyIdx = idx; localStorage.setItem('gabriel_diff', idx); SFX.select(); diffClicked = true; }
+        });
+        if (diffClicked) { /* handled */ }
+        else if (inRect(mouse.x, mouse.y, menuSoulRect)) {
+          state = 'soul_shrine'; panelOpenAt = performance.now(); SFX.select();
         } else if (inRect(mouse.x, mouse.y, menuBestiaryRect)) {
-          state = 'bestiary'; SFX.select();
-        } else if (inRect(mouse.x, mouse.y, menuCharRect) || Math.hypot(mouse.x - W / 2, mouse.y - H * 0.36) < 75) {
+          state = 'bestiary'; panelOpenAt = performance.now(); SFX.select();
+        } else if ((menuCharRect && inRect(mouse.x, mouse.y, menuCharRect)) || Math.hypot(mouse.x - W / 2, mouse.y - H * 0.39) < 85) {
+          if (canvas) canvas.style.cursor = 'default';
           enterCharacterSelect();
         } else if (inRect(mouse.x, mouse.y, menuPlayRect)) {
           startWithSelectedCharacter();
@@ -234,6 +250,7 @@ function loop(now) {
 
     ctx.clearRect(0, 0, W, H);
     drawWorld();
+    if (state !== 'menu' && typeof syncMenuOverlay === 'function') syncMenuOverlay(false);
     if (state === 'menu') drawMenu();
     else if (state === 'soul_shrine') drawSoulShrine();
     else if (state === 'bestiary') drawBestiary();

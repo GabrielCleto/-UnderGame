@@ -18,6 +18,13 @@ const BIOMES = [
   { name: 'ABISMO DO VAZIO', edge: 'rgba(32, 4, 62, 0.72)', tint: 'rgba(130, 35, 220, 0.09)' },
   { name: 'CREPÚSCULO SOMBRIO', edge: 'rgba(10, 26, 38, 0.68)', tint: 'rgba(30, 140, 180, 0.07)' },
 ];
+const DIFFICULTY_MODES = [
+  { id: 0, name: 'NORMAL', hpMul: 1, spdMul: 1, spawnMul: 1, scoreMul: 1, col: '#7aff61', desc: 'Equilíbrio Clássico' },
+  { id: 1, name: 'DIFÍCIL', hpMul: 1.45, spdMul: 1.15, spawnMul: 1.25, scoreMul: 1.5, col: '#ffaa2b', desc: '+45% Vida • +50% Pts' },
+  { id: 2, name: 'PESADELO', hpMul: 2.1, spdMul: 1.3, spawnMul: 1.5, scoreMul: 2.25, col: '#ff4268', desc: '2.1x Vida • +125% Pts' },
+];
+let difficultyIdx = 2; // Modo Pesadelo como padrão
+let panelOpenAt = 0;
 let currentBiome = 0;
 let rerollsUsed = 0;
 let bansLeft = 1;

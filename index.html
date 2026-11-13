@@ -17,6 +17,79 @@
 <body>
   <canvas id="game"></canvas>
 
+  <!-- Modern AAA Menu Overlay -->
+  <div id="menu-overlay" class="menu-overlay is-hidden" aria-label="Menu Principal">
+    <header class="menu-topbar">
+      <button id="btn-souls" class="glass-pill souls-btn" type="button" aria-label="Santuário das Almas">
+        <span class="souls-badge" aria-hidden="true">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l3 7 7 3-7 3-3 7-3-7-7-3 7-3z"/></svg>
+        </span>
+        <div class="pill-text">
+          <span class="pill-title">SANTUÁRIO <kbd>S</kbd></span>
+          <span id="ui-souls-count" class="pill-sub">0 essências</span>
+        </div>
+      </button>
+
+      <div class="title-block">
+        <div class="title-ornament" aria-hidden="true"><span></span><i></i><span></span></div>
+        <h1 class="game-title">UNDERGROUND II</h1>
+        <p class="game-subtitle">CRÔNICAS DA ARENA ANCESTRAL</p>
+      </div>
+
+      <div class="topbar-right">
+        <button id="btn-chars" class="glass-pill chars-btn" type="button" aria-label="Escolher Campeão">
+          <span class="chars-badge" aria-hidden="true">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
+              <circle cx="9" cy="7" r="4"/>
+              <path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/>
+            </svg>
+          </span>
+          <div class="pill-text">
+            <span class="pill-title">CAMPEÕES <kbd>TAB</kbd></span>
+            <span class="pill-sub">Arquétipos 3D</span>
+          </div>
+        </button>
+
+        <button id="btn-bestiary" class="glass-pill bestiary-btn" type="button" aria-label="Bestiário">
+          <span class="book-badge" aria-hidden="true">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.9">
+              <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
+              <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+              <path d="M9 7h7M9 11h5"/>
+            </svg>
+          </span>
+          <div class="pill-text">
+            <span class="pill-title">BESTIÁRIO <kbd>B</kbd></span>
+            <span id="ui-bestiary-prog" class="pill-sub">0 / 27 descobertos</span>
+          </div>
+        </button>
+      </div>
+    </header>
+
+    <section class="menu-dock" aria-label="Menu Principal">
+      <button id="btn-play" class="btn-press-start" type="button" aria-label="Entrar na Arena">
+        <div class="press-start-ornament" aria-hidden="true">
+          <span></span><i>✦</i><span></span>
+        </div>
+        <span class="press-start-main">PRESSIONE PARA ENTRAR</span>
+        <span class="press-start-sub">— ENTER OU ESPAÇO —</span>
+      </button>
+
+      <div id="ui-record-line" class="record-line">
+        Recorde Ancestral: <strong id="ui-best-score">0</strong> pts <span class="rec-dot">•</span> <span id="ui-diff-desc" class="mode-tag">Modo Pesadelo</span>
+      </div>
+    </section>
+
+    <footer class="menu-footer">
+      <span><kbd>WASD</kbd> Mover</span>
+      <span><kbd>CLIQUE / ESPAÇO</kbd> Atacar</span>
+      <span><kbd>SHIFT</kbd> Esquiva</span>
+      <span><kbd>E / Q</kbd> Fúria</span>
+      <span><kbd>P</kbd> Pausa</span>
+    </footer>
+  </div>
+
   <!-- Core Engine -->
   <script src="src/core/config.js?v=2.1.0"></script>
   <script src="src/core/assets.js?v=2.1.0"></script>

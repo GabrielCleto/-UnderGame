@@ -24,6 +24,22 @@ function drawRock(o) {
 function drawBarrel(b) {
   const sx = b.hurt > 0 ? rand(-2, 2) : 0;
   shadow(b.x, b.y - 4, 17, 6, 0.3);
+  if (b.kind === 'crystal') {
+    const pulse = 0.38 + 0.25 * Math.sin(time * 7);
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    ctx.fillStyle = `rgba(98,246,255,${pulse})`;
+    ctx.beginPath(); ctx.ellipse(b.x, b.y - 22, 18, 26, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.restore();
+    ctx.fillStyle = '#0f3848';
+    ctx.beginPath(); ctx.moveTo(b.x + sx, b.y - 44); ctx.lineTo(b.x + 12 + sx, b.y - 20); ctx.lineTo(b.x + 7 + sx, b.y); ctx.lineTo(b.x - 7 + sx, b.y); ctx.lineTo(b.x - 12 + sx, b.y - 20); ctx.closePath(); ctx.fill();
+    ctx.fillStyle = '#4fe3ff';
+    ctx.beginPath(); ctx.moveTo(b.x + sx, b.y - 40); ctx.lineTo(b.x + 9 + sx, b.y - 20); ctx.lineTo(b.x + 5 + sx, b.y - 3); ctx.lineTo(b.x - 5 + sx, b.y - 3); ctx.lineTo(b.x - 9 + sx, b.y - 20); ctx.closePath(); ctx.fill();
+    ctx.fillStyle = '#d8ffff';
+    ctx.fillRect(b.x - 2 + sx, b.y - 32, 4, 14);
+    txt('CRISTAL', b.x + sx, b.y - 49, 6.5, '#8ef5ff');
+    return;
+  }
   if (b.kind === 'totem') {
     const pulse = 0.4 + 0.3 * Math.sin(time * 6);
     ctx.save();
@@ -101,6 +117,19 @@ function drawShrine(sh) {
 }
 
 function drawHazard(h) {
+  if (h.kind === 'boss_nova') {
+    const k = clamp(h.t / h.dur, 0, 1);
+    ctx.save();
+    ctx.fillStyle = `rgba(195,60,255,${0.14 + k * 0.28})`;
+    ctx.beginPath(); ctx.ellipse(h.x, h.y, h.r, h.r * 0.65, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = `rgba(230,130,255,${0.65 + 0.35 * Math.sin(h.t * 28)})`;
+    ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.ellipse(h.x, h.y, h.r, h.r * 0.65, 0, 0, Math.PI * 2); ctx.stroke();
+    ctx.fillStyle = 'rgba(220,100,255,0.34)';
+    ctx.beginPath(); ctx.ellipse(h.x, h.y, h.r * k, h.r * 0.65 * k, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.restore();
+    return;
+  }
   if (h.kind === 'fallen_star') {
     const k = clamp(h.t / h.dur, 0, 1);
     ctx.save();
@@ -262,6 +291,9 @@ function drawEnemy(e) {
   ctx.globalAlpha = 1;
   ctx.restore();
 
+  if ((e.type === 'bee' && e.mode === 'aim') || (e.type === 'sniper' && e.mode === 'lock')) {
+    txt('!', e.x, e.y - h - 10, 12, '#ffeb3b');
+  }
   if (e.shieldOn) {
     ctx.save();
     ctx.strokeStyle = 'rgba(110,235,255,0.8)';
@@ -295,7 +327,7 @@ function playerFrame() {
     const fps = cid === 'manguinha' ? 28 : 16;
     return {
       f: fr[Math.floor(p.dash.t * fps) % fr.length],
-      flip: cid === 'manguinha' ? false : p.flip,
+      flip: p.flip,
       bobY: cid === 'amxral' ? -5 : 0,
       tilt: 0
     };
@@ -315,7 +347,7 @@ function playerFrame() {
   }
   if (!p.moving) {
     if (p.dir === 'down' || p.idleT > 1.2) {
-      return { f: an.idle[Math.floor(p.animT * 7) % an.idle.length], flip: false, bobY: 0, tilt: 0 };
+      return { f: an.idle[Math.floor(p.animT * 7) % an.idle.length], flip: p.flip, bobY: 0, tilt: 0 };
     }
     if (p.dir === 'up') {
       return { f: an.idleUp[0], flip: cid === 'amxral' ? false : p.flip, bobY: Math.sin(p.animT * 4) * 1, tilt: 0 };
@@ -328,7 +360,7 @@ function playerFrame() {
     const bob = cid === 'amxral' ? -Math.abs(Math.sin(p.animT * 11 * spd)) * 1.5 : 0;
     return {
       f: an.walkDown[Math.floor(p.animT * fps * spd) % an.walkDown.length],
-      flip: cid === 'amxral' ? false : p.flip,
+      flip: p.flip,
       bobY: bob,
       tilt: 0
     };
@@ -339,7 +371,7 @@ function playerFrame() {
     const tilt = cid === 'manguinha' ? 0 : Math.sin(p.animT * 12 * spd) * 0.026;
     return {
       f: an.walkUp[Math.floor(p.animT * fps * spd) % an.walkUp.length],
-      flip: cid === 'manguinha' ? p.flip : false,
+      flip: cid === 'amxral' ? false : p.flip,
       bobY: bob,
       tilt
     };

@@ -32,21 +32,47 @@ function wrap(s, maxW, size) {
 }
 
 // =====================================================================
-//  HUD — ESTÉTICA RPG MEDIEVAL (madeira, ferro, ouro e pergaminho)
-//  Guiado pelas skills: game-ui-design (hierarquia, contraste, cooldown
-//  em varredura, cor + forma), game-ui-ux (âncoras, escala, safe area),
-//  game-feel (pops com easeOutBack que voltam ao repouso) e
-//  pixel-art-sprites (paleta curta, sombreamento em faixas, sem gradiente).
+//  HUD — ESTÉTICA RPG MEDIEVAL DARK FANTASY (Ardósia, Ferro Forjado & Ouro Ancestral)
+//  Alinhado ao estilo de capa de Underground II (serifas nobres, joalheria gótica)
 // =====================================================================
 
-// Paleta limitada do HUD
+const FONT_SERIF = "Georgia, 'Times New Roman', serif";
+const FONT_UI = "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
+
+function serifTxt(s, x, y, size, color = '#f7d67e', align = 'center') {
+  ctx.save();
+  ctx.font = `bold ${size}px ${FONT_SERIF}`;
+  ctx.textAlign = align;
+  ctx.textBaseline = 'alphabetic';
+  ctx.shadowColor = 'rgba(0,0,0,0.92)';
+  ctx.shadowBlur = 4;
+  ctx.shadowOffsetY = 2;
+  ctx.fillStyle = color;
+  ctx.fillText(s, x, y);
+  ctx.restore();
+}
+
+function uiTxt(s, x, y, size, color = '#e8dec8', align = 'center', weight = 'bold') {
+  ctx.save();
+  ctx.font = `${weight} ${size}px ${FONT_UI}`;
+  ctx.textAlign = align;
+  ctx.textBaseline = 'alphabetic';
+  ctx.shadowColor = 'rgba(0,0,0,0.85)';
+  ctx.shadowBlur = 3;
+  ctx.shadowOffsetY = 1.5;
+  ctx.fillStyle = color;
+  ctx.fillText(s, x, y);
+  ctx.restore();
+}
+
+// Paleta limitada e refinada do HUD
 const MED = {
-  ink: '#140b06',
-  woodDark: '#2a170c', wood: '#4a2c16', woodLight: '#7a4b26',
-  iron: '#4b4f57', ironLight: '#9aa0a8', ironDark: '#26282d',
-  gold: '#d9a441', goldLight: '#ffe08a', goldDark: '#8a5a1c',
-  parch: '#e6cf9c', parchDark: '#b8955a', parchInk: '#3b2412',
-  leather: '#1f140c',
+  ink: '#0b0910',
+  woodDark: '#0e0c15', wood: '#181423', woodLight: '#2c253d',
+  iron: '#363945', ironLight: '#6e7687', ironDark: '#1b1d24',
+  gold: '#d9a441', goldLight: '#f7d67e', goldDark: '#8a5a1c',
+  parch: '#dfcfa6', parchDark: '#9e8960', parchInk: '#2e1c0c',
+  leather: '#13111b',
   blood: '#8f1414', bloodLight: '#e0413a', bloodDark: '#4a0808',
   mana: '#2a4f9e', manaLight: '#6fb0ff',
   leaf: '#4f8a2b', leafLight: '#9be36a',
@@ -80,7 +106,7 @@ function popScale(t, dur = 0.22, amount = 0.35) {
 function hudScale() { return clamp(Math.min(W / 1280, H / 720), 0.72, 1.5); }
 
 function toRoman(n) {
-  if (n <= 0) return '0';
+  if (n <= 1) return 'I';
   if (n >= 4000) return '' + n;
   const map = [[1000, 'M'], [900, 'CM'], [500, 'D'], [400, 'CD'], [100, 'C'], [90, 'XC'], [50, 'L'], [40, 'XL'], [10, 'X'], [9, 'IX'], [5, 'V'], [4, 'IV'], [1, 'I']];
   let out = '';
@@ -114,75 +140,65 @@ function buildMedPanel(w, h, style) {
   const g = c.getContext('2d');
   g.imageSmoothingEnabled = false;
   const x = pad, y = pad;
-  const f = style === 'thin' ? 3 : 4;          // espessura da madeira
 
-  // sombra projetada
-  g.fillStyle = 'rgba(0,0,0,0.45)';
-  g.fillRect(x + 3, y + 3, w, h);
+  // Sombra suave profunda
+  g.fillStyle = 'rgba(0,0,0,0.65)';
+  g.fillRect(x + 2, y + 3, w, h);
 
-  // contorno de tinta
-  g.fillStyle = MED.ink;
+  // Contorno externo preto/tinta
+  g.fillStyle = '#07050a';
   g.fillRect(x - 1, y - 1, w + 2, h + 2);
 
-  // moldura de madeira com faixas de luz/sombra (pixel art, sem gradiente)
-  g.fillStyle = MED.wood;
+  // Placa de ardósia / ferro escuro
+  g.fillStyle = '#14111d';
   g.fillRect(x, y, w, h);
-  g.fillStyle = MED.woodLight;
-  g.fillRect(x, y, w, 1); g.fillRect(x, y, 1, h);
-  g.fillStyle = MED.woodDark;
-  g.fillRect(x, y + h - 1, w, 1); g.fillRect(x + w - 1, y, 1, h);
-  // veios da madeira (determinísticos)
-  g.fillStyle = 'rgba(20,10,4,0.35)';
-  for (let i = 0; i < w; i += 7) {
-    const seed = (i * 37 + w * 13 + h * 7) % 11;
-    g.fillRect(x + i, y + 1 + (seed % 2), Math.min(4, w - i), 1);
-    g.fillRect(x + i + 2, y + h - 2 - (seed % 2), Math.min(3, w - i - 2), 1);
-  }
 
-  // interior
-  const ix = x + f, iy = y + f, iw = w - f * 2, ih = h - f * 2;
-  g.fillStyle = MED.ink;
-  g.fillRect(ix - 1, iy - 1, iw + 2, ih + 2);
   if (style === 'parch') {
-    g.fillStyle = MED.parch;
-    g.fillRect(ix, iy, iw, ih);
-    // manchas e borda envelhecida
-    g.fillStyle = 'rgba(140,100,50,0.18)';
-    for (let i = 0; i < (iw * ih) / 90; i++) {
-      const px = (i * 53 + 17) % iw, py = (i * 29 + 7) % ih;
-      g.fillRect(ix + px, iy + py, 2, 1);
-    }
-    g.fillStyle = 'rgba(120,80,30,0.35)';
-    g.fillRect(ix, iy, iw, 2); g.fillRect(ix, iy + ih - 2, iw, 2);
-    g.fillRect(ix, iy, 2, ih); g.fillRect(ix + iw - 2, iy, 2, ih);
+    // Pergaminho nobre
+    g.fillStyle = '#1e1a14';
+    g.fillRect(x + 1, y + 1, w - 2, h - 2);
+    g.fillStyle = '#dfcfa6';
+    g.fillRect(x + 2, y + 2, w - 4, h - 4);
+    // Borda envelhecida
+    g.fillStyle = 'rgba(120,80,30,0.22)';
+    g.fillRect(x + 2, y + 2, w - 4, 1);
+    g.fillRect(x + 2, y + h - 3, w - 4, 1);
   } else {
-    g.fillStyle = 'rgba(31,20,12,0.94)';
-    g.fillRect(ix, iy, iw, ih);
-    // costura de couro
-    g.fillStyle = 'rgba(217,164,65,0.22)';
-    for (let i = 4; i < iw - 4; i += 6) { g.fillRect(ix + i, iy + 2, 3, 1); g.fillRect(ix + i, iy + ih - 3, 3, 1); }
-    g.fillStyle = 'rgba(255,230,180,0.05)';
-    g.fillRect(ix, iy, iw, 2);
+    // Interior veludo/ardósia escuro
+    g.fillStyle = '#181524';
+    g.fillRect(x + 1, y + 1, w - 2, h - 2);
+
+    // Filete de borda em ouro ancestral (1px)
+    g.fillStyle = 'rgba(217,164,65,0.45)';
+    g.fillRect(x, y, w, 1);
+    g.fillRect(x, y + h - 1, w, 1);
+    g.fillRect(x, y, 1, h);
+    g.fillRect(x + w - 1, y, 1, h);
+
+    // Reflexo sutil de topo
+    g.fillStyle = 'rgba(255,236,188,0.14)';
+    g.fillRect(x + 2, y + 1, w - 4, 1);
   }
 
-  // cantoneiras de ferro com rebite dourado
-  const k = style === 'thin' ? 6 : 8;
-  const corners = [[x - 1, y - 1, 1, 1], [x + w + 1, y - 1, -1, 1], [x - 1, y + h + 1, 1, -1], [x + w + 1, y + h + 1, -1, -1]];
-  for (const [cx, cy, sx, sy] of corners) {
-    const rx = sx > 0 ? cx : cx - k, ry = sy > 0 ? cy : cy - k;
-    g.fillStyle = MED.ink;
-    g.fillRect(rx - 1, sy > 0 ? ry - 1 : ry + k - 3, k + 2, 4);
-    g.fillRect(sx > 0 ? rx - 1 : rx + k - 3, ry - 1, 4, k + 2);
-    g.fillStyle = MED.iron;
-    g.fillRect(rx, sy > 0 ? ry : ry + k - 2, k, 2);
-    g.fillRect(sx > 0 ? rx : rx + k - 2, ry, 2, k);
-    g.fillStyle = MED.ironLight;
-    g.fillRect(sx > 0 ? rx : rx + k - 2, sy > 0 ? ry : ry + k - 2, 1, 1);
-    // rebite
-    const bx = sx > 0 ? rx + 2 : rx + k - 4, by = sy > 0 ? ry + 2 : ry + k - 4;
-    g.fillStyle = MED.goldDark; g.fillRect(bx, by, 2, 2);
-    g.fillStyle = MED.goldLight; g.fillRect(bx, by, 1, 1);
-  }
+  // Cantoneiras douradas góticas refinadas
+  const k = style === 'thin' ? 4 : 6;
+  g.fillStyle = '#d9a441';
+  // Top-left
+  g.fillRect(x, y, k, 1); g.fillRect(x, y, 1, k);
+  // Top-right
+  g.fillRect(x + w - k, y, k, 1); g.fillRect(x + w - 1, y, 1, k);
+  // Bottom-left
+  g.fillRect(x, y + h - 1, k, 1); g.fillRect(x, y + h - k, 1, k);
+  // Bottom-right
+  g.fillRect(x + w - k, y + h - 1, k, 1); g.fillRect(x + w - 1, y + h - k, 1, k);
+
+  // Rebites de ouro nos cantos
+  g.fillStyle = '#f7d67e';
+  g.fillRect(x + 2, y + 2, 1, 1);
+  g.fillRect(x + w - 3, y + 2, 1, 1);
+  g.fillRect(x + 2, y + h - 3, 1, 1);
+  g.fillRect(x + w - 3, y + h - 3, 1, 1);
+
   return c;
 }
 
@@ -266,20 +282,21 @@ function drawHeroCrest(p, s, m, dt) {
   ctx.beginPath(); ctx.arc(0, 0, mr + 2, 0, Math.PI * 2); ctx.fillStyle = MED.ink; ctx.fill();
   ctx.beginPath(); ctx.arc(0, 0, mr + 1, 0, Math.PI * 2); ctx.fillStyle = MED.goldLight; ctx.fill();
   ctx.beginPath(); ctx.arc(0, 0, mr - 1, 0, Math.PI * 2); ctx.fillStyle = MED.goldDark; ctx.fill();
-  txt('' + p.level, 0, Math.round(4 * s), Math.round(9 * s), MED.goldLight);
+  uiTxt('' + p.level, 0, Math.round(4 * s), Math.round(11 * s), MED.goldLight);
   ctx.restore();
 
-  // Nome
+  // Nome e Título Nobre
   const cx = sx + sw + Math.round(10 * s);
   const cw = px + pw - cx - Math.round(10 * s);
-  txt(p.char.name.toUpperCase(), cx, py + Math.round(19 * s), Math.round(10 * s), MED.goldLight, 'left');
+  serifTxt(p.char.name.toUpperCase(), cx, py + Math.round(20 * s), Math.round(13 * s), MED.goldLight, 'left');
+  uiTxt(p.char.title, cx + cw, py + Math.round(18 * s), Math.round(9 * s), 'rgba(217, 164, 65, 0.72)', 'right', 'normal');
 
   // Escudos mágicos: ícone + número (forma + texto, não só cor)
   if (p.shields > 0) {
     const ic = hudImg('i_S_Buff03'), isz = Math.round(16 * s);
     const ex = px + pw - Math.round(10 * s);
-    txt('x' + p.shields, ex, py + Math.round(19 * s), Math.round(9 * s), MED.manaLight, 'right');
-    ctx.font = `${Math.round(9 * s)}px ${FONT}`;
+    uiTxt('x' + p.shields, ex, py + Math.round(19 * s), Math.round(10 * s), MED.manaLight, 'right');
+    ctx.font = `bold ${Math.round(10 * s)}px ${FONT_UI}`;
     const tw = ctx.measureText('x' + p.shields).width;
     if (ic) ctx.drawImage(ic, ex - tw - isz - 3, py + Math.round(6 * s), isz, isz);
   }
@@ -308,8 +325,8 @@ function drawHeroCrest(p, s, m, dt) {
   medBar(cx, xbY, cw, xbH, p.xp, p.xpNext, {
     col: MED.gold, light: 'rgba(255,224,138,0.7)', ghost: hudGhostXp, ghostCol: 'rgba(255,240,200,0.6)', notches: 5,
   });
-  txt('EXP', cx, xbY + xbH + Math.round(10 * s), Math.round(8 * s), MED.parchDark, 'left');
-  txt(Math.floor(p.xp) + '/' + p.xpNext, cx + cw, xbY + xbH + Math.round(10 * s), Math.round(8 * s), MED.parch, 'right');
+  uiTxt('EXP', cx, xbY + xbH + Math.round(10 * s), Math.round(9 * s), '#a69675', 'left');
+  uiTxt(Math.floor(p.xp) + ' / ' + p.xpNext, cx + cw, xbY + xbH + Math.round(10 * s), Math.round(9.5 * s), MED.goldLight, 'right');
 
   // Efeitos ativos: ícone em moldura de ferro + tempo (ícone + texto)
   const buffs = [];
@@ -326,8 +343,8 @@ function drawHeroCrest(p, s, m, dt) {
     ctx.fillStyle = MED.leather; ctx.fillRect(bx + 2, by + 2, bsz - 4, bsz - 4);
     const ic = hudImg(b.icon);
     if (ic) ctx.drawImage(ic, bx + 3, by + 3, bsz - 6, bsz - 6);
-    txt(b.t, bx + bsz / 2, by + bsz + Math.round(10 * s), Math.round(7 * s), b.col);
-    ctx.font = `${Math.round(7 * s)}px ${FONT}`;
+    uiTxt(b.t, bx + bsz / 2, by + bsz + Math.round(10 * s), Math.round(8 * s), b.col);
+    ctx.font = `bold ${Math.round(8 * s)}px ${FONT_UI}`;
     bx += Math.max(bsz, ctx.measureText(b.t).width) + Math.round(8 * s);
   }
   const bottom = buffs.length ? by + bsz + Math.round(14 * s) : py + ph;
@@ -340,7 +357,7 @@ function drawHeroCrest(p, s, m, dt) {
 function drawTreasury(s, m, topY, showWave) {
   const tw = Math.round(Math.min(196 * s, W * 0.36));
   const rows = (showWave ? 1 : 0) + (H >= 520 ? 3 : 2);
-  const th = Math.round((34 + rows * 15) * s);
+  const th = Math.round((34 + rows * 16) * s);
   const tx = W - m - tw, ty = topY;
   medPanel(tx, ty, tw, th, 'leather');
 
@@ -352,22 +369,22 @@ function drawTreasury(s, m, topY, showWave) {
   ctx.save();
   ctx.translate(tx + tw - pad, ty + Math.round(25 * s));
   ctx.scale(cs, cs);
-  txt('' + coins, 0, 0, Math.round(14 * s), MED.goldLight, 'right');
+  uiTxt('' + coins.toLocaleString('pt-BR'), 0, 0, Math.round(15 * s), MED.goldLight, 'right', 'bold');
   ctx.restore();
   // divisória
-  ctx.fillStyle = MED.goldDark; ctx.fillRect(tx + pad, ty + Math.round(33 * s), tw - pad * 2, 1);
+  ctx.fillStyle = 'rgba(217,164,65,0.35)'; ctx.fillRect(tx + pad, ty + Math.round(33 * s), tw - pad * 2, 1);
 
   const mm = Math.floor(playTime / 60), ss = Math.floor(playTime % 60);
   const list = [];
   if (showWave) list.push(['ONDA', toRoman(wave), MED.goldLight]);
-  list.push(['PONTOS', '' + score, '#fff1c9']);
-  list.push(['TEMPO', `${mm}:${ss < 10 ? '0' : ''}${ss}`, MED.parch]);
-  if (H >= 520) list.push(['RECORDE', '' + best, MED.gold]);
+  list.push(['PONTOS', '' + score.toLocaleString('pt-BR'), '#fff1c9']);
+  list.push(['TEMPO', `${mm}:${ss < 10 ? '0' : ''}${ss}`, '#cfc3af']);
+  if (H >= 520) list.push(['RECORDE', '' + best.toLocaleString('pt-BR'), MED.gold]);
   let ry = ty + Math.round(48 * s);
   for (const [k, v, col] of list) {
-    txt(k, tx + pad, ry, Math.round(8 * s), MED.parchDark, 'left');
-    txt(v, tx + tw - pad, ry, Math.round(9 * s), col, 'right');
-    ry += Math.round(15 * s);
+    uiTxt(k, tx + pad, ry, Math.round(9 * s), '#9e927f', 'left');
+    uiTxt(v, tx + tw - pad, ry, Math.round(10 * s), col, 'right');
+    ry += Math.round(16 * s);
   }
   return { x: tx, y: ty, w: tw, h: th, bottom: ty + th };
 }
@@ -383,12 +400,12 @@ function drawMinimap(s, m, topY) {
   const k = r / range;
 
   ctx.save();
-  // anel de madeira
-  ctx.beginPath(); ctx.arc(cx, cy, r + 6, 0, Math.PI * 2); ctx.fillStyle = MED.ink; ctx.fill();
-  ctx.beginPath(); ctx.arc(cx, cy, r + 5, 0, Math.PI * 2); ctx.fillStyle = MED.wood; ctx.fill();
-  ctx.beginPath(); ctx.arc(cx, cy, r + 1, 0, Math.PI * 2); ctx.fillStyle = MED.ink; ctx.fill();
+  // anel de ardósia / ferro com filete dourado
+  ctx.beginPath(); ctx.arc(cx, cy, r + 5, 0, Math.PI * 2); ctx.fillStyle = '#07050a'; ctx.fill();
+  ctx.beginPath(); ctx.arc(cx, cy, r + 4, 0, Math.PI * 2); ctx.fillStyle = '#1c1926'; ctx.fill();
+  ctx.beginPath(); ctx.arc(cx, cy, r + 1, 0, Math.PI * 2); ctx.fillStyle = '#d9a441'; ctx.fill();
   // pergaminho
-  ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.fillStyle = MED.parch; ctx.fill();
+  ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.fillStyle = '#dfcfa6'; ctx.fill();
   ctx.save();
   ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.clip();
 
@@ -461,67 +478,126 @@ function drawMinimap(s, m, topY) {
   const ny = cy - r - 5;
   ctx.fillStyle = MED.ink; ctx.beginPath(); ctx.moveTo(cx, ny - 9); ctx.lineTo(cx + 7, ny); ctx.lineTo(cx, ny + 7); ctx.lineTo(cx - 7, ny); ctx.fill();
   ctx.fillStyle = MED.gold; ctx.beginPath(); ctx.moveTo(cx, ny - 7); ctx.lineTo(cx + 5, ny); ctx.lineTo(cx, ny + 5); ctx.lineTo(cx - 5, ny); ctx.fill();
-  txt('N', cx, ny + 3, Math.round(6 * s), MED.ink);
-  txt(gamepadInfo.connected ? 'MAPA [RB]' : 'MAPA [N]', cx, cy + r + Math.round(18 * s), Math.round(7 * s), MED.parchDark);
+  uiTxt('N', cx, ny + 4, Math.round(8 * s), '#0b0910');
+  uiTxt(gamepadInfo.connected ? 'MAPA [RB]' : 'MAPA [N]', cx, cy + r + Math.round(18 * s), Math.round(8.5 * s), '#a89d8b');
   ctx.restore();
   return { bottom: cy + r + Math.round(22 * s), left: cx - r - 6 };
 }
 
 // ---------------------------------------------------------------------
-//  4. ESTANDARTE DA ONDA (centro, quando não há chefe)
+//  4. ESTANDARTE DA ONDA (Estandarte Medieval em Bandeira com Cauda de Andorinha)
 // ---------------------------------------------------------------------
 function drawWaveBanner(s, left) {
-  const bw = Math.round(118 * s), bh = Math.round(58 * s);
-  const bx = Math.round(W / 2 - bw / 2), by = Math.round(10 * s);
-  ctx.save();
-  // haste de madeira
-  ctx.fillStyle = MED.ink; ctx.fillRect(bx - 10, by - 2, bw + 20, 7);
-  ctx.fillStyle = MED.woodLight; ctx.fillRect(bx - 9, by - 1, bw + 18, 5);
-  ctx.fillStyle = MED.woodDark; ctx.fillRect(bx - 9, by + 3, bw + 18, 1);
-  ctx.fillStyle = MED.gold; ctx.fillRect(bx - 13, by - 3, 5, 9); ctx.fillRect(bx + bw + 8, by - 3, 5, 9);
-  // tecido com cauda de andorinha
-  const notch = Math.round(12 * s);
-  const cloth = waveEvent === 'bloodmoon' ? MED.bloodDark : waveEvent === 'void_eclipse' ? MED.purple : waveEvent === 'golden' ? MED.goldDark : MED.blood;
-  ctx.beginPath();
-  ctx.moveTo(bx, by + 4); ctx.lineTo(bx + bw, by + 4); ctx.lineTo(bx + bw, by + bh);
-  ctx.lineTo(bx + bw / 2, by + bh - notch); ctx.lineTo(bx, by + bh); ctx.closePath();
-  ctx.fillStyle = MED.ink; ctx.fill();
-  ctx.beginPath();
-  ctx.moveTo(bx + 2, by + 5); ctx.lineTo(bx + bw - 2, by + 5); ctx.lineTo(bx + bw - 2, by + bh - 4);
-  ctx.lineTo(bx + bw / 2, by + bh - notch - 3); ctx.lineTo(bx + 2, by + bh - 4); ctx.closePath();
-  ctx.fillStyle = cloth; ctx.fill();
-  // barra dourada
-  ctx.fillStyle = MED.gold; ctx.fillRect(bx + 2, by + 5, bw - 4, 2);
-  ctx.fillStyle = 'rgba(0,0,0,0.25)'; ctx.fillRect(bx + bw - 8, by + 7, 6, bh - notch - 8);
+  const bw = Math.round(124 * s), bh = Math.round(62 * s);
+  const bx = Math.round(W / 2 - bw / 2), by = Math.round(8 * s);
+  const notch = Math.round(14 * s);
 
-  txt('ONDA', W / 2, by + Math.round(19 * s), Math.round(7 * s), MED.parch);
-  txt(toRoman(wave), W / 2, by + Math.round(36 * s), Math.round(14 * s), MED.goldLight);
+  ctx.save();
+  // Sombra suave do estandarte
+  ctx.fillStyle = 'rgba(0,0,0,0.5)';
+  ctx.beginPath();
+  ctx.moveTo(bx + 3, by + 6);
+  ctx.lineTo(bx + bw + 3, by + 6);
+  ctx.lineTo(bx + bw + 3, by + bh + 3);
+  ctx.lineTo(bx + bw / 2 + 3, by + bh - notch + 3);
+  ctx.lineTo(bx + 3, by + bh + 3);
+  ctx.closePath();
+  ctx.fill();
+
+  // Haste de ferro forjado e ouro no topo
+  ctx.fillStyle = '#07050a'; ctx.fillRect(bx - 12, by, bw + 24, 7);
+  ctx.fillStyle = '#262933'; ctx.fillRect(bx - 11, by + 1, bw + 22, 5);
+  ctx.fillStyle = '#505666'; ctx.fillRect(bx - 11, by + 1, bw + 22, 1);
+  // Ponteiras douradas da haste (finials)
+  ctx.fillStyle = '#d9a441'; ctx.fillRect(bx - 15, by - 1, 4, 9); ctx.fillRect(bx + bw + 11, by - 1, 4, 9);
+  ctx.fillStyle = '#f7d67e'; ctx.fillRect(bx - 14, by, 2, 7); ctx.fillRect(bx + bw + 12, by, 2, 7);
+
+  // Tecido do estandarte com cauda de andorinha
+  const cloth = waveEvent === 'bloodmoon' ? '#4d1010'
+    : waveEvent === 'void_eclipse' ? '#3d1656'
+    : waveEvent === 'golden' ? '#785614'
+    : '#701919';
+
+  // Contorno externo preto
+  ctx.beginPath();
+  ctx.moveTo(bx, by + 5);
+  ctx.lineTo(bx + bw, by + 5);
+  ctx.lineTo(bx + bw, by + bh);
+  ctx.lineTo(bx + bw / 2, by + bh - notch);
+  ctx.lineTo(bx, by + bh);
+  ctx.closePath();
+  ctx.fillStyle = '#07050a';
+  ctx.fill();
+
+  // Preenchimento de tecido nobre
+  ctx.beginPath();
+  ctx.moveTo(bx + 1.5, by + 6);
+  ctx.lineTo(bx + bw - 1.5, by + 6);
+  ctx.lineTo(bx + bw - 1.5, by + bh - 1.5);
+  ctx.lineTo(bx + bw / 2, by + bh - notch - 1.5);
+  ctx.lineTo(bx + 1.5, by + bh - 1.5);
+  ctx.closePath();
+  ctx.fillStyle = cloth;
+  ctx.fill();
+
+  // Borda interna em filete dourado
+  ctx.strokeStyle = 'rgba(247, 214, 126, 0.65)';
+  ctx.lineWidth = 1;
+  ctx.stroke();
+
+  // Galão bordado dourado horizontal sob a haste
+  ctx.fillStyle = '#d9a441';
+  ctx.fillRect(bx + 2, by + 6, bw - 4, 2);
+  ctx.fillStyle = '#f7d67e';
+  ctx.fillRect(bx + 2, by + 6, bw - 4, 1);
+
+  // Tipografia do estandarte
+  uiTxt('ONDA', W / 2, by + Math.round(20 * s), Math.round(8.5 * s), '#f7d67e');
+  serifTxt(toRoman(wave), W / 2, by + Math.round(40 * s), Math.round(18 * s), '#fff6dc');
   ctx.restore();
 
-  // fita de pergaminho com o estado da onda
+  // Fita de pergaminho com o estado da onda
   let label;
   if (toSpawn === 0 && left === 0) label = 'HORDA VENCIDA!';
   else if (waveEvent) {
     const ev = { bloodmoon: 'LUA DE SANGUE', void_eclipse: 'ECLIPSE DO VAZIO', magma_surge: 'FÚRIA DE MAGMA', swarm: 'ENXAME', meteors: 'CHUVA DE METEOROS', golden: 'ONDA DOURADA', ambush: 'EMBOSCADA' };
     label = ev[waveEvent] || waveEvent.toUpperCase();
   } else label = 'INIMIGOS: ' + left;
-  const fs = Math.round(8 * s);
-  ctx.font = `${fs}px ${FONT}`;
-  const lw = Math.round(ctx.measureText(label).width + 22 * s);
-  const ly = by + bh + Math.round(2 * s), lh = Math.round(16 * s);
+
+  const fs = Math.round(9 * s);
+  ctx.font = `bold ${fs}px ${FONT_UI}`;
+  const lw = Math.round(ctx.measureText(label).width + 24 * s);
+  const ly = by + bh + Math.round(3 * s), lh = Math.round(17 * s);
   const lx = Math.round(W / 2 - lw / 2);
-  ctx.fillStyle = MED.ink; ctx.fillRect(lx - 1, ly - 1, lw + 2, lh + 2);
-  ctx.fillStyle = MED.parch; ctx.fillRect(lx, ly, lw, lh);
-  ctx.fillStyle = MED.parchDark; ctx.fillRect(lx, ly + lh - 2, lw, 2);
-  // pontas dobradas
-  ctx.fillStyle = MED.parchDark; ctx.fillRect(lx - 6, ly + 3, 6, lh - 6); ctx.fillRect(lx + lw, ly + 3, 6, lh - 6);
-  inkTxt(label, W / 2, ly + Math.round(11.5 * s), fs, waveEvent ? MED.blood : MED.parchInk);
+
+  // Fita dobrada nas pontas
+  ctx.fillStyle = '#07050a';
+  ctx.fillRect(lx - 7, ly + 2, lw + 14, lh - 2);
+  // Pontas dobradas (flaps)
+  ctx.fillStyle = '#8f7344';
+  ctx.fillRect(lx - 6, ly + 4, 6, lh - 6);
+  ctx.fillRect(lx + lw, ly + 4, 6, lh - 6);
+  // Corpo da fita em pergaminho nobre
+  ctx.fillStyle = '#dfcfa6';
+  ctx.fillRect(lx, ly, lw, lh);
+  ctx.fillStyle = '#bfa978';
+  ctx.fillRect(lx, ly + lh - 2, lw, 2);
+  // Bordas de ouro
+  ctx.fillStyle = 'rgba(217,164,65,0.7)';
+  ctx.fillRect(lx, ly, lw, 1);
+  ctx.fillRect(lx, ly + lh - 1, lw, 1);
+
+  uiTxt(label, W / 2, ly + Math.round(12.5 * s), fs, waveEvent ? '#8a1414' : '#2b1a0d');
+
+  const wy = ly + lh + Math.round(5 * s);
   if (wave % 5 === 4 && toSpawn + left > 0) {
-    const wy = ly + lh + Math.round(4 * s);
-    txt('⚠ CHEFE NA PRÓXIMA ONDA', W / 2, wy + Math.round(9 * s), Math.round(7.2 * s), '#ffaa2b');
-    return wy + Math.round(14 * s);
+    uiTxt('⚠ CHEFE NA PRÓXIMA ONDA', W / 2, wy + Math.round(10 * s), Math.round(9 * s), '#ffaa2b');
+    return wy + Math.round(15 * s);
   }
-  return ly + lh;
+  const diff = DIFFICULTY_MODES[difficultyIdx] || DIFFICULTY_MODES[0];
+  const bName = (BIOMES[currentBiome] || BIOMES[0]).name;
+  uiTxt(bName + ' • ' + diff.name, W / 2, wy + Math.round(9 * s), Math.round(9.5 * s), '#e6d8ba');
+  return wy + Math.round(13 * s);
 }
 
 // ---------------------------------------------------------------------
@@ -538,27 +614,27 @@ function drawBossBar(s, y, maxW) {
   if (!boss._hudGhost || boss._hudGhost < boss.hp) boss._hudGhost = boss.hp;
   boss._hudGhost += (boss.hp - boss._hudGhost) * 0.06;
 
-  medPanel(bx, y, bw, Math.round(40 * s), 'leather');
+  medPanel(bx, y, bw, Math.round(42 * s), 'leather');
   // faixa do nome
-  const fs = Math.round(9 * s);
-  ctx.font = `${fs}px ${FONT}`;
-  const nw = Math.round(ctx.measureText(name).width + 50 * s);
-  const nx = Math.round(W / 2 - nw / 2), ny = y - Math.round(9 * s), nh = Math.round(18 * s);
-  ctx.fillStyle = MED.ink; ctx.fillRect(nx - 1, ny - 1, nw + 2, nh + 2);
-  ctx.fillStyle = MED.blood; ctx.fillRect(nx, ny, nw, nh);
-  ctx.fillStyle = MED.gold; ctx.fillRect(nx, ny, nw, 1); ctx.fillRect(nx, ny + nh - 1, nw, 1);
-  txt('☠ ' + name + ' ☠', W / 2, ny + Math.round(13 * s), fs, MED.goldLight);
+  const fs = Math.round(12 * s);
+  ctx.font = `bold ${fs}px ${FONT_SERIF}`;
+  const nw = Math.round(ctx.measureText(name).width + 56 * s);
+  const nx = Math.round(W / 2 - nw / 2), ny = y - Math.round(10 * s), nh = Math.round(20 * s);
+  ctx.fillStyle = '#07050a'; ctx.fillRect(nx - 1, ny - 1, nw + 2, nh + 2);
+  ctx.fillStyle = '#6b1313'; ctx.fillRect(nx, ny, nw, nh);
+  ctx.fillStyle = '#d9a441'; ctx.fillRect(nx, ny, nw, 1); ctx.fillRect(nx, ny + nh - 1, nw, 1);
+  serifTxt('☠ ' + name + ' ☠', W / 2, ny + Math.round(15 * s), fs, MED.goldLight);
 
   const barX = bx + Math.round(12 * s), barW = bw - Math.round(24 * s);
-  const barY = y + Math.round(16 * s), barH = Math.round(12 * s);
+  const barY = y + Math.round(17 * s), barH = Math.round(14 * s);
   const enraged = boss.hp < boss.maxHp / 2;
   medBar(barX, barY, barW, barH, boss.hp, boss.maxHp, {
     col: enraged && Math.sin(time * 10) > 0 ? '#ff5a3c' : MED.bloodLight,
     ghost: boss._hudGhost, ghostCol: MED.goldLight, back: MED.bloodDark, notches: 4,
   });
   const pct = Math.round(clamp(boss.hp / boss.maxHp, 0, 1) * 100);
-  txt(pct + '%' + (enraged ? '  FURIOSO' : ''), W / 2, barY + barH - Math.round(2 * s), Math.round(8 * s), '#fff1c9');
-  return y + Math.round(46 * s);
+  uiTxt(pct + '%' + (enraged ? '  FURIOSO' : ''), W / 2, barY + barH - Math.round(2 * s), Math.round(10 * s), '#fff1c9');
+  return y + Math.round(48 * s);
 }
 
 // ---------------------------------------------------------------------
@@ -571,14 +647,14 @@ function drawComboSeal(p, s, y) {
   ctx.save();
   ctx.translate(W / 2, y + Math.round(20 * s));
   ctx.scale(sc, sc);
-  txt('x' + p.combo, 0, 0, Math.round(16 * s), tier[1]);
-  txt(tier[0], 0, Math.round(14 * s), Math.round(8 * s), MED.parch);
+  uiTxt('x' + p.combo, 0, 0, Math.round(22 * s), tier[1], 'center', '900');
+  serifTxt(tier[0], 0, Math.round(16 * s), Math.round(11 * s), MED.goldLight);
   ctx.restore();
   // pavio do combo (tempo restante)
   const w = Math.round(80 * s), fr = clamp(p.comboT / 2.9, 0, 1);
-  const x = Math.round(W / 2 - w / 2), yy = y + Math.round(40 * s);
-  ctx.fillStyle = MED.ink; ctx.fillRect(x - 1, yy - 1, w + 2, 5);
-  ctx.fillStyle = MED.woodDark; ctx.fillRect(x, yy, w, 3);
+  const x = Math.round(W / 2 - w / 2), yy = y + Math.round(42 * s);
+  ctx.fillStyle = '#07050a'; ctx.fillRect(x - 1, yy - 1, w + 2, 5);
+  ctx.fillStyle = '#1c1828'; ctx.fillRect(x, yy, w, 3);
   ctx.fillStyle = tier[1]; ctx.fillRect(x, yy, Math.round(w * fr), 3);
 }
 
@@ -587,10 +663,10 @@ function drawComboSeal(p, s, y) {
 //     Cooldown em varredura + número + brilho quando pronto (game-ui-design)
 // ---------------------------------------------------------------------
 function drawSkillSlot(x, y, sz, s, o) {
-  ctx.fillStyle = MED.ink; ctx.fillRect(x - 2, y - 2, sz + 4, sz + 4);
-  ctx.fillStyle = o.ready ? MED.gold : MED.iron; ctx.fillRect(x - 1, y - 1, sz + 2, sz + 2);
-  ctx.fillStyle = o.ready ? MED.goldLight : MED.ironLight; ctx.fillRect(x - 1, y - 1, sz + 2, 1);
-  ctx.fillStyle = MED.leather; ctx.fillRect(x + 1, y + 1, sz - 2, sz - 2);
+  ctx.fillStyle = '#07050a'; ctx.fillRect(x - 2, y - 2, sz + 4, sz + 4);
+  ctx.fillStyle = o.ready ? '#d9a441' : '#363945'; ctx.fillRect(x - 1, y - 1, sz + 2, sz + 2);
+  ctx.fillStyle = o.ready ? '#f7d67e' : '#6e7687'; ctx.fillRect(x - 1, y - 1, sz + 2, 1);
+  ctx.fillStyle = '#181524'; ctx.fillRect(x + 1, y + 1, sz - 2, sz - 2);
 
   const pad = Math.round(6 * s);
   if (o.img) ctx.drawImage(o.img, x + pad, y + pad, sz - pad * 2, sz - pad * 2);
@@ -600,7 +676,7 @@ function drawSkillSlot(x, y, sz, s, o) {
     if (o.mode === 'fill') {
       // medidor enchendo de baixo pra cima
       const fh = Math.round((sz - 2) * (1 - o.frac));
-      ctx.fillStyle = 'rgba(10,6,4,0.72)'; ctx.fillRect(x + 1, y + 1, sz - 2, fh);
+      ctx.fillStyle = 'rgba(10,6,14,0.78)'; ctx.fillRect(x + 1, y + 1, sz - 2, fh);
       ctx.fillStyle = o.accent; ctx.fillRect(x + 1, y + 1 + fh, sz - 2, 2);
     } else {
       // varredura de relógio
@@ -610,10 +686,10 @@ function drawSkillSlot(x, y, sz, s, o) {
       ctx.moveTo(x + sz / 2, y + sz / 2);
       ctx.arc(x + sz / 2, y + sz / 2, sz, -Math.PI / 2 + Math.PI * 2 * o.frac, Math.PI * 1.5);
       ctx.closePath();
-      ctx.fillStyle = 'rgba(10,6,4,0.72)'; ctx.fill();
+      ctx.fillStyle = 'rgba(10,6,14,0.78)'; ctx.fill();
       ctx.restore();
     }
-    if (o.count) txt(o.count, x + sz / 2, y + sz / 2 + Math.round(5 * s), Math.round(11 * s), '#fff1c9');
+    if (o.count) uiTxt(o.count, x + sz / 2, y + sz / 2 + Math.round(5 * s), Math.round(14 * s), '#fff1c9');
   } else if (o.flash > 0) {
     ctx.fillStyle = `rgba(255,224,138,${o.flash * 2.2})`; ctx.fillRect(x + 1, y + 1, sz - 2, sz - 2);
   }
@@ -624,15 +700,16 @@ function drawSkillSlot(x, y, sz, s, o) {
   }
 
   // nome em cima
-  txt(o.label, x + sz / 2, y - Math.round(7 * s), Math.round(7 * s), o.ready ? MED.goldLight : MED.parchDark);
-  // etiqueta da tecla (pergaminho)
-  const fs = Math.round(7 * s);
-  ctx.font = `${fs}px ${FONT}`;
-  const kw = Math.round(ctx.measureText(o.key).width + 8 * s), kh = Math.round(13 * s);
+  uiTxt(o.label, x + sz / 2, y - Math.round(6 * s), Math.round(9.5 * s), o.ready ? MED.goldLight : '#8f887b');
+  // etiqueta da tecla (<kbd> medieval)
+  const fs = Math.round(8.5 * s);
+  ctx.font = `bold ${fs}px ${FONT_UI}`;
+  const kw = Math.round(ctx.measureText(o.key).width + 10 * s), kh = Math.round(14 * s);
   const kx = Math.round(x + sz / 2 - kw / 2), ky = y + sz - Math.round(5 * s);
-  ctx.fillStyle = MED.ink; ctx.fillRect(kx - 1, ky - 1, kw + 2, kh + 2);
-  ctx.fillStyle = MED.parch; ctx.fillRect(kx, ky, kw, kh);
-  inkTxt(o.key, x + sz / 2, ky + Math.round(10 * s), fs);
+  ctx.fillStyle = '#07050a'; ctx.fillRect(kx - 1, ky - 1, kw + 2, kh + 2);
+  ctx.fillStyle = '#1c1926'; ctx.fillRect(kx, ky, kw, kh);
+  ctx.fillStyle = 'rgba(255,255,255,0.18)'; ctx.fillRect(kx, ky, kw, 1);
+  uiTxt(o.key, x + sz / 2, ky + Math.round(10.5 * s), fs, '#f7e6bf');
 }
 
 function drawSkillBar(p, s, m) {
@@ -698,15 +775,16 @@ function drawRelicBelt(s, m, topY, rightLimit) {
   let x = bx + Math.round(8 * s);
   const y = by + Math.round(7 * s);
   for (const u of shown) {
-    ctx.fillStyle = MED.ink; ctx.fillRect(x - 1, y - 1, sz + 2, sz + 2);
-    ctx.fillStyle = '#2c1d12'; ctx.fillRect(x, y, sz, sz);
+    ctx.fillStyle = '#07050a'; ctx.fillRect(x - 1, y - 1, sz + 2, sz + 2);
+    ctx.fillStyle = '#1c1928'; ctx.fillRect(x, y, sz, sz);
+    ctx.fillStyle = 'rgba(217,164,65,0.35)'; ctx.strokeRect(x, y, sz, sz);
     const ic = hudImg('i_' + u.icon);
     if (ic) ctx.drawImage(ic, x + 2, y + 2, sz - 4, sz - 4);
     const n = ups[u.id];
-    if (n > 1) txt('' + n, x + sz - 1, y + sz - 1, Math.round(7 * s), MED.goldLight, 'right');
+    if (n > 1) uiTxt('' + n, x + sz - 2, y + sz - 2, Math.round(9 * s), '#f7d67e', 'right', 'bold');
     x += sz + gap;
   }
-  if (extra > 0) txt('+' + extra, x + sz / 2, y + sz / 2 + Math.round(4 * s), Math.round(9 * s), MED.goldLight);
+  if (extra > 0) uiTxt('+' + extra, x + sz / 2, y + sz / 2 + Math.round(4 * s), Math.round(11 * s), '#f7d67e', 'center', 'bold');
 }
 
 // ---------------------------------------------------------------------
