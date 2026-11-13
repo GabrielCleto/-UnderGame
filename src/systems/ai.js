@@ -253,7 +253,29 @@ function updateEnemy(e, dt) {
   }
   if (!MON[e.type].fly && !isBossType(e.type)) collideStatic(e, e.r);
   else { e.x = clamp(e.x, 40, WORLD.w - 40); e.y = clamp(e.y, 90, WORLD.h - 20); }
-  if (!((e.type === 'ghost' || e.type === 'necro_boss') && e.faded) && e.type !== 'goblin' && Math.hypot(e.x - p.x, e.y - p.y) < e.r + 14) hurtPlayer(e.dmg, e.x, e.y);
+  if (e.eliteTrait) {
+    if (e.eliteTrait.id === 'teleporter' && d > 210) {
+      e.tpCd = (e.tpCd || rand(2.5, 4.5)) - dt;
+      if (e.tpCd <= 0) {
+        e.tpCd = rand(4.0, 6.0);
+        const ta = rand(0, Math.PI * 2);
+        e.x = clamp(p.x + Math.cos(ta) * 130, 60, WORLD.w - 60);
+        e.y = clamp(p.y + Math.sin(ta) * 130, 100, WORLD.h - 40);
+        fxRings.push({ kind: 'nova', x: e.x, y: e.y - 14, r: 8, maxR: 48, life: 0.22, max: 0.22, col: '#c844ff' });
+      }
+    } else if (e.eliteTrait.id === 'frost' && d < 280) {
+      e.frostCd = (e.frostCd || rand(1.8, 3.2)) - dt;
+      if (e.frostCd <= 0) {
+        e.frostCd = 3.2;
+        enemyShoot(e, Math.atan2(p.y - e.y, p.x - e.x), 210, 7, 'cyan');
+      }
+    }
+  }
+  if (!((e.type === 'ghost' || e.type === 'necro_boss') && e.faded) && e.type !== 'goblin' && Math.hypot(e.x - p.x, e.y - p.y) < e.r + 14) {
+    hurtPlayer(e.dmg, e.x, e.y);
+    if (e.eliteTrait && e.eliteTrait.id === 'vampiric') e.hp = Math.min(e.maxHp, e.hp + Math.max(2, Math.ceil(e.maxHp * 0.1)));
+    if (e.eliteTrait && e.eliteTrait.id === 'frost') p.slow = Math.max(p.slow || 0, 1.4);
+  }
 }
 
 function bossAI(e, dt, ux, uy, d) {
@@ -676,10 +698,10 @@ function aetherSliderAI(e, dt, ux, uy, d) {
   e.pt -= dt;
   if (e.phase === 'hover') {
     e.vx = ux * e.speed * 0.5; e.vy = uy * e.speed * 0.5;
+    const dx = Math.abs(p.x - e.x), dy = Math.abs(p.y - e.y);
+    e.ca = dx > dy ? (p.x > e.x ? 0 : Math.PI) : (p.y > e.y ? Math.PI / 2 : -Math.PI / 2);
     if (e.pt <= 0) {
       e.phase = 'charge'; e.pt = enraged ? 0.55 : 0.72;
-      const dx = Math.abs(p.x - e.x), dy = Math.abs(p.y - e.y);
-      if (dx > dy) { e.ca = p.x > e.x ? 0 : Math.PI; } else { e.ca = p.y > e.y ? Math.PI / 2 : -Math.PI / 2; }
       SFX.bossAwake();
     }
   } else if (e.phase === 'charge') {

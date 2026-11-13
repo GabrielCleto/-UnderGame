@@ -18,7 +18,18 @@ function spawnEnemy(kind, at, opts = {}) {
   const d = MON[type];
   const eliteChance = waveEvent === 'golden' ? 0.28 : waveEvent === 'bloodmoon' ? 0.18 : Math.min(0.22, 0.05 + Math.max(0, wave - 4) * 0.01);
   const elite = Boolean(opts.forceElite || (!opts.noElite && !isBossType(type) && type !== 'goblin' && (wave >= 4 || waveEvent === 'golden' || waveEvent === 'bloodmoon') && Math.random() < eliteChance));
-  if (elite) { scaleMul *= 1.32; hpMul *= 2.9; }
+  const ELITE_TRAITS = [
+    { id: 'vampiric', label: 'Vampírico', col: '#ff4268' },
+    { id: 'teleporter', label: 'Dimensional', col: '#c844ff' },
+    { id: 'armored', label: 'Encouraçado', col: '#9aa0a8' },
+    { id: 'volatile', label: 'Volátil', col: '#ff7a29' },
+    { id: 'frost', label: 'Glacial', col: '#62f6ff' },
+  ];
+  const eliteTrait = elite ? pick(ELITE_TRAITS) : null;
+  if (elite) {
+    scaleMul *= 1.32;
+    hpMul *= (eliteTrait.id === 'armored' ? 3.8 : 2.9);
+  }
   if (opts.bounty) { scaleMul *= 1.65; hpMul *= 6.5; extra.bounty = true; extra.bountyT = 22; }
   const pos = at || (type === 'flower' ? spawnPos(260, 480, 40) : spawnPos(Math.max(W, H) * 0.55, Math.max(W, H) * 0.7, 30));
 
@@ -36,7 +47,7 @@ function spawnEnemy(kind, at, opts = {}) {
     score: Math.round(d.score * hpMul * (waveEvent === 'bloodmoon' ? 1.5 : 1)),
     t: rand(0, 10), row: 2, hurt: 0, spawn: opts.instant ? 0 : 0.7, act: rand(1.1, 2.6), mode: 'move', slow: 0, freezeT: 0,
     poisonT: 0, poisonDmg: 0, poisonTick: 0, shieldOn: false,
-    elite, fireHit: 0, ...extra,
+    elite, eliteTrait, fireHit: 0, ...extra,
   };
   if (type === 'goblin') {
     e.escapeT = 16;
@@ -87,6 +98,9 @@ function damageEnemy(e, dmg, fromX, fromY, power = 380, opts = {}) {
   if (stats.bloodOrb && player && player.combo > 0 && player.combo % 12 === 0) {
     player.hp = Math.min(stats.maxHp, player.hp + 1);
   }
+  if (e.eliteTrait && e.eliteTrait.id === 'armored') {
+    dmg = Math.max(1, Math.ceil(dmg * 0.75));
+  }
   if (e.shieldOn && !opts.ignoreShield) {
     dmg = Math.max(1, Math.ceil(dmg * 0.4));
     power *= 0.25;
@@ -96,6 +110,13 @@ function damageEnemy(e, dmg, fromX, fromY, power = 380, opts = {}) {
     if (dmg > maxHit) dmg = maxHit + Math.ceil((dmg - maxHit) * 0.2);
   }
   e.hp -= dmg;
+  if (isBossType(e.type) && !e.enragedTriggered && e.hp > 0 && e.hp <= e.maxHp * 0.5) {
+    e.enragedTriggered = true;
+    SFX.bossAwake();
+    shake = Math.max(shake, 8);
+    fxRings.push({ kind: 'nova', x: e.x, y: e.y - 20, r: 20, maxR: 220, life: 0.45, max: 0.45, col: '#ff3040' });
+    texts.push({ x: e.x, y: e.y - 95, txt: '🔥 CHEFE ENFURECIDO!', life: 1.8, color: '#ff385c', size: 15 });
+  }
   e.hurt = 0.18;
   if (stats.venom > 0 && !opts.isPoison) {
     e.poisonT = 3.2 + stats.venom * 0.5;
@@ -230,11 +251,21 @@ function killEnemy(e) {
   if (e.elite) { for (let i = 0; i < 4; i++) dropItem('coin', e.x, e.y); dropItem('potion', e.x, e.y); }
   if (stats.vamp && Math.random() < stats.vamp * 0.035 && p.hp < stats.maxHp) { p.hp++; texts.push({ x: p.x, y: p.y - 110, txt: '+1', life: 0.8, color: '#ff5d7a', size: 12 }); }
   if (e.big) for (let i = 0; i < 3; i++) spawnEnemy('minislime', { x: e.x + rand(-20, 20), y: e.y + rand(-20, 20) }, { instant: true, noElite: true });
+  if (e.eliteTrait && e.eliteTrait.id === 'volatile') {
+    SFX.explode();
+    fxRings.push({ kind: 'nova', x: e.x, y: e.y - 12, r: 12, maxR: 115, life: 0.3, max: 0.3, col: '#ff6420' });
+    burst(e.x, e.y - 12, '#ff6420', 20, 240);
+    if (player && Math.hypot(player.x - e.x, player.y - e.y) < 115) hurtPlayer(1, e.x, e.y);
+  }
   if (isBossType(e.type)) {
     const otherBoss = enemies.find(o => !o.dead && o !== e && isBossType(o.type));
     boss = otherBoss || null;
     SFX.bossDie();
     shake = 10; freeze = 0.2;
+    const essGain = 3 + Math.floor(wave / 5) * 2;
+    soulEssences += essGain;
+    localStorage.setItem('gabriel_essences', soulEssences);
+    texts.push({ x: e.x, y: e.y - 115, txt: '+' + essGain + ' ESSÊNCIA ABISSAL!', life: 2.0, color: '#c844ff', size: 13 });
     for (let i = 0; i < 22; i++) dropItem('coin', e.x, e.y);
     dropItem('chest', e.x, e.y);
     if (!boss) {
@@ -290,6 +321,24 @@ function openLevelUp() {
   levelChoices = choices; levelSel = 0;
   state = 'levelup';
   SFX.level();
+}
+function getRerollCost() {
+  return rerollsUsed === 0 ? 0 : 8 + rerollsUsed * 6;
+}
+function rerollLevelUp() {
+  const cost = getRerollCost();
+  if (coins < cost) { SFX.shopNo(); return; }
+  const avail = UPGRADES.filter(u => (ups[u.id] || 0) < u.max);
+  if (avail.length <= 1) return;
+  coins -= cost;
+  rerollsUsed++;
+  const choices = [];
+  while (choices.length < 3 && choices.length < avail.length) {
+    const u = pick(avail);
+    if (!choices.includes(u)) choices.push(u);
+  }
+  levelChoices = choices; levelSel = 0;
+  SFX.shrine();
 }
 function chooseUpgrade(i) {
   const u = levelChoices[i];
@@ -511,7 +560,7 @@ function hitBarrel(b) {
 function collect(k) {
   k.dead = true;
   const p = player;
-  if (k.kind === 'coin') { coins++; score += 10; SFX.coin(); }
+  if (k.kind === 'coin') { coins += (Math.random() < ((stats.coinMul || 1) - 1) ? 2 : 1); score += 10; SFX.coin(); }
   else if (k.kind === 'gem') { gainXp(1); SFX.gem(); }
   else if (k.kind === 'ruby') { gainXp(5); SFX.gem(); beep(1600, 0.08, 'triangle', 0.04); }
   else if (k.kind === 'star') {
@@ -589,7 +638,21 @@ function hurtPlayer(dmg, fx, fy) {
   p.x += Math.cos(a) * 28; p.y += Math.sin(a) * 28;
   collideStatic(p, 14);
   texts.push({ x: p.x, y: p.y - 110, txt: '-' + dmg, life: 0.9, color: '#ff5d5d', size: 16 });
-  if (p.hp <= 0) gameOver();
+  if (p.hp <= 0) {
+    if (stats.revivesLeft > 0) {
+      stats.revivesLeft--;
+      p.hp = Math.max(2, Math.ceil(stats.maxHp * 0.5));
+      p.inv = 2.4;
+      SFX.bloodRite();
+      fxRings.push({ kind: 'nova', x: p.x, y: p.y - 24, r: 20, maxR: 260, life: 0.5, max: 0.5, col: '#ffd23f' });
+      for (const e of enemies) {
+        if (!e.dead && Math.hypot(e.x - p.x, e.y - p.y) < 260) damageEnemy(e, 25 + stats.dmg * 4, p.x, p.y, 600, { color: '#ffd23f', noFreeze: true });
+      }
+      texts.push({ x: p.x, y: p.y - 125, txt: '✨ SEGUNDA CHANCE!', life: 2.0, color: '#ffd23f', size: 15 });
+      return;
+    }
+    gameOver();
+  }
 }
 
 

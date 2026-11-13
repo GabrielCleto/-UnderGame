@@ -1,6 +1,6 @@
 function overlay(alpha = 0.6) { ctx.fillStyle = `rgba(8,5,12,${alpha})`; ctx.fillRect(0, 0, W, H); }
 
-let cardRects = [];
+let cardRects = [], levelRerollRect = null;
 function drawLevelUp() {
   overlay(0.78);
   const t = performance.now() / 1000;
@@ -122,6 +122,20 @@ function drawLevelUp() {
 
     cardRects.push({ x, y, w: curW, h: curH, index: i });
   });
+
+  const rCost = getRerollCost();
+  const rw = Math.round(230 * s), rh = Math.round(32 * s);
+  const rx = Math.round(W / 2 - rw / 2), ry = Math.round(y0 + ch + 14 * s);
+  if (ry + rh < H - 8) {
+    const rHov = inRect(mouse.x, mouse.y, { x: rx, y: ry, w: rw, h: rh });
+    const canReroll = coins >= rCost;
+    medPanel(rx, ry, rw, rh, rHov && canReroll ? 'parch' : 'leather');
+    const rLabel = rCost === 0 ? '🎲 [R] REROLL GRÁTIS' : '🎲 [R] REROLL (' + rCost + ' OURO)';
+    txt(rLabel, rx + rw / 2, ry + Math.round(21 * s), Math.round(8.2 * s), canReroll ? (rHov ? MED.parchInk : MED.goldLight) : '#777');
+    levelRerollRect = { x: rx, y: ry, w: rw, h: rh };
+  } else {
+    levelRerollRect = null;
+  }
 }
 
 let shopRects = [], shopExitRect = null;
@@ -556,7 +570,58 @@ function startWithSelectedCharacter() {
 // =====================================================================
 //  MENU PRINCIPAL
 // =====================================================================
-let menuPlayRect = null, menuCharRect = null;
+let menuPlayRect = null, menuCharRect = null, menuSoulRect = null;
+let soulRects = [], soulBackRect = null;
+const SOUL_DEFS = [
+  { id: 'vigor', name: 'Vigor Ancestral', max: 3, cost: l => 4 + l * 4, desc: l => '+2 HP inicial por nível (Atual: +' + (l * 2) + ' HP)' },
+  { id: 'fury', name: 'Fúria Eterna', max: 3, cost: l => 4 + l * 4, desc: l => '+15% Fúria e +10% Moedas por nível' },
+  { id: 'revive', name: 'Segunda Chance', max: 1, cost: () => 12, desc: () => 'Ressuscita 1x por partida com 50% HP e choque' },
+];
+function buySoulUpgrade(id) {
+  const def = SOUL_DEFS.find(d => d.id === id);
+  if (!def) return;
+  const cur = soulUps[id] || 0;
+  if (cur >= def.max) { SFX.shopNo(); return; }
+  const c = def.cost(cur);
+  if (soulEssences < c) { SFX.shopNo(); return; }
+  soulEssences -= c;
+  soulUps[id] = cur + 1;
+  localStorage.setItem('gabriel_essences', soulEssences);
+  localStorage.setItem('gabriel_soul_ups', JSON.stringify(soulUps));
+  SFX.bloodRite();
+}
+function drawSoulShrine() {
+  overlay(0.84);
+  const s = clamp(Math.min(W / 1280, H / 720), 0.75, 1.4);
+  soulRects = [];
+  txt('✦ SANTUÁRIO DAS ALMAS ✦', W / 2, Math.round(44 * s), Math.round(18 * s), '#c844ff');
+  txt('Essências Abissais disponíveis: ' + soulEssences + ' (Chefes dropam Essências)', W / 2, Math.round(68 * s), Math.round(8.5 * s), MED.goldLight);
+
+  const cw = Math.round(240 * s), ch = Math.round(210 * s), gap = Math.round(18 * s);
+  const x0 = Math.round(W / 2 - (cw * 3 + gap * 2) / 2);
+  const y0 = Math.round(H / 2 - ch / 2);
+  SOUL_DEFS.forEach((d, i) => {
+    const x = x0 + i * (cw + gap), y = y0;
+    const cur = soulUps[d.id] || 0;
+    const maxed = cur >= d.max;
+    const cost = d.cost(cur);
+    const hov = inRect(mouse.x, mouse.y, { x, y, w: cw, h: ch });
+    medPanel(x, y, cw, ch, hov && !maxed ? 'wood' : 'leather');
+    txt(d.name.toUpperCase(), x + cw / 2, y + Math.round(30 * s), Math.round(9.5 * s), MED.goldLight);
+    txt('NÍVEL ' + cur + ' / ' + d.max, x + cw / 2, y + Math.round(52 * s), Math.round(8 * s), '#c844ff');
+    const lines = wrap(d.desc(cur), cw - 28, Math.round(7.5 * s));
+    lines.forEach((l, j) => txt(l, x + cw / 2, y + Math.round(86 * s) + j * Math.round(14 * s), Math.round(7.5 * s), MED.parch));
+    const btnTxt = maxed ? '✓ MÁXIMO' : (soulEssences >= cost ? 'DESPERTAR (' + cost + ' ESS.)' : 'FALTA (' + cost + ' ESS.)');
+    txt(btnTxt, x + cw / 2, y + ch - Math.round(22 * s), Math.round(8 * s), maxed ? '#7aff61' : (soulEssences >= cost ? '#ffe08a' : '#888'));
+    soulRects.push({ x, y, w: cw, h: ch, id: d.id });
+  });
+  const bw = Math.round(200 * s), bh = Math.round(38 * s);
+  const bx = Math.round(W / 2 - bw / 2), by = Math.round(y0 + ch + 26 * s);
+  const bHov = inRect(mouse.x, mouse.y, { x: bx, y: by, w: bw, h: bh });
+  medPanel(bx, by, bw, bh, bHov ? 'parch' : 'wood');
+  txt('← VOLTAR [ESC]', bx + bw / 2, by + Math.round(24 * s), Math.round(8.5 * s), bHov ? MED.parchInk : MED.goldLight);
+  soulBackRect = { x: bx, y: by, w: bw, h: bh };
+}
 function drawMenu() {
   overlay(0.72);
   const now = performance.now();
@@ -646,10 +711,16 @@ function drawMenu() {
 
   menuPlayRect = pRect;
   menuCharRect = cRect;
+  const sw = Math.round(clamp(280 * s, 210, 320)), sh = Math.round(30 * s);
+  const sx = Math.round(W / 2 - sw / 2), sy = Math.round(btnY + btnH + 10 * s);
+  const sHov = inRect(mouse.x, mouse.y, { x: sx, y: sy, w: sw, h: sh });
+  medPanel(sx, sy, sw, sh, sHov ? 'wood' : 'leather');
+  txt('✦ [S] SANTUÁRIO DAS ALMAS (' + soulEssences + ' ESS.) ✦', sx + sw / 2, sy + Math.round(20 * s), Math.round(7.5 * s), '#d66fff');
+  menuSoulRect = { x: sx, y: sy, w: sw, h: sh };
 
   // 5. SELO DO RECORDE ANCESTRAL
   if (best > 0) {
-    const recY = Math.min(H - Math.round(44 * s), btnY + btnH + Math.round(24 * s));
+    const recY = Math.min(H - Math.round(44 * s), btnY + btnH + Math.round(54 * s));
     txt('🏆 RECORDE ANCESTRAL: ' + best + ' PONTOS', W / 2, recY, Math.round(8.5 * s), MED.goldLight);
   }
 

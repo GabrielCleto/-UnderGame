@@ -35,14 +35,24 @@ function loop(now) {
       cam.x = WORLD.w / 2 + Math.cos(time * 0.15) * 500; cam.y = WORLD.h / 2 + Math.sin(time * 0.15) * 350;
       clampCam();
       if (anyPressed('tab', 'p')) { enterCharacterSelect(); }
+      else if (anyPressed('s')) { state = 'soul_shrine'; SFX.select(); }
       else if (anyPressed('enter', ' ')) {
         startWithSelectedCharacter();
       } else if (mouse.click) {
-        if (inRect(mouse.x, mouse.y, menuCharRect) || Math.hypot(mouse.x - W / 2, mouse.y - H * 0.36) < 75) {
+        if (inRect(mouse.x, mouse.y, menuSoulRect)) {
+          state = 'soul_shrine'; SFX.select();
+        } else if (inRect(mouse.x, mouse.y, menuCharRect) || Math.hypot(mouse.x - W / 2, mouse.y - H * 0.36) < 75) {
           enterCharacterSelect();
         } else if (inRect(mouse.x, mouse.y, menuPlayRect)) {
           startWithSelectedCharacter();
         }
+        mouse.click = false; mouse.down = false;
+      }
+    } else if (state === 'soul_shrine') {
+      if (anyPressed('escape', 's', 'enter')) { state = 'menu'; SFX.select(); }
+      if (mouse.click) {
+        if (inRect(mouse.x, mouse.y, soulBackRect)) { state = 'menu'; SFX.select(); }
+        else soulRects.forEach(r => { if (inRect(mouse.x, mouse.y, r)) buySoulUpgrade(r.id); });
         mouse.click = false; mouse.down = false;
       }
     } else if (state === 'select_char') {
@@ -129,11 +139,13 @@ function loop(now) {
           SFX.select();
         }
         const gpConfirm = gpState && (gpState.justPressed[0] || gpState.justPressed[7]);
+        if (anyPressed('r')) rerollLevelUp();
         if (anyPressed('enter', ' ') || gpConfirm) {
           chooseUpgrade(levelSel);
         }
         if (mouse.click) {
-          cardRects.forEach((r, i) => {
+          if (levelRerollRect && inRect(mouse.x, mouse.y, levelRerollRect)) rerollLevelUp();
+          else cardRects.forEach((r, i) => {
             if (mouse.x > r.x && mouse.x < r.x + r.w && mouse.y > r.y - 10 && mouse.y < r.y + r.h) chooseUpgrade(i);
           });
         }
@@ -208,6 +220,7 @@ function loop(now) {
     ctx.clearRect(0, 0, W, H);
     drawWorld();
     if (state === 'menu') drawMenu();
+    else if (state === 'soul_shrine') drawSoulShrine();
     else if (state === 'select_char') drawCharacterSelect();
     else {
       drawHUD();

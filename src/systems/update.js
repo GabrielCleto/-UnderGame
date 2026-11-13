@@ -16,6 +16,12 @@ function update(dt) {
         waveTimer = 1.6;
         return;
       }
+      const nextBiome = Math.floor((wave - 1) / 5) % BIOMES.length;
+      if (wave > 1 && nextBiome !== currentBiome) {
+        currentBiome = nextBiome;
+        SFX.shrine();
+        texts.push({ x: p.x, y: p.y - 130, txt: '🌀 PORTAL: ' + BIOMES[currentBiome].name + '!', life: 2.6, color: '#62f6ff', size: 15 });
+      }
       const isBoss = wave % 5 === 0;
       toSpawn = isBoss ? 15 + Math.floor(wave * 2.5) : 16 + Math.floor(wave * 4.8);
       spawnTimer = 0.25;
@@ -286,7 +292,10 @@ function update(dt) {
     gamepadRumble(0.2, 0.3, 90);
   }
 
-  let speed = stats.speed * (p.frenzyT > 0 ? 1.3 : 1);
+  const crisisBoost = p.hp <= 2 ? 1.14 : 1;
+  const slowMulP = (p.slow || 0) > 0 ? 0.72 : 1;
+  if ((p.slow || 0) > 0) p.slow = Math.max(0, p.slow - dt);
+  let speed = stats.speed * (p.frenzyT > 0 ? 1.3 : 1) * crisisBoost * slowMulP;
   if (p.attack && p.char.weaponType === 'saber') speed *= 0.62;
   if (p.dash) {
     p.dash.t += dt;
@@ -482,7 +491,9 @@ function update(dt) {
         if (e.dead || e.fireHit > time) continue;
         if (Math.hypot(e.x - fx, e.y - e.r - fy) < e.r + (isAwakened ? 22 : 16)) {
           e.fireHit = time + (isAwakened ? 0.35 : 0.45);
-          damageEnemy(e, 1 + Math.floor(stats.fire / 2) + (isAwakened ? 1 : 0), fx, fy, 200, { color: '#ff8a2e', noFreeze: true, silent: true });
+          const thermalSynergy = stats.fire >= 5 && stats.ice >= 4;
+          if (thermalSynergy) e.slow = Math.max(e.slow, 2.2);
+          damageEnemy(e, 1 + Math.floor(stats.fire / 2) + (isAwakened ? 1 : 0) + (thermalSynergy ? 3 : 0), fx, fy, 200, { color: thermalSynergy ? '#c844ff' : '#ff8a2e', noFreeze: true, silent: true });
         }
       }
     }
@@ -501,6 +512,7 @@ function update(dt) {
         bolts.push({ pts, life: 0.25 });
         hitSet.add(target);
         if (isAwakened && !isBossType(target.type)) target.slow = Math.max(target.slow, 0.8);
+        if (stats.bolt >= 5 && stats.infTime >= 1) target.freezeT = Math.max(target.freezeT || 0, 1.1);
         damageEnemy(target, 2 + Math.floor(stats.bolt / 2) + (isAwakened ? 2 : 0), target.x, target.y - 10, 100, { color: '#fff36b', noFreeze: true, silent: true });
         from = target; target = null; let nd = 210;
         for (const e of enemies) { if (e.dead || hitSet.has(e) || e.spawn > 0 || ((e.type === 'ghost' || e.type === 'necro_boss') && e.faded)) continue; const d = Math.hypot(e.x - from.x, e.y - from.y); if (d < nd) { nd = d; target = e; } }

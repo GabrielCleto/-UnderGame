@@ -211,8 +211,8 @@ function drawEnemy(e) {
     ctx.restore();
   }
 
-  if (isBossType(e.type) && e.phase === 'charge' && e.pt > 0) {
-    ctx.strokeStyle = `rgba(255,40,40,${0.3 + 0.3 * Math.sin(e.t * 30)})`; ctx.lineWidth = e.r * 1.2;
+  if (isBossType(e.type) && ((e.phase === 'charge' && e.pt > 0) || (e.type === 'aether_slider' && e.phase === 'hover' && e.pt < 0.55))) {
+    ctx.strokeStyle = `rgba(255,40,40,${0.35 + 0.35 * Math.sin(e.t * 30)})`; ctx.lineWidth = e.r * 1.2;
     ctx.beginPath(); ctx.moveTo(e.x, e.y - 20); ctx.lineTo(e.x + Math.cos(e.ca) * 600, e.y - 20 + Math.sin(e.ca) * 600); ctx.stroke();
   }
   let alpha = 1;
@@ -260,6 +260,8 @@ function drawEnemy(e) {
     txt('💰 DUENDE', e.x, dy - 12, 7.5, '#ffd23f');
   } else if (e.bounty) {
     txt('🎯 ALVO (' + Math.ceil(e.bountyT) + 's)', e.x, dy - 12, 7.5, '#ff6438');
+  } else if (e.eliteTrait) {
+    txt('[' + e.eliteTrait.label.toUpperCase() + ']', e.x, dy - 14, 7.5, e.eliteTrait.col);
   }
 
   if (e.hp < e.maxHp && !isBossType(e.type) && e.spawn <= 0) {
@@ -713,10 +715,12 @@ function drawWorld() {
     const g = ctx.createRadialGradient(px, py, lightR * 0.35, px, py, maxR);
     g.addColorStop(0, 'rgba(255, 235, 175, 0.06)');
     g.addColorStop(0.35, 'rgba(0, 0, 0, 0.08)');
+    const bTheme = BIOMES[currentBiome] || BIOMES[0];
+    if (bTheme.tint) { ctx.fillStyle = bTheme.tint; ctx.fillRect(0, 0, W, H); }
     const darkEdge = waveEvent === 'bloodmoon' ? 'rgba(68, 0, 16, 0.68)'
       : waveEvent === 'void_eclipse' ? 'rgba(28, 4, 55, 0.72)'
       : waveEvent === 'magma_surge' ? 'rgba(62, 16, 2, 0.64)'
-      : 'rgba(3, 7, 16, 0.60)';
+      : bTheme.edge;
     g.addColorStop(1, darkEdge);
     ctx.fillStyle = g;
     ctx.fillRect(0, 0, W, H);
