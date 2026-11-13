@@ -1,124 +1,116 @@
-# ⚔️ Underground Game
+# ⚔️ Underground II — Crônicas da Arena Ancestral
 
-> **Jogo de sobrevivência em arena 2D Roguelite / Hack & Slash em Pixel Art.**  
-> Desenvolvido com HTML5 Canvas e JavaScript puro (Vanilla JS), com suporte total a controles de videogame (Plug & Play), múltiplos personagens jogáveis, sistema de upgrades, loja de itens e ondas crescentes de inimigos.
+> **Roguelite de Ação 2D / Hack & Slash em Pixel Art com estética Medieval Dark Fantasy.**  
+> Desenvolvido em HTML5 Canvas e JavaScript puro (Vanilla JS) com arquitetura modular de alto desempenho, suporte nativo *Plug & Play* a controles (Xbox, PlayStation, Switch), controles Touch mobile ergonômicos, Roleta Cilíndrica 3D de Campeões com trilhas sonoras exclusivas e 7 Chefes colossais.
 
 ---
 
 ## 🎮 Visão Geral
 
-Em **UnderGame**, você entra na arena enfrentando hordas de monstros, acumulando moedas e subindo de nível. A cada nível superado, selecione poderes para aprimorar seu guerreiro e visite o Mercado da Arena entre as ondas para adquirir relíquias e itens consumíveis lendários.
+Em **Underground II**, você convoca seu campeão no Santuário Ancestral e adentra a arena para enfrentar ondas implacáveis de criaturas abissais e colossos. Derrote inimigos, colete gemas e moedas de ouro, desperte bênçãos divinas a cada nível, reforje sua arma na Forja Goblin e sobreviva aos eventos cósmicos.
 
 ---
 
-## 👥 Personagens Jogáveis
+## 👥 Campeões Jogáveis & Trilhas Sonoras Exclusivas
 
-| Personagem | Título | Arma Principal | Habilidade Especial (Ultimate) | Estilo de Jogo |
-| :--- | :--- | :--- | :--- | :--- |
-| **Manguinha** | *Garoto Comum* | Sabre de Luz (Corte & Rebate de Tiros) | Fúria do Sabre (Giro Tempestuoso) | Equilibrado, combate corpo-a-corpo e defesa precisa |
-| **Amxral** | *Estrela do Bloco* | Estrela Cintilante Perfurante | Chuva Estelar Dourada | Combate à distância, projéteis perfurantes e precisão |
-| **Tuiuba** | *Orange Jui* | Laranjas Cítricas Explosivas | Explosão Cítrica em Área | Alta velocidade, dano em área explosivo e agilidade |
+Na **Roleta Cilíndrica 3D**, cada campeão possui seu próprio pedestal iluminado, atributos únicos e uma **trilha sonora exclusiva** (`assets/audio/music/`) que toca dinamicamente ao girar o carrossel:
+
+| Campeão | Título | Arma Principal | Fúria (Ultimate) | Trilha Sonora | Estilo de Jogo |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| **Manguinha** | *Garoto Comum* | **Corte de Sabre** (Curta distância & Rebate projéteis) | **Fúria do Sabre** (Giro Tempestuoso) | `Manguinha.mp3` | Equilibrado, letal a curta distância e defesa com deflexão precisa |
+| **Amxral** | *Estrela do Bloco* | **Estrela Cintilante** (Projéteis perfurantes) | **Chuva Estelar** (Tempestade cósmica) | `amxral.mp3` | Mestre do ataque à distância, alta cadência e perfuração |
+| **Tuiuba** | *Orange Jui* | **Tiro de Laranja** (Arremesso explosivo) | **Explosão Cítrica** (Detonação em área) | `tuiuba.mp3` | Alta mobilidade, explosões cítricas em área (AoE) e controle de grupo |
 
 ---
 
-## ✨ Principais Funcionalidades
+## ✨ Principais Funcionalidades (Versão 2.1)
 
-- **⚔️ Combate Dinâmico:** Golpes fluidos, animações direcionais em 8 direções, esquiva com invencibilidade (Dash/Giro) e acerto crítico.
-- **✨ Sistema de Level Up:** Escolha entre mais de 10 habilidades passivas e ativas a cada subida de nível.
-- **🛒 Mercado da Arena:** Loja entre ondas com itens exclusivos (Coração Dourado, Botas de Mercúrio, Amuleto de Vampirismo, Poções de Fúria).
-- **🎮 Suporte Plug & Play a Controles:**
-  - Compatível nativamente com controles de **Xbox**, **PlayStation (PS4/PS5)** e **Genéricos / Switch Pro**.
-  - Mira 360° com o analógico direito.
-  - Gatilhos traseiros (**RT/RB**) configurados para ataque.
-  - Navegação fluida em menus com D-pad, botões de ação e suporte a vibração háptica (*Rumble*).
-- **📱 Suporte a Telas Sensíveis ao Toque (Mobile / Touchscreen):** Joysticks virtuais e botões touch automáticos.
-- **🗺️ Minimapa / Radar:** Radar no canto superior direito para localização de inimigos, chefes e baús.
-- **🎵 Trilha Sonora & SFX Retrô:** Sintetizador procedural em Web Audio API + trilha sonora original.
+- **🎠 Roleta Cilíndrica 3D de Seleção:** Carrossel em perspectiva orbital com profundidade (*z-order*), iluminação de santuário, ficha de atributos em pergaminho e troca instantânea da música-tema do personagem.
+- **🛡️ HUD & UI Medieval Dark Fantasy:**
+  - **Brasão do Campeão:** Retrato em moldura de ferro forjado e ouro, barras de Vida e Experiência com efeito *ghost trail* e selo de nível em algarismos romanos.
+  - **Barra de Habilidades:** Slots de Ataque, Esquiva/Giro e Fúria com varredura radial de recarga (*cooldown sweep*) e atalhos adaptativos (Teclado, Controle ou Touch).
+  - **Minimapa & Radar Tático:** Localização em tempo real de inimigos, chefes, altares, barris e baús de tesouro.
+  - **Indicadores de Ameaça Fora de Tela:** Setas táticas nas bordas da tela alertando sobre chefes e projéteis fora do campo de visão.
+- **👹 Bestiário Expandido & 7 Chefes Épicos:**
+  - **Monstros da Arena:** Slime, Verme, Morcego, Abelha, Serpente, Víbora, Olho Flutuante, Sniper Astral, Fantasma, Necromante, Verme Gigante, Planta Carnívora, Golem, Goblin do Tesouro, **Imp do Caos** e **Aranha do Vazio**.
+  - **Chefes Colossais:**
+    1. **Rei Abóbora** (*Pumpking*)
+    2. **Leviatã Abissal**
+    3. **Soberano do Vazio** (*Void Overlord*)
+    4. **Colosso de Magma** (*Magma Colossus*)
+    5. **Soberano Necromante**
+    6. **Imperatriz Carnívora** (*Hydra Boss*)
+    7. **Olho Astral Supremo** (*Beholder Boss*)
+- **🔨 Sistema de Reforja Lendária & Mercado da Arena:**
+  - Entre as ondas, visite o **Mercador da Arena** para comprar Frascos de Vida, Pele de Ferro, Poção de Espinhos, Orbes de Escudo, Tomo do Destino, Medalha de Honra ou usar a **Forja Goblin** para encantar sua arma com prefixos lendários (*Lendário*, *Divino*, *Demoníaco*, *Irreal*, *Mítico*, *Titânico*, *Implacável*, *Mortal*).
+- **☄️ Eventos Dinâmicos & Altares Ancestrais:**
+  - Eventos especiais de onda (*Lua de Sangue*, *Enxame*, *Eclipse do Vazio*, *Surto de Magma*, *Onda Dourada*), queda de **Estrelas Cadentes** e Altares de Bênção espalhados pelo mapa.
 
 ---
 
 ## 🕹️ Comandos & Controles
 
-### 📱 No Celular / Tablet (Touchscreen)
-| Ação | Botão / Gesto |
+### ⌨️🖱️ Teclado e Mouse
+| Ação | Tecla / Botão |
 | :--- | :--- |
-| **Movimentação** | **Joystick Virtual Dinâmico** (lado esquerdo da tela) |
-| **Atacar (com Mira Automática)** | Botão **⚔️ ATACAR** (ou toque na metade direita) |
-| **Giro / Esquiva com Invencibilidade** | Botão **💨 GIRO** (com anel de recarga) |
-| **Especial (Ultimate)** | Botão **⚡ FÚRIA / ULT** (com anel de carga e pulso) |
-| **Pausar / Retomar** | Botão **⏸** no topo direito (ou toque na tela) |
-| **Tela Cheia** | Botão **⛶** no topo direito |
-| **Navegação nos Menus** | Toque direto nas cartas e botões |
+| **Movimentação** | `W`, `A`, `S`, `D` ou `Setas` |
+| **Mirar** | Cursor do Mouse |
+| **Atacar** | `Clique Esquerdo` ou `Espaço` |
+| **Giro / Esquiva Invencível** | `Shift` ou `Clique Direito` |
+| **Especial (Fúria / Ultimate)** | `E`, `Q` ou `L` |
+| **Roleta de Personagens** | `TAB` |
+| **Selecionar nos Menus / Loja** | `1`, `2`, `3`, `4`, `Setas` ou `Enter` |
+| **Pausar Jogo** | `P` ou `ESC` |
+| **Minimapa On/Off** | `N` |
+| **Música On/Off** | `M` |
+| **Trocar Cor do Sabre (Manguinha)** | `C` |
 
-### 🎮 No Controle (Gamepad)
+### 🎮 Controle / Gamepad (Plug & Play)
 | Ação | Botão |
 | :--- | :--- |
 | **Movimentação** | Analógico Esquerdo / D-Pad |
 | **Mira em 360°** | Analógico Direito |
-| **Atacar** | Gatilhos Traseiros (**RT** / **RB**) |
-| **Giro / Esquiva com Invencibilidade** | **LT**, **LB** ou Botão **B** |
-| **Especial (Ultimate)** | Botão **Y** ou **X** |
-| **Confirmar / Comprar nos Menus** | Botão **A** |
-| **Voltar / Continuar nos Menus** | Botão **B** ou **Start** |
-| **Pausar / Continuar** | Botão **Start** |
-| **Menu de Seleção de Personagem** | Botão **Select / Back** |
-| **Radar / Minimapa** | Botão **R3** (Pressionar analógico direito) |
+| **Atacar** | Gatilhos Traseiros (`RT` / `RB`) |
+| **Giro / Esquiva Invencível** | `LT`, `LB` ou Botão `B` |
+| **Especial (Fúria / Ultimate)** | Botão `Y` ou `X` |
+| **Confirmar / Comprar nos Menus** | Botão `A` |
+| **Voltar / Sair nos Menus** | Botão `B` ou `Start` |
+| **Trocar Campeão na Roleta** | `LB` / `RB` ou `D-Pad Esquerda/Direita` |
+| **Pausar / Continuar** | Botão `Start` |
+| **Radar / Minimapa** | Botão `R3` (Pressionar analógico direito) |
 
-### ⌨️🖱️ No Teclado e Mouse
-| Ação | Tecla / Botão |
+### 📱 Celular / Tablet (Touchscreen)
+| Ação | Botão / Gesto |
 | :--- | :--- |
-| **Movimentação** | **W, A, S, D** ou **Setas** |
-| **Mirar** | Cursor do Mouse |
-| **Atacar** | **Clique Esquerdo** ou **Espaço** |
-| **Giro / Esquiva** | **Shift** ou **Clique Direito** |
-| **Especial (Ultimate)** | Tecla **E**, **Q** ou **L** |
-| **Trocar Personagem** | Tecla **TAB** |
-| **Menu / Loja** | Números **1, 2, 3, 4** ou **Enter** |
-| **Pausar** | Tecla **P** ou **ESC** |
-| **Minimapa On/Off** | Tecla **N** |
-| **Música On/Off** | Tecla **M** |
-| **Cor do Sabre (Manguinha)** | Tecla **C** |
-
----
-
-## 🚀 Como Executar o Jogo
-
-Não é necessário instalar nenhuma dependência ou biblioteca externa!
-
-1. Clone o repositório:
-   ```bash
-   git clone git@github.com:GabrielCleto/-UnderGame.git
-   ```
-2. Abra a pasta do projeto.
-3. Abra o arquivo `index.html` em qualquer navegador web moderno (Google Chrome, Microsoft Edge, Mozilla Firefox, Opera, etc.), ou execute através de um servidor local leve como:
-   ```bash
-   # Com VS Code: Extensão "Live Server"
-   # Ou com Python 3:
-   python -m http.server 8000
-   ```
-4. Conecte seu controle ou use o teclado e divirta-se!
+| **Movimentação** | **Joystick Virtual Dinâmico** (metade esquerda da tela) |
+| **Atacar (Mira Automática)** | Botão **⚔️ ATACAR** |
+| **Giro / Esquiva Invencível** | Botão **💨 GIRO** |
+| **Especial (Fúria / Ultimate)** | Botão **⚡ FÚRIA / ULT** |
+| **Pausar / Tela Cheia** | Botões **⏸** e **⛶** no topo direito |
 
 ---
 
 ## 📂 Estrutura do Projeto (Arquitetura Modular v2.1)
+
+O código-fonte e os recursos foram organizados em módulos independentes de responsabilidade única para máximo desempenho e facilidade de manutenção:
 
 ```text
 -UnderGame/
 ├── index.html                  # Ponto de entrada HTML5
 ├── css/
 │   └── style.css               # Estilização responsiva e canvas pixel-art
-├── src/                        # Código-fonte modularizado por responsabilidade
+├── src/                        # Motor do jogo modularizado (14 módulos)
 │   ├── core/
 │   │   ├── config.js           # Configuração de canvas, câmera, zoom e utilitários matemáticos
-│   │   ├── assets.js           # Carregador otimizado de sprites, fontes e máscaras de hit
+│   │   ├── assets.js           # Preloader otimizado de sprites, fontes e máscaras de hit
 │   │   ├── audio.js            # Motor de efeitos sonoros (WebAudio/WAV) e trilhas por personagem
 │   │   └── input.js            # Teclado, Mouse, Joystick Touch Mobile e Gamepad Plug & Play
 │   ├── data/
-│   │   ├── characters.js       # Definições, atributos e tabelas de animação dos campeões
+│   │   ├── characters.js       # Atributos, âncoras pixel-perfect e renderizador dos campeões
 │   │   ├── monsters.js         # Bestiário de inimigos, chefes e pools de ondas
 │   │   └── items.js            # Bênçãos de Level Up, Prefixos de Reforja e Itens da Loja
 │   ├── world/
-│   │   └── world.js            # Geração procedural da arena, colisões estáticas, altares e explosões
+│   │   └── world.js            # Geração procedural da arena, colisões, altares e explosões
 │   ├── systems/
 │   │   ├── state.js            # Estado global da partida, trauma de câmera e reset
 │   │   ├── combat.js           # Spawns, cálculo de dano, drops, progressão de XP e ataques
@@ -133,28 +125,44 @@ Não é necessário instalar nenhuma dependência ou biblioteca externa!
 ├── assets/
 │   ├── audio/
 │   │   ├── music/              # Trilhas sonoras exclusivas de cada personagem (.mp3)
-│   │   └── sfx/                # Efeitos sonoros de combate e interface (.wav)
+│   │   └── sfx/                # 20 efeitos sonoros de combate e interface (.wav)
 │   ├── fonts/                  # Fonte retrô Press Start 2P (.ttf)
-│   ├── icons/                  # Ícones de habilidades, relíquias e projéteis (.png)
+│   ├── icons/                  # 38 ícones ativos de habilidades, relíquias e projéteis (.png)
 │   └── sprites/
-│       ├── characters/         # Spritesheets, retratos e tiras de ataque dos heróis
-│       ├── monsters/           # Spritesheets animados de todos os monstros e chefes
+│       ├── characters/         # Spritesheets transparentes, retratos e tiras de ataque dos heróis
+│       ├── monsters/           # Todos os 14 spritesheets de monstros e chefes unificados
 │       └── world/              # Tiles de terreno, árvores, rochas, água e barris
 ├── docs/
 │   ├── CREDITOS.txt            # Atribuição das licenças de áudio e arte
 │   ├── CREDITS-LPC.TXT         # Créditos detalhados Liberated Pixel Cup
-│   └── GUIA_DAS_ATUALIZACOES.md # Guia de novidades e balanceamento da versão 2.0+
+│   └── GUIA_DAS_ATUALIZACOES.md # Guia de novidades e balanceamento v2.0+
 ├── .gitignore                  # Filtros de arquivos do repositório
 └── README.md                   # Documentação principal do projeto
 ```
 
 ---
 
+## 🚀 Como Executar o Jogo
+
+Não é necessário instalar nenhuma dependência, *bundler* ou biblioteca externa!
+
+1. Clone o repositório:
+   ```bash
+   git clone git@github.com:GabrielCleto/-UnderGame.git
+   ```
+2. Abra o arquivo `index.html` diretamente em qualquer navegador moderno, ou execute um servidor local:
+   ```bash
+   # Com Python 3:
+   python -m http.server 8000
+   ```
+3. Acesse `http://localhost:8000`, escolha seu campeão na roleta e entre na arena!
+
+---
+
 ## 📜 Créditos & Licenças
 
-Consulte o arquivo [`docs/CREDITOS.txt`](docs/CREDITOS.txt) para detalhes de cada recurso artístico de terceiros utilizado:
+Consulte [`docs/CREDITOS.txt`](docs/CREDITOS.txt) e [`docs/CREDITS-LPC.TXT`](docs/CREDITS-LPC.TXT) para detalhes de atribuição:
 - **LPC Base Assets**: CC-BY-SA 3.0 / GPL 3.0 (Redshrike, Sharm, CharlesGabriel, etc.)
 - **496 Pixel Art Icons**: CC0 Domínio Público por Henrique Lazarini (7Soul1)
-- **Battle Theme A**: CC0 Domínio Público por Cynicmusic
 - **RPG Sound Pack**: CC0 Domínio Público por artisticdude
 - **Fonte Press Start 2P**: SIL Open Font License por CodeMan38
