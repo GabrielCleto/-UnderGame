@@ -578,30 +578,205 @@ function startWithSelectedCharacter() {
 //  MENU PRINCIPAL
 // =====================================================================
 let menuPlayRect = null, menuCharRect = null, menuSoulRect = null, menuBestiaryRect = null;
-let bestiaryBackRect = null;
+let bestiaryPage = 0, bestiaryPrevRect = null, bestiaryNextRect = null, bestiaryBackRect = null;
+
+function changeBestiaryPage(delta) {
+  const total = BESTIARY_ORDER.length;
+  bestiaryPage = (bestiaryPage + delta + total) % total;
+  SFX.select();
+}
+
+function drawBestiaryMonsterSprite(key, cx, cy, maxBox) {
+  const d = MON[key];
+  if (!d) return;
+  const img = IMG['m_' + d.img] || IMG[d.img];
+  if (!img || !img.complete) return;
+  const t = performance.now() / 1000;
+  let col = 0, row = 0;
+  if (['chaos_imp', 'void_spider', 'boss_void_overlord', 'boss_magma_colossus'].includes(key)) {
+    col = Math.floor(t * 6) % 4;
+  } else if (['twilight_lich', 'aether_slider', 'carminite_ghast'].includes(key)) {
+    col = Math.floor(t * 8) % 4;
+  } else {
+    col = Math.floor(t * (key === 'bat' || key === 'bee' ? 10 : 6)) % 3;
+  }
+  const fitScale = Math.min((maxBox * 0.82) / d.fw, (maxBox * 0.82) / d.fh);
+  const dw = Math.round(d.fw * fitScale);
+  const dh = Math.round(d.fh * fitScale);
+  const bob = d.fly ? Math.sin(t * 3.5) * 5 : 0;
+  ctx.save();
+  ctx.imageSmoothingEnabled = false;
+  ctx.fillStyle = 'rgba(20, 12, 8, 0.25)';
+  ctx.beginPath();
+  ctx.ellipse(cx, cy + dh * 0.42, dw * 0.38, Math.max(5, dh * 0.1), 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.drawImage(img, col * d.fw, row * d.fh, d.fw, d.fh, Math.round(cx - dw / 2), Math.round(cy - dh / 2 + bob), dw, dh);
+  ctx.restore();
+}
+
 function drawBestiary() {
-  overlay(0.86);
-  const s = clamp(Math.min(W / 1280, H / 720), 0.75, 1.4);
-  txt('📖 BESTIÁRIO DA ARENA ANCESTRAL 📖', W / 2, Math.round(38 * s), Math.round(16 * s), MED.goldLight);
-  const entries = Object.entries(MON).filter(([, d]) => d.bossName || !['goblin'].includes(d.img));
-  const cols = 4, cw = Math.round(230 * s), ch = Math.round(64 * s), gap = Math.round(12 * s);
-  const x0 = Math.round(W / 2 - (cols * cw + (cols - 1) * gap) / 2);
-  const y0 = Math.round(66 * s);
-  entries.slice(0, 24).forEach(([k, d], i) => {
-    const col = i % cols, row = Math.floor(i / cols);
-    const x = x0 + col * (cw + gap), y = y0 + row * (ch + gap);
-    const killsCount = bestiaryKills[k] || 0;
-    medPanel(x, y, cw, ch, d.isBoss ? 'wood' : 'leather');
-    const title = d.bossName ? d.bossName : k.toUpperCase();
-    txt(title.slice(0, 18), x + 12, y + Math.round(24 * s), Math.round(7.5 * s), d.isBoss ? '#ffd23f' : (killsCount > 0 ? MED.parch : '#666'), 'left');
-    txt('ABATES: ' + killsCount, x + 12, y + Math.round(46 * s), Math.round(7 * s), killsCount > 0 ? '#7aff61' : '#555', 'left');
+  overlay(0.84);
+  const s = clamp(Math.min(W / 1280, H / 720), 0.72, 1.35);
+  const key = BESTIARY_ORDER[bestiaryPage] || BESTIARY_ORDER[0];
+  const d = MON[key];
+  const info = BESTIARY_LORE[key] || { name: key.toUpperCase(), title: 'Criatura', desc: '', lore: '' };
+  const killsCount = bestiaryKills[key] || 0;
+
+  // Dimensões do Livro Aberto
+  const bookW = Math.round(clamp(820 * s, 560, W - 44));
+  const bookH = Math.round(clamp(480 * s, 360, H - 96));
+  const bookX = Math.round(W / 2 - bookW / 2);
+  const bookY = Math.round(H / 2 - bookH / 2 - 14 * s);
+
+  // Capa de couro do livro + sombra
+  ctx.fillStyle = 'rgba(0,0,0,0.55)';
+  ctx.fillRect(bookX - 6, bookY + 8, bookW + 16, bookH + 10);
+  medPanel(bookX - 10, bookY - 10, bookW + 20, bookH + 20, 'leather');
+
+  // Duas páginas de pergaminho lado a lado
+  const spineW = Math.round(14 * s);
+  const pageW = Math.round((bookW - spineW) / 2);
+  const pageH = bookH - Math.round(12 * s);
+  const leftX = bookX + Math.round(4 * s);
+  const rightX = leftX + pageW + spineW;
+  const pageY = bookY + Math.round(6 * s);
+
+  const drawPage = (px, py, pw, ph, isLeft) => {
+    ctx.fillStyle = MED.ink;
+    ctx.fillRect(px - 2, py - 2, pw + 4, ph + 4);
+    ctx.fillStyle = MED.parch;
+    ctx.fillRect(px, py, pw, ph);
+    ctx.fillStyle = MED.parchDark;
+    ctx.fillRect(px + 6, py + 6, pw - 12, 2);
+    ctx.fillRect(px + 6, py + ph - 8, pw - 12, 2);
+    // Sombra da dobra central
+    const gradX = isLeft ? px + pw - 22 : px;
+    const g = ctx.createLinearGradient(gradX, 0, gradX + 22, 0);
+    g.addColorStop(isLeft ? 0 : 1, 'rgba(60,35,18,0)');
+    g.addColorStop(isLeft ? 1 : 0, 'rgba(60,35,18,0.22)');
+    ctx.fillStyle = g;
+    ctx.fillRect(gradX, py, 22, ph);
+  };
+  drawPage(leftX, pageY, pageW, pageH, true);
+  drawPage(rightX, pageY, pageW, pageH, false);
+
+  // Lombada central + marcador de fita vermelha
+  ctx.fillStyle = '#2a160d';
+  ctx.fillRect(leftX + pageW, pageY - 4, spineW, pageH + 8);
+  ctx.fillStyle = MED.goldDark;
+  for (let sy = pageY + 24; sy < pageY + pageH - 20; sy += Math.round(46 * s)) {
+    ctx.fillRect(leftX + pageW + 2, sy, spineW - 4, 4);
+  }
+  // Marcador vermelho
+  const ribX = leftX + pageW + Math.round(spineW / 2) - 4;
+  ctx.fillStyle = '#9e1c24';
+  ctx.fillRect(ribX, pageY + pageH, 8, Math.round(22 * s));
+
+  // ---------- PÁGINA ESQUERDA: IMAGEM, NOME E ABATES ----------
+  const lcx = Math.round(leftX + pageW / 2);
+  const tagTxt = d.isBoss ? '★ CHEFE ANCESTRAL ★' : 'CRIATURA DA ARENA';
+  const tagCol = d.isBoss ? '#7a1c8c' : '#6e4726';
+  inkTxt(tagTxt, lcx, pageY + Math.round(28 * s), Math.round(8 * s), tagCol);
+  inkTxt(info.name.toUpperCase(), lcx, pageY + Math.round(54 * s), Math.round(13 * s), d.isBoss ? '#8c2d08' : MED.parchInk);
+  inkTxt('« ' + info.title + ' »', lcx, pageY + Math.round(74 * s), Math.round(8 * s), '#634328');
+
+  // Moldura rúnica da imagem do mob
+  const frameSz = Math.round(clamp(190 * s, 130, Math.min(pageW - 48, pageH - 175)));
+  const fx = Math.round(lcx - frameSz / 2);
+  const fy = Math.round(pageY + 92 * s);
+  ctx.fillStyle = '#241712';
+  ctx.fillRect(fx - 3, fy - 3, frameSz + 6, frameSz + 6);
+  ctx.fillStyle = d.isBoss ? '#301a28' : '#2c231c';
+  ctx.fillRect(fx, fy, frameSz, frameSz);
+  ctx.strokeStyle = d.isBoss ? MED.gold : MED.goldDark;
+  ctx.lineWidth = 2;
+  ctx.strokeRect(fx + 3, fy + 3, frameSz - 6, frameSz - 6);
+
+  drawBestiaryMonsterSprite(key, lcx, fy + frameSz / 2, frameSz);
+
+  // Selo de Abates
+  const killBoxY = fy + frameSz + Math.round(16 * s);
+  const killBoxW = Math.round(pageW - 44 * s);
+  const killBoxH = Math.round(44 * s);
+  const killBoxX = Math.round(lcx - killBoxW / 2);
+  medPanel(killBoxX, killBoxY, killBoxW, killBoxH, 'wood');
+  txt('💀 VOCÊ ABATEU: ' + killsCount, lcx, killBoxY + Math.round(27 * s), Math.round(9.5 * s), killsCount > 0 ? '#7aff61' : '#c8b49e');
+
+  // ---------- PÁGINA DIREITA: ESTATÍSTICAS, DESCRIÇÃO E HISTÓRIA ----------
+  const rPad = Math.round(20 * s);
+  const rx = rightX + rPad;
+  const rw = pageW - rPad * 2;
+  let cy = pageY + Math.round(30 * s);
+
+  inkTxt('ESTATÍSTICAS DE COMBATE', rightX + pageW / 2, cy, Math.round(9.5 * s), '#8c2d08');
+  cy += Math.round(16 * s);
+
+  const statRows = [
+    ['♥ VIDA BASE', d.hp + ' HP', '#a82222'],
+    ['⚔ FORÇA (DANO)', d.dmg + (d.dmg === 0 ? ' (Foge)' : ' DANO'), '#7d3c0a'],
+    ['💨 VELOCIDADE', d.speed > 0 ? d.speed + ' px/s' : 'Imóvel', '#2b5876'],
+    ['★ RECOMPENSA', d.score + ' PTS / ' + d.xp + ' XP', '#7a5a08'],
+  ];
+  const rowH = Math.round(24 * s);
+  statRows.forEach(([lbl, val, col]) => {
+    ctx.fillStyle = 'rgba(110, 75, 42, 0.14)';
+    ctx.fillRect(rx, cy, rw, rowH - 3);
+    inkTxt(lbl, rx + 8, cy + Math.round(15 * s), Math.round(7.5 * s), '#4a2c16', 'left');
+    inkTxt(val, rx + rw - 8, cy + Math.round(15 * s), Math.round(7.8 * s), col, 'right');
+    cy += rowH;
   });
-  const bw = Math.round(200 * s), bh = Math.round(36 * s);
-  const bx = Math.round(W / 2 - bw / 2), by = H - Math.round(52 * s);
-  const bHov = inRect(mouse.x, mouse.y, { x: bx, y: by, w: bw, h: bh });
-  medPanel(bx, by, bw, bh, bHov ? 'parch' : 'wood');
-  txt('← VOLTAR [ESC]', bx + bw / 2, by + Math.round(23 * s), Math.round(8.5 * s), bHov ? MED.parchInk : MED.goldLight);
-  bestiaryBackRect = { x: bx, y: by, w: bw, h: bh };
+
+  cy += Math.round(14 * s);
+  inkTxt('COMPORTAMENTO EM ARENA', rx, cy, Math.round(8.2 * s), '#8c2d08', 'left');
+  cy += Math.round(15 * s);
+  const descSize = Math.round(7.4 * s);
+  const descLines = wrap(info.desc, rw - 4, descSize);
+  descLines.forEach(l => {
+    inkTxt(l, rx, cy, descSize, MED.parchInk, 'left');
+    cy += Math.round(13 * s);
+  });
+
+  cy += Math.round(12 * s);
+  ctx.fillStyle = MED.parchDark;
+  ctx.fillRect(rx, cy - 6, rw, 1);
+  cy += Math.round(10 * s);
+  inkTxt('HISTÓRIA & CRÔNICA', rx, cy, Math.round(8.2 * s), '#8c2d08', 'left');
+  cy += Math.round(15 * s);
+  const loreSize = Math.round(7.2 * s);
+  const loreLines = wrap(info.lore, rw - 4, loreSize);
+  loreLines.forEach(l => {
+    inkTxt(l, rx, cy, loreSize, '#52351e', 'left');
+    cy += Math.round(13 * s);
+  });
+
+  // ---------- CONTROLES DE PÁGINA NO RODAPÉ DO LIVRO ----------
+  const navY = bookY + bookH + Math.round(22 * s);
+  const navH = Math.round(34 * s);
+  const navW = Math.round(clamp(165 * s, 120, 195));
+  const closeW = Math.round(clamp(155 * s, 120, 180));
+
+  const pxRect = { x: Math.round(W / 2 - navW - 95 * s), y: navY, w: navW, h: navH };
+  const nxRect = { x: Math.round(W / 2 + 95 * s), y: navY, w: navW, h: navH };
+  const clRect = { x: Math.round(W - closeW - 22 * s), y: Math.round(20 * s), w: closeW, h: Math.round(32 * s) };
+
+  const pHov = inRect(mouse.x, mouse.y, pxRect);
+  const nHov = inRect(mouse.x, mouse.y, nxRect);
+  const cHov = inRect(mouse.x, mouse.y, clRect);
+
+  medPanel(pxRect.x, pxRect.y, pxRect.w, pxRect.h, pHov ? 'parch' : 'wood');
+  txt('◀ ANTERIOR [A/←]', pxRect.x + pxRect.w / 2, pxRect.y + Math.round(22 * s), Math.round(8 * s), pHov ? MED.parchInk : MED.goldLight);
+
+  txt('PÁG. ' + (bestiaryPage + 1) + ' / ' + BESTIARY_ORDER.length, W / 2, navY + Math.round(22 * s), Math.round(9.5 * s), MED.goldLight);
+
+  medPanel(nxRect.x, nxRect.y, nxRect.w, nxRect.h, nHov ? 'parch' : 'wood');
+  txt('PRÓXIMA [D/→] ▶', nxRect.x + nxRect.w / 2, nxRect.y + Math.round(22 * s), Math.round(8 * s), nHov ? MED.parchInk : MED.goldLight);
+
+  medPanel(clRect.x, clRect.y, clRect.w, clRect.h, cHov ? 'parch' : 'leather');
+  txt('✕ FECHAR [ESC]', clRect.x + clRect.w / 2, clRect.y + Math.round(21 * s), Math.round(8 * s), cHov ? MED.parchInk : MED.goldLight);
+
+  bestiaryPrevRect = pxRect;
+  bestiaryNextRect = nxRect;
+  bestiaryBackRect = clRect;
 }
 let soulRects = [], soulBackRect = null;
 const SOUL_DEFS = [
@@ -703,16 +878,20 @@ function drawMenu() {
   drawCharacterFrame(curChar, fr[Math.floor(t * 7) % fr.length], 0, 0, false);
   ctx.restore();
 
-  // 3. PLACA DE BRASÃO DO CAMPEÃO (Abaixo do Pedestal)
-  const badgeW = Math.round(clamp(390 * s, 270, 460));
-  const badgeH = Math.round(clamp(52 * s, 44, 60));
+  // 3. PLACA DE BRASÃO DO CAMPEÃO (Largura dinâmica para nunca vazar texto)
+  const weaponLabel = curChar.weaponType === 'orange' ? 'Laranjas Místicas' : (curChar.weaponType === 'star' ? 'Estrelas Cadentes' : 'Sabre de Luz');
+  const infoLine = 'ARMA: ' + weaponLabel + '  •  VIDA: ' + (curChar.hpMod || 6) + ' HP  •  AGIL.: ' + Math.round((curChar.speedMod || 1) * 100) + '%';
+  const infoFontSz = Math.round(clamp(7.0 * s, 6.2, 9));
+  ctx.font = `${infoFontSz}px ${FONT}`;
+  const neededW = ctx.measureText(infoLine).width + Math.round(44 * s);
+  const badgeW = Math.round(clamp(Math.max(410 * s, neededW), 300, W - 36));
+  const badgeH = Math.round(clamp(54 * s, 46, 62));
   const badgeX = Math.round(W / 2 - badgeW / 2);
   const badgeY = Math.round(charY + 30 * s);
 
   medPanel(badgeX, badgeY, badgeW, badgeH, 'parch');
-  const weaponLabel = curChar.weaponType === 'orange' ? 'Laranjas Místicas' : (curChar.weaponType === 'star' ? 'Estrelas Cadentes' : 'Sabre de Luz');
-  inkTxt('✦ ' + curChar.name.toUpperCase() + ' ✦  « ' + curChar.title + ' »', W / 2, badgeY + Math.round(19 * s), Math.round(9.2 * s), themeColor === '#ffd23f' ? '#8c2d08' : (themeColor === '#4fe3ff' ? '#18548c' : '#a34200'));
-  inkTxt('ARMA: ' + weaponLabel + '   •   VIDA: ' + (curChar.hpMod || 6) + ' HP   •   AGIL.: ' + Math.round((curChar.speedMod || 1) * 100) + '%', W / 2, badgeY + Math.round(36 * s), Math.round(7.2 * s), '#4a2c16');
+  inkTxt('✦ ' + curChar.name.toUpperCase() + ' ✦  « ' + curChar.title + ' »', W / 2, badgeY + Math.round(20 * s), Math.round(9.2 * s), themeColor === '#ffd23f' ? '#8c2d08' : (themeColor === '#4fe3ff' ? '#18548c' : '#a34200'));
+  inkTxt(infoLine, W / 2, badgeY + Math.round(38 * s), infoFontSz, '#4a2c16');
 
   // 4. BOTÕES PRINCIPAIS DE AÇÃO
   const btnY = Math.round(badgeY + badgeH + 16 * s);
@@ -743,17 +922,42 @@ function drawMenu() {
 
   menuPlayRect = pRect;
   menuCharRect = cRect;
-  const sw = Math.round(clamp(250 * s, 195, 285)), sh = Math.round(30 * s);
-  const sx = Math.round(W / 2 - sw - 6 * s), sy = Math.round(btnY + btnH + 10 * s);
+
+  // Botão centralizado do Santuário das Almas
+  const sw = Math.round(clamp(300 * s, 230, 350)), sh = Math.round(30 * s);
+  const sx = Math.round(W / 2 - sw / 2), sy = Math.round(btnY + btnH + 10 * s);
   const sHov = inRect(mouse.x, mouse.y, { x: sx, y: sy, w: sw, h: sh });
   medPanel(sx, sy, sw, sh, sHov ? 'wood' : 'leather');
-  txt('✦ [S] ALMAS (' + soulEssences + ' ESS.)', sx + sw / 2, sy + Math.round(20 * s), Math.round(7.2 * s), '#d66fff');
+  txt('✦ [S] SANTUÁRIO DAS ALMAS (' + soulEssences + ' ESS.)', sx + sw / 2, sy + Math.round(20 * s), Math.round(7.2 * s), '#d66fff');
   menuSoulRect = { x: sx, y: sy, w: sw, h: sh };
-  const bx2 = Math.round(W / 2 + 6 * s), bw2 = Math.round(clamp(185 * s, 145, 220));
-  const bHov2 = inRect(mouse.x, mouse.y, { x: bx2, y: sy, w: bw2, h: sh });
-  medPanel(bx2, sy, bw2, sh, bHov2 ? 'wood' : 'leather');
-  txt('📖 [B] BESTIÁRIO', bx2 + bw2 / 2, sy + Math.round(20 * s), Math.round(7.2 * s), MED.goldLight);
-  menuBestiaryRect = { x: bx2, y: sy, w: bw2, h: sh };
+
+  // Livro do Bestiário no canto superior direito
+  const bkW = Math.round(clamp(158 * s, 128, 185));
+  const bkH = Math.round(clamp(62 * s, 50, 72));
+  const bkX = Math.round(W - bkW - 18 * s);
+  const bkY = Math.round(18 * s);
+  const bkHov = inRect(mouse.x, mouse.y, { x: bkX, y: bkY, w: bkW, h: bkH });
+  const discovered = BESTIARY_ORDER.filter(k => (bestiaryKills[k] || 0) > 0).length;
+
+  medPanel(bkX, bkY, bkW, bkH, bkHov ? 'parch' : 'wood');
+  // Ícone de livro encadernado à esquerda do botão
+  const icX = bkX + Math.round(12 * s), icY = bkY + Math.round(13 * s);
+  const icW = Math.round(26 * s), icH = Math.round(34 * s);
+  ctx.fillStyle = '#5a1e18'; ctx.fillRect(icX, icY, icW, icH);
+  ctx.fillStyle = '#3a110e'; ctx.fillRect(icX, icY, Math.round(6 * s), icH);
+  ctx.fillStyle = MED.parch; ctx.fillRect(icX + icW - 4, icY + 3, 3, icH - 6);
+  ctx.strokeStyle = MED.gold; ctx.lineWidth = 1.5; ctx.strokeRect(icX, icY, icW, icH);
+  ctx.fillStyle = '#c9242b'; ctx.fillRect(icX + Math.round(12 * s), icY + icH - 2, 4, 8);
+
+  const txCenter = bkX + Math.round((bkW + icW + 10 * s) / 2);
+  if (bkHov) {
+    inkTxt('BESTIÁRIO', txCenter, bkY + Math.round(25 * s), Math.round(8.2 * s), MED.parchInk);
+    inkTxt('[B] • ' + discovered + '/' + BESTIARY_ORDER.length, txCenter, bkY + Math.round(43 * s), Math.round(6.8 * s), '#634328');
+  } else {
+    txt('BESTIÁRIO', txCenter, bkY + Math.round(25 * s), Math.round(8.2 * s), MED.goldLight);
+    txt('[B] • ' + discovered + '/' + BESTIARY_ORDER.length, txCenter, bkY + Math.round(43 * s), Math.round(6.8 * s), MED.parch);
+  }
+  menuBestiaryRect = { x: bkX, y: bkY, w: bkW, h: bkH };
 
   // 5. SELO DO RECORDE ANCESTRAL
   if (best > 0) {

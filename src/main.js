@@ -52,9 +52,13 @@ function loop(now) {
         mouse.click = false; mouse.down = false;
       }
     } else if (state === 'bestiary') {
-      if (anyPressed('escape', 'b', 'enter')) { state = 'menu'; SFX.select(); }
+      if (anyPressed('escape', 'b')) { state = 'menu'; SFX.select(); }
+      else if (anyPressed('arrowleft', 'a')) { changeBestiaryPage(-1); }
+      else if (anyPressed('arrowright', 'd')) { changeBestiaryPage(1); }
       if (mouse.click) {
-        if (inRect(mouse.x, mouse.y, bestiaryBackRect)) { state = 'menu'; SFX.select(); }
+        if (inRect(mouse.x, mouse.y, bestiaryPrevRect)) changeBestiaryPage(-1);
+        else if (inRect(mouse.x, mouse.y, bestiaryNextRect)) changeBestiaryPage(1);
+        else if (inRect(mouse.x, mouse.y, bestiaryBackRect)) { state = 'menu'; SFX.select(); }
         mouse.click = false; mouse.down = false;
       }
     } else if (state === 'soul_shrine') {
