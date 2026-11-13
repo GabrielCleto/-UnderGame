@@ -433,7 +433,7 @@ function drawSlash(s) {
 }
 
 function drawBullet(b) {
-  const cols = { purple: ['#ff9cff', 'rgba(190,60,255,'], green: ['#d6ff8a', 'rgba(80,200,40,'], orange: ['#fff0a0', 'rgba(255,120,20,'] }[b.color];
+  const cols = ({ purple: ['#ff9cff', 'rgba(190,60,255,'], green: ['#d6ff8a', 'rgba(80,200,40,'], orange: ['#fff0a0', 'rgba(255,120,20,'], red: ['#ff8a8a', 'rgba(255,50,50,'], cyan: ['#9ff7ff', 'rgba(60,220,255,'] }[b.color]) || ['#ff9cff', 'rgba(190,60,255,'];
   ctx.save(); ctx.globalCompositeOperation = 'lighter';
   const g = ctx.createRadialGradient(b.x, b.y, 1, b.x, b.y, b.r * 2.2);
   g.addColorStop(0, cols[1] + '0.9)'); g.addColorStop(1, cols[1] + '0)');
@@ -605,6 +605,7 @@ function drawWorld() {
   const sy = shakeOffset > 0.05 ? Math.cos(time * 32) * shakeOffset * 0.7 : (shake ? rand(-shake, shake) * 0.35 : 0);
   const z = (cam && cam.zoom) || getCamZoom();
   ctx.save();
+  try {
   ctx.translate(Math.round(W / 2 + sx), Math.round(H / 2 + sy));
   ctx.scale(z, z);
   ctx.translate(-Math.round(cam.x), -Math.round(cam.y));
@@ -684,16 +685,16 @@ function drawWorld() {
 
   // Anéis de Choque, Explosões & Splash Cítrico
   for (const r of fxRings) {
-    const k = 1 - r.life / r.max;
-    const curR = r.r + (r.maxR - r.r) * k;
+    const k = r.max > 0 ? clamp(1 - r.life / r.max, 0, 1) : 1;
+    const curR = Math.max(0.5, r.r + (r.maxR - r.r) * k);
     ctx.save();
     ctx.globalCompositeOperation = 'lighter';
     ctx.globalAlpha = Math.max(0, 1 - k);
     if (r.kind === 'orange_splash' && IMG.orange_splash) {
       ctx.drawImage(IMG.orange_splash, r.x - curR, r.y - curR, curR * 2, curR * 2);
     }
-    ctx.strokeStyle = r.col;
-    ctx.lineWidth = r.kind === 'explosion' ? 8 * (1 - k * 0.5) : 4 * (1 - k * 0.5);
+    ctx.strokeStyle = r.col || '#fff';
+    ctx.lineWidth = Math.max(0.5, r.kind === 'explosion' ? 8 * (1 - k * 0.5) : 4 * (1 - k * 0.5));
     ctx.beginPath(); ctx.arc(r.x, r.y, curR, 0, Math.PI * 2); ctx.stroke();
     ctx.restore();
   }
@@ -716,7 +717,7 @@ function drawWorld() {
     ctx.restore();
   }
   ctx.globalAlpha = 1;
-  ctx.restore();
+  } finally { ctx.restore(); }
 
   // --- ILUMINAÇÃO DINÂMICA V.2 (Luz de Tocha, Sombra de Calabouço & Aura de Bosses) ---
   if (player && (state === 'play' || state === 'pause')) {

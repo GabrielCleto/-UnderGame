@@ -15,7 +15,7 @@ function spawnEnemy(kind, at, opts = {}) {
   let type = kind, scaleMul = 1, hpMul = 1, extra = {};
   if (kind === 'bigslime') { type = 'slime'; scaleMul = 1.7; hpMul = 3.5; extra.big = true; }
   if (kind === 'minislime') { type = 'slime'; scaleMul = 0.7; hpMul = 0.36; extra.mini = true; }
-  const d = MON[type];
+  const d = MON[type] || MON.slime;
   const eliteChance = waveEvent === 'golden' ? 0.28 : waveEvent === 'bloodmoon' ? 0.18 : Math.min(0.22, 0.05 + Math.max(0, wave - 4) * 0.01);
   const elite = Boolean(opts.forceElite || (!opts.noElite && !isBossType(type) && type !== 'goblin' && (wave >= 4 || waveEvent === 'golden' || waveEvent === 'bloodmoon') && Math.random() < eliteChance));
   const ELITE_TRAITS = [

@@ -255,6 +255,9 @@ function loop(now) {
   touch.justAtk = false; touch.justDash = false; touch.justUlt = false;
   } catch (loopErr) {
     console.error("Critical caught error in loop:", loopErr);
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.globalCompositeOperation = 'source-over';
+    ctx.globalAlpha = 1;
   } finally {
     requestAnimationFrame(loop);
   }
