@@ -100,29 +100,59 @@ Não é necessário instalar nenhuma dependência ou biblioteca externa!
 
 ---
 
-## 📂 Estrutura do Projeto
+## 📂 Estrutura do Projeto (Arquitetura Modular v2.1)
 
-```
+```text
 -UnderGame/
+├── index.html                  # Ponto de entrada HTML5
+├── css/
+│   └── style.css               # Estilização responsiva e canvas pixel-art
+├── src/                        # Código-fonte modularizado por responsabilidade
+│   ├── core/
+│   │   ├── config.js           # Configuração de canvas, câmera, zoom e utilitários matemáticos
+│   │   ├── assets.js           # Carregador otimizado de sprites, fontes e máscaras de hit
+│   │   ├── audio.js            # Motor de efeitos sonoros (WebAudio/WAV) e trilhas por personagem
+│   │   └── input.js            # Teclado, Mouse, Joystick Touch Mobile e Gamepad Plug & Play
+│   ├── data/
+│   │   ├── characters.js       # Definições, atributos e tabelas de animação dos campeões
+│   │   ├── monsters.js         # Bestiário de inimigos, chefes e pools de ondas
+│   │   └── items.js            # Bênçãos de Level Up, Prefixos de Reforja e Itens da Loja
+│   ├── world/
+│   │   └── world.js            # Geração procedural da arena, colisões estáticas, altares e explosões
+│   ├── systems/
+│   │   ├── state.js            # Estado global da partida, trauma de câmera e reset
+│   │   ├── combat.js           # Spawns, cálculo de dano, drops, progressão de XP e ataques
+│   │   ├── ai.js               # Movimentação de inimigos e máquinas de estado dos 7 Chefes
+│   │   └── update.js           # Simulação principal a 60fps (ondas, habilidades, projéteis e física)
+│   ├── render/
+│   │   └── worldRenderer.js    # Renderização Y-sorted, iluminação dinâmica, partículas e clima
+│   ├── ui/
+│   │   ├── hud.js              # HUD RPG Medieval (Brasão, Minimapa, Barra de Chefe, Skills, Touch)
+│   │   └── menus.js            # Menu Principal, Roleta Cilíndrica 3D, Level Up, Loja, Pausa e Game Over
+│   └── main.js                 # Game Loop principal e orquestrador de estados
 ├── assets/
-│   ├── audio/           # Trilha sonora e efeitos sonoros
-│   ├── fonts/           # Fonte retrô Press Start 2P
-│   ├── icons/           # Ícones de habilidades, armas e itens
-│   ├── lpc/             # Spritesheets de monstros, terrenos e mapa
-│   └── *.png            # Spritesheets e retratos dos personagens jogáveis
-├── CREDITOS.txt         # Atribuição das licenças de áudio e arte
-├── game.js              # Motor completo do jogo, física, combate e controles
-├── index.html           # Ponto de entrada do jogo
-├── style.css            # Estilização do canvas e tela cheia
-├── .gitignore           # Filtros de arquivos do repositório
-└── README.md            # Documentação do projeto
+│   ├── audio/
+│   │   ├── music/              # Trilhas sonoras exclusivas de cada personagem (.mp3)
+│   │   └── sfx/                # Efeitos sonoros de combate e interface (.wav)
+│   ├── fonts/                  # Fonte retrô Press Start 2P (.ttf)
+│   ├── icons/                  # Ícones de habilidades, relíquias e projéteis (.png)
+│   └── sprites/
+│       ├── characters/         # Spritesheets, retratos e tiras de ataque dos heróis
+│       ├── monsters/           # Spritesheets animados de todos os monstros e chefes
+│       └── world/              # Tiles de terreno, árvores, rochas, água e barris
+├── docs/
+│   ├── CREDITOS.txt            # Atribuição das licenças de áudio e arte
+│   ├── CREDITS-LPC.TXT         # Créditos detalhados Liberated Pixel Cup
+│   └── GUIA_DAS_ATUALIZACOES.md # Guia de novidades e balanceamento da versão 2.0+
+├── .gitignore                  # Filtros de arquivos do repositório
+└── README.md                   # Documentação principal do projeto
 ```
 
 ---
 
 ## 📜 Créditos & Licenças
 
-Consulte o arquivo [`CREDITOS.txt`](CREDITOS.txt) para detalhes de cada recurso artístico de terceiros utilizado:
+Consulte o arquivo [`docs/CREDITOS.txt`](docs/CREDITOS.txt) para detalhes de cada recurso artístico de terceiros utilizado:
 - **LPC Base Assets**: CC-BY-SA 3.0 / GPL 3.0 (Redshrike, Sharm, CharlesGabriel, etc.)
 - **496 Pixel Art Icons**: CC0 Domínio Público por Henrique Lazarini (7Soul1)
 - **Battle Theme A**: CC0 Domínio Público por Cynicmusic

@@ -11,10 +11,38 @@
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
   <title>Underground Game 2.0</title>
-  <link rel="stylesheet" href="style.css?v=2.0.2" />
+  <link rel="icon" type="image/png" href="assets/sprites/characters/manguinha_portrait.png" />
+  <link rel="stylesheet" href="css/style.css?v=2.1.0" />
 </head>
 <body>
   <canvas id="game"></canvas>
-  <script src="game.js?v=2.0.2"></script>
+
+  <!-- Core Engine -->
+  <script src="src/core/config.js?v=2.1.0"></script>
+  <script src="src/core/assets.js?v=2.1.0"></script>
+  <script src="src/core/audio.js?v=2.1.0"></script>
+  <script src="src/core/input.js?v=2.1.0"></script>
+
+  <!-- Game Data & Definitions -->
+  <script src="src/data/characters.js?v=2.1.0"></script>
+  <script src="src/data/monsters.js?v=2.1.0"></script>
+  <script src="src/data/items.js?v=2.1.0"></script>
+
+  <!-- World & Environment -->
+  <script src="src/world/world.js?v=2.1.0"></script>
+
+  <!-- Gameplay Systems & AI -->
+  <script src="src/systems/state.js?v=2.1.0"></script>
+  <script src="src/systems/combat.js?v=2.1.0"></script>
+  <script src="src/systems/ai.js?v=2.1.0"></script>
+  <script src="src/systems/update.js?v=2.1.0"></script>
+
+  <!-- Rendering & UI -->
+  <script src="src/render/worldRenderer.js?v=2.1.0"></script>
+  <script src="src/ui/hud.js?v=2.1.0"></script>
+  <script src="src/ui/menus.js?v=2.1.0"></script>
+
+  <!-- Main Loop Bootstrap -->
+  <script src="src/main.js?v=2.1.0"></script>
 </body>
 </html>
