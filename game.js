@@ -124,8 +124,92 @@ function play(name, vol = 0.5, rateVar = 0.1) {
   a.playbackRate = 1 + rand(-rateVar, rateVar);
   a.play().catch(() => { });
 }
-const music = { loop: true, volume: 0.3, paused: true, play: () => Promise.resolve(), pause: () => { } };
-let musicOn = false;
+// =====================================================================
+//  SISTEMA DE MÚSICA & TRILHAS DOS PERSONAGENS (v.2)
+// =====================================================================
+const CHAR_MUSIC_FILES = {
+  manguinha: 'musica _personagens/Manguinha.mp3',
+  amxral: 'musica _personagens/amxral.mp3',
+  tuiuba: 'musica _personagens/tuiuba.mp3'
+};
+
+const charAudioMap = {};
+for (const cid in CHAR_MUSIC_FILES) {
+  try {
+    const aud = new Audio(encodeURI(CHAR_MUSIC_FILES[cid]));
+    aud.loop = true;
+    aud.volume = 0.35;
+    aud.preload = 'auto';
+    charAudioMap[cid] = aud;
+  } catch (err) {
+    console.warn('Erro ao inicializar áudio de', cid, err);
+  }
+}
+
+let activeCharMusic = null;
+let activeCharId = null;
+let musicOn = true;
+
+function playCharacterMusic(cid) {
+  if (!musicOn) return;
+  const target = charAudioMap[cid];
+  if (!target) return;
+
+  if (activeCharMusic === target && !target.paused) return;
+
+  // Pausa o anterior de forma limpa
+  if (activeCharMusic && activeCharMusic !== target) {
+    try {
+      activeCharMusic.pause();
+      activeCharMusic.currentTime = 0;
+    } catch (_) {}
+  }
+
+  activeCharMusic = target;
+  activeCharId = cid;
+  target.currentTime = 0;
+  target.volume = 0.35;
+  const p = target.play();
+  if (p && typeof p.catch === 'function') {
+    p.catch(() => {});
+  }
+}
+
+function stopCharacterMusic() {
+  if (activeCharMusic) {
+    try {
+      activeCharMusic.pause();
+      activeCharMusic.currentTime = 0;
+    } catch (_) {}
+    activeCharMusic = null;
+    activeCharId = null;
+  }
+}
+
+function enterCharacterSelect() {
+  state = 'select_char';
+  SFX.select();
+  const cur = CHARACTERS[selectedCharIndex];
+  if (cur) playCharacterMusic(cur.id);
+}
+
+const music = {
+  get loop() { return true; },
+  set loop(_) {},
+  get volume() { return activeCharMusic ? activeCharMusic.volume : 0.3; },
+  set volume(v) { if (activeCharMusic) activeCharMusic.volume = clamp(v, 0, 1); },
+  get paused() { return activeCharMusic ? activeCharMusic.paused : true; },
+  play: () => {
+    if (activeCharMusic) return activeCharMusic.play();
+    const cur = CHARACTERS[selectedCharIndex];
+    if (cur) playCharacterMusic(cur.id);
+    return Promise.resolve();
+  },
+  pause: () => {
+    if (activeCharMusic) activeCharMusic.pause();
+  }
+};
+
 function startMusic() { }
 
 let actx = null;
@@ -5253,7 +5337,11 @@ function drawCharacterSelect() {
   // 1. TÍTULO HEROICO & ILUMINAÇÃO DE SANTUÁRIO
   const titleY = Math.round(isPortrait ? 28 : (isCompactH ? 20 : 34) * s);
   txt('⚔ ESCOLHA SEU CAMPEÃO ⚔', W / 2, titleY, Math.round(isPortrait ? 15 : 19 * s), MED.goldLight);
-  txt('Gire a roleta ancestral e convoque seu lutador', W / 2, titleY + Math.round(18 * s), Math.round(7.5 * s), MED.parch);
+  const curChTrack = CHARACTERS[selectedCharIndex];
+  const isPlayingMusic = activeCharMusic && !activeCharMusic.paused && activeCharId === curChTrack.id;
+  const musicSymbol = isPlayingMusic ? (Math.floor(time * 3) % 2 === 0 ? '♫' : '♪') : '♫';
+  const trackLabel = curChTrack ? `${musicSymbol} Trilha: ${curChTrack.name}.mp3` : '';
+  txt('Gire a roleta ancestral  •  ' + trackLabel, W / 2, titleY + Math.round(18 * s), Math.round(7.5 * s), isPlayingMusic ? MED.goldLight : MED.parch);
 
   // 2. PARÂMETROS DA ÓRBITA CILÍNDRICA 3D (ROLETA)
   const centerY = isPortrait ? H * 0.28 : (isCompactH ? H * 0.33 : H * 0.34);
@@ -5430,9 +5518,12 @@ function selectCharacter(index) {
   selectedCharIndex = index;
   localStorage.setItem('gabriel_char_index', selectedCharIndex);
   SFX.select();
+  const cur = CHARACTERS[selectedCharIndex];
+  if (cur) playCharacterMusic(cur.id);
 }
 
 function startWithSelectedCharacter() {
+  stopCharacterMusic();
   reset();
   state = 'play';
   play('unsheathe', 0.5, 0);
@@ -5670,7 +5761,18 @@ function loop(now) {
 
   updateGamepadState(dt);
 
-  if (anyPressed('m')) { musicOn = !musicOn; if (musicOn) music.play().catch(() => { }); else music.pause(); }
+  if (anyPressed('m')) {
+    musicOn = !musicOn;
+    if (!musicOn) {
+      if (activeCharMusic) activeCharMusic.pause();
+    } else {
+      if (state === 'select_char') {
+        const cur = CHARACTERS[selectedCharIndex];
+        if (cur) playCharacterMusic(cur.id);
+      }
+    }
+    SFX.select();
+  }
   if (anyPressed('n')) { minimapOn = !minimapOn; SFX.select(); }
   if (anyPressed('c')) {
     saberColorIndex = (saberColorIndex + 1) % SABER_COLORS.length;
@@ -5687,18 +5789,24 @@ function loop(now) {
       time += dt;
       cam.x = WORLD.w / 2 + Math.cos(time * 0.15) * 500; cam.y = WORLD.h / 2 + Math.sin(time * 0.15) * 350;
       clampCam();
-      if (anyPressed('tab', 'p')) { state = 'select_char'; SFX.select(); }
+      if (anyPressed('tab', 'p')) { enterCharacterSelect(); }
       else if (anyPressed('enter', ' ')) {
         startWithSelectedCharacter();
       } else if (mouse.click) {
         if (inRect(mouse.x, mouse.y, menuCharRect) || Math.hypot(mouse.x - W / 2, mouse.y - H * 0.36) < 75) {
-          state = 'select_char'; SFX.select();
+          enterCharacterSelect();
         } else if (inRect(mouse.x, mouse.y, menuPlayRect)) {
           startWithSelectedCharacter();
         }
         mouse.click = false; mouse.down = false;
       }
     } else if (state === 'select_char') {
+      const curSelCh = CHARACTERS[selectedCharIndex];
+      if (curSelCh && musicOn && (!activeCharMusic || activeCharMusic.paused || activeCharId !== curSelCh.id)) {
+        if (mouse.click || mouse.down || Object.keys(pressed).length > 0) {
+          playCharacterMusic(curSelCh.id);
+        }
+      }
       if (anyPressed('1')) selectCharacter(0);
       if (anyPressed('2')) selectCharacter(1);
       if (anyPressed('3')) selectCharacter(2);
@@ -5717,7 +5825,7 @@ function loop(now) {
           startWithSelectedCharacter();
         }
         if (gpState.justPressed[1]) {
-          state = 'menu'; SFX.select();
+          stopCharacterMusic(); state = 'menu'; SFX.select();
         }
       }
       if (mouse.click) {
@@ -5737,7 +5845,7 @@ function loop(now) {
           startWithSelectedCharacter();
           mouse.click = false; mouse.down = false;
         } else if (inRect(mouse.x, mouse.y, charBackRect)) {
-          state = 'menu'; SFX.select();
+          stopCharacterMusic(); state = 'menu'; SFX.select();
         } else {
           charCardRects.forEach(r => {
             if (inRect(mouse.x, mouse.y, r)) {
@@ -5754,10 +5862,10 @@ function loop(now) {
       if (anyPressed('enter', ' ')) {
         startWithSelectedCharacter();
       }
-      if (anyPressed('escape')) { state = 'menu'; SFX.select(); }
+      if (anyPressed('escape')) { stopCharacterMusic(); state = 'menu'; SFX.select(); }
     } else if (state === 'play') {
       if (anyPressed('p', 'escape')) state = 'pause';
-      else if (anyPressed('tab')) { state = 'select_char'; SFX.select(); }
+      else if (anyPressed('tab')) { enterCharacterSelect(); }
       else if (freeze > 0) { freeze -= dt; shake = Math.max(0, shake - dt * 50); trauma = Math.max(0, trauma - dt * 2.5); }
       else update(dt);
     } else if (state === 'levelup') {
@@ -5837,11 +5945,11 @@ function loop(now) {
         state = 'play';
         mouse.click = false; mouse.down = false;
       }
-      if (anyPressed('tab') || (gpState && gpState.justPressed[8])) { state = 'select_char'; SFX.select(); }
+      if (anyPressed('tab') || (gpState && gpState.justPressed[8])) { enterCharacterSelect(); }
       if (anyPressed('r')) { reset(); state = 'play'; SFX.wave(); }
       if (mouse.click) {
         if (inRect(mouse.x, mouse.y, pauseResumeRect)) { state = 'play'; }
-        else if (inRect(mouse.x, mouse.y, pauseCharRect)) { state = 'select_char'; SFX.select(); }
+        else if (inRect(mouse.x, mouse.y, pauseCharRect)) { enterCharacterSelect(); }
         else if (inRect(mouse.x, mouse.y, pauseRestartRect)) { reset(); state = 'play'; SFX.wave(); }
         mouse.click = false; mouse.down = false;
       }
@@ -5849,7 +5957,7 @@ function loop(now) {
       time += dt;
       for (const q of particles) { q.x += q.vx * dt; q.y += q.vy * dt; q.life -= dt; }
       particles = particles.filter(q => q.life > 0);
-      if (time > 1 && (anyPressed('enter') || mouse.click)) { state = 'select_char'; music.volume = 0.3; mouse.down = false; }
+      if (time > 1 && (anyPressed('enter') || mouse.click)) { enterCharacterSelect(); mouse.down = false; }
     }
 
     ctx.clearRect(0, 0, W, H);
