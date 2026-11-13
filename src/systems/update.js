@@ -82,6 +82,14 @@ function update(dt) {
       if (wave > 1) p.hp = Math.min(stats.maxHp, p.hp + 1);
       if (wave >= 2 && (wave % 2 === 0 || shrines.length === 0)) spawnShrine();
       refillBarrels(15);
+      if (wave >= 4) {
+        const totemsNow = props.filter(pr => pr.kind === 'totem').length;
+        if (totemsNow < 2) {
+          const tx = clamp(p.x + rand(-340, 340), 90, WORLD.w - 90);
+          const ty = clamp(p.y + rand(-280, 280), 120, WORLD.h - 60);
+          if (!blocked(tx, ty, 30)) props.push({ kind: 'totem', x: tx, y: ty, r: 18, hp: 3 + Math.floor(wave / 4), hurt: 0, healT: 2.0 });
+        }
+      }
       waveTimer = 2.4;
     }
   }
@@ -295,7 +303,8 @@ function update(dt) {
   const crisisBoost = p.hp <= 2 ? 1.14 : 1;
   const slowMulP = (p.slow || 0) > 0 ? 0.72 : 1;
   if ((p.slow || 0) > 0) p.slow = Math.max(0, p.slow - dt);
-  let speed = stats.speed * (p.frenzyT > 0 ? 1.3 : 1) * crisisBoost * slowMulP;
+  const inCitrus = p.char.weaponType === 'orange' && puddles.some(pd => !pd.kind && Math.hypot(pd.x - p.x, pd.y - p.y) < pd.r + 16);
+  let speed = stats.speed * (p.frenzyT > 0 ? 1.3 : 1) * crisisBoost * slowMulP * (inCitrus ? 1.24 : 1);
   if (p.attack && p.char.weaponType === 'saber') speed *= 0.62;
   if (p.dash) {
     p.dash.t += dt;
@@ -402,6 +411,7 @@ function update(dt) {
           burst(b.x, b.y, SABER_COLORS[saberColorIndex].hex, 10, 220);
           texts.push({ x: b.x, y: b.y - 20, txt: 'REBATIDA!', life: 0.7, color: '#7ff', size: 9 });
           score += 15;
+          if (p.char.weaponType === 'saber') { p.ultMeter = Math.min(100, p.ultMeter + 10); p.dashCd = Math.max(0, p.dashCd - 0.35); }
         }
       }
     }
@@ -601,6 +611,20 @@ function update(dt) {
   }
 
   // ---------- POÇAS CÍTRICAS (Tuiuba), VÓRTICE ABISSAL & ÁCIDO TÓXICO ----------
+  for (const pr of props) {
+    if (pr.kind === 'totem') {
+      pr.healT = (pr.healT || 2.0) - dt;
+      if (pr.healT <= 0) {
+        pr.healT = 2.6;
+        fxRings.push({ kind: 'nova', x: pr.x, y: pr.y - 16, r: 10, maxR: 180, life: 0.35, max: 0.35, col: '#c844ff' });
+        for (const e of enemies) {
+          if (!e.dead && !isBossType(e.type) && Math.hypot(e.x - pr.x, e.y - pr.y) < 180) {
+            e.hp = Math.min(e.maxHp, e.hp + Math.max(2, Math.ceil(e.maxHp * 0.15)));
+          }
+        }
+      }
+    }
+  }
   for (const pd of puddles) {
     pd.life -= dt; pd.tick -= dt;
     if (pd.kind === 'vortex') {

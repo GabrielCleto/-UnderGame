@@ -20,6 +20,11 @@ const BIOMES = [
 ];
 let currentBiome = 0;
 let rerollsUsed = 0;
+let bansLeft = 1;
+let bannedUpgrades = new Set();
+let totalDamageDealt = 0;
+let maxCombo = 0;
+let bestiaryKills = JSON.parse(localStorage.getItem('gabriel_bestiary') || '{}');
 
 function reset() {
   keys[' '] = false;
@@ -51,7 +56,7 @@ function reset() {
   shrines = []; hazards = []; fxRings = []; afterimages = []; puddles = [];
   waveEvent = null; meteorTimer = 0;
   cam = { x: player.x, y: player.y, zoom: getCamZoom() }; shake = 0; freeze = 0;
-  currentBiome = 0; rerollsUsed = 0;
+  currentBiome = 0; rerollsUsed = 0; bansLeft = 1; bannedUpgrades = new Set(); totalDamageDealt = 0; maxCombo = 0;
   wave = 0; waveTimer = 1.0; toSpawn = 0; spawnTimer = 0; boss = null; bossCount = 0;
   score = 0; coins = 0; kills = 0; banner = null; time = 0; playTime = 0;
   hudGhostHp = player.hp; hudGhostXp = 0;

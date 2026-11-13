@@ -36,16 +36,25 @@ function loop(now) {
       clampCam();
       if (anyPressed('tab', 'p')) { enterCharacterSelect(); }
       else if (anyPressed('s')) { state = 'soul_shrine'; SFX.select(); }
+      else if (anyPressed('b')) { state = 'bestiary'; SFX.select(); }
       else if (anyPressed('enter', ' ')) {
         startWithSelectedCharacter();
       } else if (mouse.click) {
         if (inRect(mouse.x, mouse.y, menuSoulRect)) {
           state = 'soul_shrine'; SFX.select();
+        } else if (inRect(mouse.x, mouse.y, menuBestiaryRect)) {
+          state = 'bestiary'; SFX.select();
         } else if (inRect(mouse.x, mouse.y, menuCharRect) || Math.hypot(mouse.x - W / 2, mouse.y - H * 0.36) < 75) {
           enterCharacterSelect();
         } else if (inRect(mouse.x, mouse.y, menuPlayRect)) {
           startWithSelectedCharacter();
         }
+        mouse.click = false; mouse.down = false;
+      }
+    } else if (state === 'bestiary') {
+      if (anyPressed('escape', 'b', 'enter')) { state = 'menu'; SFX.select(); }
+      if (mouse.click) {
+        if (inRect(mouse.x, mouse.y, bestiaryBackRect)) { state = 'menu'; SFX.select(); }
         mouse.click = false; mouse.down = false;
       }
     } else if (state === 'soul_shrine') {
@@ -140,11 +149,13 @@ function loop(now) {
         }
         const gpConfirm = gpState && (gpState.justPressed[0] || gpState.justPressed[7]);
         if (anyPressed('r')) rerollLevelUp();
+        if (anyPressed('x')) banishSelectedUpgrade();
         if (anyPressed('enter', ' ') || gpConfirm) {
           chooseUpgrade(levelSel);
         }
         if (mouse.click) {
           if (levelRerollRect && inRect(mouse.x, mouse.y, levelRerollRect)) rerollLevelUp();
+          else if (levelBanRect && inRect(mouse.x, mouse.y, levelBanRect)) banishSelectedUpgrade();
           else cardRects.forEach((r, i) => {
             if (mouse.x > r.x && mouse.x < r.x + r.w && mouse.y > r.y - 10 && mouse.y < r.y + r.h) chooseUpgrade(i);
           });
@@ -221,6 +232,7 @@ function loop(now) {
     drawWorld();
     if (state === 'menu') drawMenu();
     else if (state === 'soul_shrine') drawSoulShrine();
+    else if (state === 'bestiary') drawBestiary();
     else if (state === 'select_char') drawCharacterSelect();
     else {
       drawHUD();

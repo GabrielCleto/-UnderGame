@@ -109,6 +109,7 @@ function damageEnemy(e, dmg, fromX, fromY, power = 380, opts = {}) {
     const maxHit = Math.max(12, Math.ceil(e.maxHp * 0.07));
     if (dmg > maxHit) dmg = maxHit + Math.ceil((dmg - maxHit) * 0.2);
   }
+  totalDamageDealt += dmg;
   e.hp -= dmg;
   if (isBossType(e.type) && !e.enragedTriggered && e.hp > 0 && e.hp <= e.maxHp * 0.5) {
     e.enragedTriggered = true;
@@ -180,6 +181,9 @@ function killEnemy(e) {
   kills++;
   const p = player;
   p.combo++; p.comboT = 2.9;
+  if (p.combo > maxCombo) maxCombo = p.combo;
+  bestiaryKills[e.type] = (bestiaryKills[e.type] || 0) + 1;
+  localStorage.setItem('gabriel_bestiary', JSON.stringify(bestiaryKills));
   p.ultMeter = Math.min(100, p.ultMeter + (isBossType(e.type) ? 40 : e.elite ? 10 : 3.2));
   const mult = 1 + Math.floor(p.combo / 10) * 0.25;
   score += Math.round(e.score * mult);
@@ -303,7 +307,7 @@ function gainXp(n) {
 }
 
 function openLevelUp() {
-  const avail = UPGRADES.filter(u => (ups[u.id] || 0) < u.max);
+  const avail = UPGRADES.filter(u => !bannedUpgrades.has(u.id) && (ups[u.id] || 0) < u.max);
   if (!avail.length) {
     player.pendingLevels = 0;
     player.hp = stats.maxHp;
@@ -328,7 +332,7 @@ function getRerollCost() {
 function rerollLevelUp() {
   const cost = getRerollCost();
   if (coins < cost) { SFX.shopNo(); return; }
-  const avail = UPGRADES.filter(u => (ups[u.id] || 0) < u.max);
+  const avail = UPGRADES.filter(u => !bannedUpgrades.has(u.id) && (ups[u.id] || 0) < u.max);
   if (avail.length <= 1) return;
   coins -= cost;
   rerollsUsed++;
@@ -339,6 +343,17 @@ function rerollLevelUp() {
   }
   levelChoices = choices; levelSel = 0;
   SFX.shrine();
+}
+function banishSelectedUpgrade() {
+  if (bansLeft <= 0 || !levelChoices || !levelChoices[levelSel]) { SFX.shopNo(); return; }
+  const targetU = levelChoices[levelSel];
+  bannedUpgrades.add(targetU.id);
+  bansLeft--;
+  const avail = UPGRADES.filter(u => !bannedUpgrades.has(u.id) && (ups[u.id] || 0) < u.max && !levelChoices.includes(u));
+  if (avail.length > 0) levelChoices[levelSel] = pick(avail);
+  else levelChoices.splice(levelSel, 1);
+  levelSel = Math.min(levelSel, Math.max(0, levelChoices.length - 1));
+  SFX.shieldBreak();
 }
 function chooseUpgrade(i) {
   const u = levelChoices[i];
@@ -436,14 +451,17 @@ function startAttack(fromMouse, fromTouch) {
   const shotCount = 1 + (stats.multi || 0);
 
   if (p.char.weaponType === 'star') {
-    // Amxral: Arremessa Estrela Amarela Estilo Terraria
+    // Amxral: Passiva Mira Estelar (a cada 5 tiros, Estrela Gigante)
+    p.shotCount = (p.shotCount || 0) + 1;
+    const isEmpowered = p.shotCount % 5 === 0;
     SFX.starThrow();
-    const starSpeed = 590 * Math.min(1.5, 0.85 + stats.range * 0.15);
+    const starSpeed = (isEmpowered ? 680 : 590) * Math.min(1.5, 0.85 + stats.range * 0.15);
     for (const an of spreadAngles(a, shotCount, 0.16)) {
       pshots.push({
         kind: 'star', x: p.x + Math.cos(an) * 20, y: p.y - 36 + Math.sin(an) * 20,
         vx: Math.cos(an) * starSpeed, vy: Math.sin(an) * starSpeed,
-        r: 16 * stats.range, dmg: stats.dmg + 1, pierce: 2, life: 1.25, rot: rand(0, 6),
+        r: (isEmpowered ? 26 : 16) * stats.range, dmg: (stats.dmg + 1) * (isEmpowered ? 2 : 1),
+        pierce: isEmpowered ? 5 : 2, life: 1.25, rot: rand(0, 6),
         hit: new Set()
       });
     }
@@ -538,6 +556,15 @@ function hitBarrel(b) {
         texts.push({ x: b.x, y: b.y - 45, txt: '🎲 LUCKY: EMBOSCADA + BAÚ!', life: 1.6, color: '#ff8a3d', size: 12 });
       }
       score += 35;
+      return;
+    }
+    if (b.kind === 'totem') {
+      SFX.explode();
+      fxRings.push({ kind: 'nova', x: b.x, y: b.y - 16, r: 12, maxR: 110, life: 0.3, max: 0.3, col: '#c844ff' });
+      for (let i = 0; i < 4; i++) dropItem('coin', b.x, b.y);
+      dropItem('ruby', b.x, b.y);
+      texts.push({ x: b.x, y: b.y - 45, txt: 'TOTEM DESTRUÍDO!', life: 1.2, color: '#c844ff', size: 11 });
+      score += 60;
       return;
     }
     if (b.kind === 'tnt') {

@@ -24,6 +24,19 @@ function drawRock(o) {
 function drawBarrel(b) {
   const sx = b.hurt > 0 ? rand(-2, 2) : 0;
   shadow(b.x, b.y - 4, 17, 6, 0.3);
+  if (b.kind === 'totem') {
+    const pulse = 0.4 + 0.3 * Math.sin(time * 6);
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    ctx.fillStyle = `rgba(200,68,255,${pulse})`;
+    ctx.beginPath(); ctx.ellipse(b.x, b.y - 26, 20, 32, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.restore();
+    ctx.fillStyle = '#261438'; ctx.fillRect(b.x - 12 + sx, b.y - 52, 24, 52);
+    ctx.fillStyle = '#6830a8'; ctx.fillRect(b.x - 10 + sx, b.y - 50, 20, 48);
+    ctx.fillStyle = '#e08aff'; ctx.fillRect(b.x - 5 + sx, b.y - 42, 10, 10);
+    txt('TOTEM', b.x + sx, b.y - 58, 7, '#e08aff');
+    return;
+  }
   if (b.kind === 'lucky') {
     const pulse = 0.35 + 0.25 * Math.sin(time * 8);
     ctx.save();

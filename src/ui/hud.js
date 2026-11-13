@@ -516,6 +516,11 @@ function drawWaveBanner(s, left) {
   // pontas dobradas
   ctx.fillStyle = MED.parchDark; ctx.fillRect(lx - 6, ly + 3, 6, lh - 6); ctx.fillRect(lx + lw, ly + 3, 6, lh - 6);
   inkTxt(label, W / 2, ly + Math.round(11.5 * s), fs, waveEvent ? MED.blood : MED.parchInk);
+  if (wave % 5 === 4 && toSpawn + left > 0) {
+    const wy = ly + lh + Math.round(4 * s);
+    txt('⚠ CHEFE NA PRÓXIMA ONDA', W / 2, wy + Math.round(9 * s), Math.round(7.2 * s), '#ffaa2b');
+    return wy + Math.round(14 * s);
+  }
   return ly + lh;
 }
 

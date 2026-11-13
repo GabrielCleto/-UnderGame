@@ -1,6 +1,6 @@
 function overlay(alpha = 0.6) { ctx.fillStyle = `rgba(8,5,12,${alpha})`; ctx.fillRect(0, 0, W, H); }
 
-let cardRects = [], levelRerollRect = null;
+let cardRects = [], levelRerollRect = null, levelBanRect = null;
 function drawLevelUp() {
   overlay(0.78);
   const t = performance.now() / 1000;
@@ -133,8 +133,15 @@ function drawLevelUp() {
     const rLabel = rCost === 0 ? '🎲 [R] REROLL GRÁTIS' : '🎲 [R] REROLL (' + rCost + ' OURO)';
     txt(rLabel, rx + rw / 2, ry + Math.round(21 * s), Math.round(8.2 * s), canReroll ? (rHov ? MED.parchInk : MED.goldLight) : '#777');
     levelRerollRect = { x: rx, y: ry, w: rw, h: rh };
+    if (bansLeft > 0) {
+      const bx = rx + rw + Math.round(12 * s), bw = Math.round(165 * s);
+      const bHov = inRect(mouse.x, mouse.y, { x: bx, y: ry, w: bw, h: rh });
+      medPanel(bx, ry, bw, rh, bHov ? 'wood' : 'leather');
+      txt('🚫 [X] BANIR (' + bansLeft + ')', bx + bw / 2, ry + Math.round(21 * s), Math.round(8 * s), '#ff7a9c');
+      levelBanRect = { x: bx, y: ry, w: bw, h: rh };
+    } else levelBanRect = null;
   } else {
-    levelRerollRect = null;
+    levelRerollRect = null; levelBanRect = null;
   }
 }
 
@@ -570,7 +577,32 @@ function startWithSelectedCharacter() {
 // =====================================================================
 //  MENU PRINCIPAL
 // =====================================================================
-let menuPlayRect = null, menuCharRect = null, menuSoulRect = null;
+let menuPlayRect = null, menuCharRect = null, menuSoulRect = null, menuBestiaryRect = null;
+let bestiaryBackRect = null;
+function drawBestiary() {
+  overlay(0.86);
+  const s = clamp(Math.min(W / 1280, H / 720), 0.75, 1.4);
+  txt('📖 BESTIÁRIO DA ARENA ANCESTRAL 📖', W / 2, Math.round(38 * s), Math.round(16 * s), MED.goldLight);
+  const entries = Object.entries(MON).filter(([, d]) => d.bossName || !['goblin'].includes(d.img));
+  const cols = 4, cw = Math.round(230 * s), ch = Math.round(64 * s), gap = Math.round(12 * s);
+  const x0 = Math.round(W / 2 - (cols * cw + (cols - 1) * gap) / 2);
+  const y0 = Math.round(66 * s);
+  entries.slice(0, 24).forEach(([k, d], i) => {
+    const col = i % cols, row = Math.floor(i / cols);
+    const x = x0 + col * (cw + gap), y = y0 + row * (ch + gap);
+    const killsCount = bestiaryKills[k] || 0;
+    medPanel(x, y, cw, ch, d.isBoss ? 'wood' : 'leather');
+    const title = d.bossName ? d.bossName : k.toUpperCase();
+    txt(title.slice(0, 18), x + 12, y + Math.round(24 * s), Math.round(7.5 * s), d.isBoss ? '#ffd23f' : (killsCount > 0 ? MED.parch : '#666'), 'left');
+    txt('ABATES: ' + killsCount, x + 12, y + Math.round(46 * s), Math.round(7 * s), killsCount > 0 ? '#7aff61' : '#555', 'left');
+  });
+  const bw = Math.round(200 * s), bh = Math.round(36 * s);
+  const bx = Math.round(W / 2 - bw / 2), by = H - Math.round(52 * s);
+  const bHov = inRect(mouse.x, mouse.y, { x: bx, y: by, w: bw, h: bh });
+  medPanel(bx, by, bw, bh, bHov ? 'parch' : 'wood');
+  txt('← VOLTAR [ESC]', bx + bw / 2, by + Math.round(23 * s), Math.round(8.5 * s), bHov ? MED.parchInk : MED.goldLight);
+  bestiaryBackRect = { x: bx, y: by, w: bw, h: bh };
+}
 let soulRects = [], soulBackRect = null;
 const SOUL_DEFS = [
   { id: 'vigor', name: 'Vigor Ancestral', max: 3, cost: l => 4 + l * 4, desc: l => '+2 HP inicial por nível (Atual: +' + (l * 2) + ' HP)' },
@@ -711,12 +743,17 @@ function drawMenu() {
 
   menuPlayRect = pRect;
   menuCharRect = cRect;
-  const sw = Math.round(clamp(280 * s, 210, 320)), sh = Math.round(30 * s);
-  const sx = Math.round(W / 2 - sw / 2), sy = Math.round(btnY + btnH + 10 * s);
+  const sw = Math.round(clamp(250 * s, 195, 285)), sh = Math.round(30 * s);
+  const sx = Math.round(W / 2 - sw - 6 * s), sy = Math.round(btnY + btnH + 10 * s);
   const sHov = inRect(mouse.x, mouse.y, { x: sx, y: sy, w: sw, h: sh });
   medPanel(sx, sy, sw, sh, sHov ? 'wood' : 'leather');
-  txt('✦ [S] SANTUÁRIO DAS ALMAS (' + soulEssences + ' ESS.) ✦', sx + sw / 2, sy + Math.round(20 * s), Math.round(7.5 * s), '#d66fff');
+  txt('✦ [S] ALMAS (' + soulEssences + ' ESS.)', sx + sw / 2, sy + Math.round(20 * s), Math.round(7.2 * s), '#d66fff');
   menuSoulRect = { x: sx, y: sy, w: sw, h: sh };
+  const bx2 = Math.round(W / 2 + 6 * s), bw2 = Math.round(clamp(185 * s, 145, 220));
+  const bHov2 = inRect(mouse.x, mouse.y, { x: bx2, y: sy, w: bw2, h: sh });
+  medPanel(bx2, sy, bw2, sh, bHov2 ? 'wood' : 'leather');
+  txt('📖 [B] BESTIÁRIO', bx2 + bw2 / 2, sy + Math.round(20 * s), Math.round(7.2 * s), MED.goldLight);
+  menuBestiaryRect = { x: bx2, y: sy, w: bw2, h: sh };
 
   // 5. SELO DO RECORDE ANCESTRAL
   if (best > 0) {
@@ -806,7 +843,7 @@ function drawOver() {
   txt('Sua bravura foi gravada nos anais da arena ancestral', W / 2, titleY + Math.round(20 * s), Math.round(7.5 * s), MED.parch);
 
   const scrollW = Math.round(clamp(440 * s, 300, 480));
-  const scrollH = Math.round(clamp(250 * s, 200, 290));
+  const scrollH = Math.round(clamp(285 * s, 230, 325));
   const scrollX = Math.round(W / 2 - scrollW / 2);
   const scrollY = Math.round(titleY + 34 * s);
 
@@ -818,6 +855,9 @@ function drawOver() {
     ['ONDA RESISTIDA', toRoman(wave)],
     ['NÍVEL ALCANÇADO', player ? player.level : 1],
     ['INIMIGOS ABATIDOS', kills],
+    ['DANO TOTAL CAUSADO', totalDamageDealt],
+    ['MAIOR COMBO', maxCombo + 'x'],
+    ['ARMA / REFORJA', player && player.prefix ? player.prefix.name.toUpperCase() : 'PADRÃO'],
     ['OURO COLETADO', coins + ' MOEDAS'],
     ['TEMPO DE RESISTÊNCIA', `${Math.floor(playTime / 60)}m ${String(Math.floor(playTime % 60)).padStart(2, '0')}s`],
   ];
