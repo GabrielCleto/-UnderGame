@@ -17,8 +17,8 @@ function update(dt) {
         return;
       }
       const isBoss = wave % 5 === 0;
-      toSpawn = isBoss ? 8 + Math.floor(wave * 1.5) : 9 + Math.floor(wave * 3.4);
-      spawnTimer = 0.5;
+      toSpawn = isBoss ? 15 + Math.floor(wave * 2.5) : 16 + Math.floor(wave * 4.8);
+      spawnTimer = 0.25;
       if (!isBoss && wave >= 2) {
         const roll = Math.random();
         if (roll < 0.18 && wave >= 3) { waveEvent = 'meteors'; meteorTimer = 1.2; }
@@ -81,16 +81,16 @@ function update(dt) {
   }
   if (toSpawn > 0) {
     spawnTimer -= dt;
-    const cap = (waveEvent === 'swarm' ? 52 : 38) + wave * 2;
+    const cap = (waveEvent === 'swarm' ? 78 : 58) + wave * 4;
     if (spawnTimer <= 0 && enemies.length < cap) {
-      const groupSize = (wave >= 3 && (waveEvent === 'swarm' || Math.random() < 0.28)) ? randi(3, 5) : 1;
+      const groupSize = (wave >= 2 && (waveEvent === 'swarm' || Math.random() < 0.48)) ? randi(3, 6) : randi(1, 2);
       const kind = wavePool();
       if (groupSize > 1 && kind !== 'flower' && kind !== 'bigworm' && kind !== 'golem' && kind !== 'necromancer') {
-        const c = spawnPos(Math.max(W, H) * 0.55, Math.max(W, H) * 0.7, 30);
-        for (let i = 0; i < groupSize && toSpawn > 0; i++) { spawnEnemy(kind, { x: c.x + rand(-40, 40), y: c.y + rand(-40, 40) }); toSpawn--; }
+        const c = spawnPos(Math.max(W, H) * 0.52, Math.max(W, H) * 0.68, 30);
+        for (let i = 0; i < groupSize && toSpawn > 0; i++) { spawnEnemy(kind, { x: c.x + rand(-45, 45), y: c.y + rand(-45, 45) }); toSpawn--; }
       } else { spawnEnemy(kind); toSpawn--; }
-      const baseRate = Math.max(0.18, 0.90 - wave * 0.052);
-      spawnTimer = waveEvent === 'swarm' ? baseRate * 0.65 : baseRate;
+      const baseRate = Math.max(0.09, 0.56 - wave * 0.042);
+      spawnTimer = waveEvent === 'swarm' ? baseRate * 0.6 : baseRate;
     }
   }
 
@@ -130,7 +130,6 @@ function update(dt) {
       if (h.t >= h.dur) {
         h.dead = true;
         shake = Math.max(shake, 6);
-        SFX.meteorCrash();
         SFX.explode();
         fxRings.push({ kind: 'nova', x: h.targetX, y: h.targetY, r: 10, maxR: 125, life: 0.35, max: 0.35, col: '#62f6ff' });
         burst(h.targetX, h.targetY, '#ffe042', 25, 240);

@@ -22,12 +22,12 @@ function spawnEnemy(kind, at, opts = {}) {
   if (opts.bounty) { scaleMul *= 1.65; hpMul *= 6.5; extra.bounty = true; extra.bountyT = 22; }
   const pos = at || (type === 'flower' ? spawnPos(260, 480, 40) : spawnPos(Math.max(W, H) * 0.55, Math.max(W, H) * 0.7, 30));
 
-  // Escalonamento composto: mantém o início acessível e impede que o jogador delete tudo em ondas avançadas
-  const lvlFactor = player ? Math.max(0, player.level - 4) * 0.07 : 0;
-  const hpScale = 1 + (wave - 1) * 0.24 + Math.pow(Math.max(0, wave - 3), 1.62) * 0.14 + lvlFactor;
-  const hp = Math.max(1, Math.round(d.hp * hpMul * (isBossType(type) ? 1 : hpScale)));
-  const spdScale = (1 + Math.min(wave, 25) * 0.022) * (extra.mini ? 1.28 : 1) * (waveEvent === 'swarm' ? 1.15 : 1) * (waveEvent === 'bloodmoon' ? 1.18 : 1);
-  const scaledDmg = d.dmg + (wave >= 12 && (elite || isBossType(type)) ? 1 : 0) + (waveEvent === 'bloodmoon' ? 1 : 0);
+  // Escalonamento implacável: inimigos ficam mais resistentes, velozes e letais conforme o jogador evolui seus atributos
+  const attrScale = player ? Math.max(0, player.level - 1) * 0.14 + Math.max(0, stats.dmg - 1) * 0.22 + Math.max(0, stats.atkRate - 1) * 0.35 : 0;
+  const hpScale = 1.25 + (wave - 1) * 0.38 + Math.pow(Math.max(0, wave - 2), 1.68) * 0.20 + attrScale;
+  const hp = Math.max(2, Math.round(d.hp * hpMul * (isBossType(type) ? 1 : hpScale)));
+  const spdScale = (1.12 + Math.min(wave, 30) * 0.035 + Math.min(0.45, player ? (player.level - 1) * 0.025 : 0)) * (extra.mini ? 1.28 : 1) * (waveEvent === 'swarm' ? 1.18 : 1) * (waveEvent === 'bloodmoon' ? 1.22 : 1);
+  const scaledDmg = d.dmg + (wave >= 5 ? 1 : 0) + (wave >= 10 && (elite || isBossType(type)) ? 1 : 0) + (wave >= 16 ? 1 : 0) + (waveEvent === 'bloodmoon' ? 1 : 0);
 
   const e = {
     type, x: pos.x, y: pos.y, vx: 0, vy: 0, kx: 0, ky: 0, hp, maxHp: hp,
@@ -44,8 +44,9 @@ function spawnEnemy(kind, at, opts = {}) {
   }
   if (isBossType(type)) {
     bossCount++;
-    const bossWaveScale = 1 + Math.max(0, wave - 5) * 0.15 + Math.pow(Math.max(0, bossCount - 1), 1.2) * 0.35;
-    e.hp = e.maxHp = Math.round((d.hp + (bossCount - 1) * 110) * bossWaveScale);
+    const bossAttrScale = player ? Math.max(0, player.level - 1) * 0.09 + Math.max(0, stats.dmg - 1) * 0.16 : 0;
+    const bossWaveScale = 1.35 + Math.max(0, wave - 5) * 0.25 + Math.pow(Math.max(0, bossCount - 1), 1.3) * 0.45 + bossAttrScale;
+    e.hp = e.maxHp = Math.round((d.hp + (bossCount - 1) * 160) * bossWaveScale);
     e.phase = 'chase'; e.pt = 2.4; e.cycle = 0; e.spawn = 1.2;
     boss = e;
   }
@@ -265,7 +266,7 @@ function gainXp(n) {
   while (p.xp >= p.xpNext) {
     p.xp -= p.xpNext;
     p.level++;
-    p.xpNext = Math.floor(6 + p.level * 3.2 + Math.pow(p.level, 1.4));
+    p.xpNext = Math.floor(12 + p.level * 6.5 + Math.pow(p.level, 1.72));
     p.pendingLevels++;
   }
 }

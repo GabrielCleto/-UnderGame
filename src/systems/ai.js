@@ -19,7 +19,16 @@ function updateEnemy(e, dt) {
     if (e.bountyT <= 0) { e.bounty = false; }
   }
   if (e.freezeT > 0 && !isBossType(e.type)) {
-    e.kx *= Math.pow(0.003, dt); e.ky *= Math.pow(0.003, dt);
+    if (!isBossType(e.type) && e.type !== 'flower' && e.type !== 'goblin' && d < 210 && d > 55) {
+    e.lungeCd = (e.lungeCd || rand(1.2, 3.0)) - dt;
+    if (e.lungeCd <= 0) {
+      e.lungeCd = rand(2.2, 4.2);
+      const side = Math.random() < 0.35 ? rand(-0.6, 0.6) : 0;
+      const la = Math.atan2(p.y - e.y, p.x - e.x) + side;
+      e.kx += Math.cos(la) * 320; e.ky += Math.sin(la) * 320;
+    }
+  }
+  e.kx *= Math.pow(0.003, dt); e.ky *= Math.pow(0.003, dt);
     e.x += e.kx * dt; e.y += e.ky * dt;
     collideStatic(e, e.r);
     return;
@@ -253,20 +262,29 @@ function bossAI(e, dt, ux, uy, d) {
   e.pt -= dt;
   e.vx = e.vy = 0;
   if (e.phase === 'chase') {
-    e.vx = ux * e.speed * (enraged ? 1.35 : 1.05); e.vy = uy * e.speed * (enraged ? 1.35 : 1.05);
+    e.vx = ux * e.speed * (enraged ? 1.55 : 1.25); e.vy = uy * e.speed * (enraged ? 1.55 : 1.25);
     if (e.pt <= 0) {
-      e.phase = ['burst', 'charge', 'bombs', 'summon'][e.cycle++ % 4];
-      e.pt = e.phase === 'burst' ? 0.45 : e.phase === 'charge' ? 0.9 : e.phase === 'bombs' ? 0.55 : 0.65;
-      e.shots = enraged ? 6 : 4;
+      const phases = ['burst', 'charge', 'bombs', 'summon', 'blink_slam'];
+      e.phase = pick(phases);
+      e.pt = e.phase === 'burst' ? 0.25 : e.phase === 'charge' ? 0.55 : e.phase === 'bombs' ? 0.35 : 0.40;
+      e.shots = enraged ? 7 : 5;
       if (e.phase === 'charge') { e.ca = Math.atan2(p.y - e.y, p.x - e.x); play('giant1', 0.5, 0.2); }
+      if (e.phase === 'blink_slam') {
+        const ang = rand(0, Math.PI * 2);
+        e.x = clamp(p.x + Math.cos(ang) * 165, 80, WORLD.w - 80);
+        e.y = clamp(p.y + Math.sin(ang) * 165, 110, WORLD.h - 60);
+        fxRings.push({ kind: 'nova', x: e.x, y: e.y - 20, r: 16, maxR: 130, life: 0.3, max: 0.3, col: '#ff8a14' });
+        for (let i = 0; i < 12; i++) enemyShoot(e, (i * Math.PI * 2) / 12, 260, 8, 'orange');
+        e.phase = 'chase'; e.pt = enraged ? 0.9 : 1.25;
+      }
     }
   } else if (e.phase === 'burst') {
     if (e.pt <= 0) {
       const n = enraged ? 20 : 16, off = e.shots * 0.25;
-      for (let i = 0; i < n; i++) enemyShoot(e, off + i * Math.PI * 2 / n, 215, 9, 'orange');
+      for (let i = 0; i < n; i++) enemyShoot(e, off + i * Math.PI * 2 / n, 265, 9, 'orange');
       beep(220, 0.15, 'square', 0.04, -80);
-      e.shots--; e.pt = enraged ? 0.38 : 0.48;
-      if (e.shots <= 0) { e.phase = 'chase'; e.pt = 2.0; }
+      e.shots--; e.pt = enraged ? 0.28 : 0.36;
+      if (e.shots <= 0) { e.phase = 'chase'; e.pt = enraged ? 0.95 : 1.3; }
     }
   } else if (e.phase === 'charge') {
     if (e.pt > 0) { e.ca = e.pt > 0.3 ? Math.atan2(p.y - e.y, p.x - e.x) : e.ca; }
