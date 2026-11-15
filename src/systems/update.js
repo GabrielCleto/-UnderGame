@@ -9,13 +9,14 @@ function update(dt) {
   if (toSpawn === 0 && enemies.length === 0) {
     waveTimer -= dt;
     if (waveTimer <= 0) {
-      wave++;
-      waveEvent = null;
-      if (wave > 1 && (wave - 1) % 3 === 0 && state === 'play') {
+      if (wave >= 3 && wave % 3 === 0 && shopVisitedWave !== wave && state === 'play') {
+        shopVisitedWave = wave;
         openShop();
-        waveTimer = 1.6;
+        waveTimer = 1.2;
         return;
       }
+      wave++;
+      waveEvent = null;
       const nextBiome = Math.floor((wave - 1) / 5) % BIOMES.length;
       if (wave > 1 && nextBiome !== currentBiome) {
         currentBiome = nextBiome;
@@ -204,7 +205,7 @@ function update(dt) {
           dropItem('potion', sh.x, sh.y);
           for (const k of pickups) if (k.kind !== 'chest') k.pull = true;
         } else if (sh.id === 'storm') {
-          p.ultMeter = Math.min(100, p.ultMeter + 45);
+          p.ultMeter = Math.min(100, p.ultMeter + 45 * (stats.furyMul || 1));
           let count = 0;
           for (const e of enemies) {
             if (!e.dead && e.spawn <= 0 && count < 12) {
@@ -353,7 +354,7 @@ function update(dt) {
         burst(eb.x, eb.y, '#7fe0ff', 12, 220);
         if (!p.dash.dodged) {
           p.dash.dodged = true;
-          p.ultMeter = Math.min(100, p.ultMeter + 15);
+          p.ultMeter = Math.min(100, p.ultMeter + 15 * (stats.furyMul || 1));
           score += 50;
           SFX.dodge();
           gamepadRumble(0.25, 0.45, 110);
@@ -428,7 +429,7 @@ function update(dt) {
           burst(b.x, b.y, SABER_COLORS[saberColorIndex].hex, 10, 220);
           texts.push({ x: b.x, y: b.y - 20, txt: 'REBATIDA!', life: 0.7, color: '#7ff', size: 9 });
           score += 15;
-          if (p.char.weaponType === 'saber') { p.ultMeter = Math.min(100, p.ultMeter + 10); p.dashCd = Math.max(0, p.dashCd - 0.35); }
+          if (p.char.weaponType === 'saber') { p.ultMeter = Math.min(100, p.ultMeter + 10 * (stats.furyMul || 1)); p.dashCd = Math.max(0, p.dashCd - 0.35); }
         }
       }
     }

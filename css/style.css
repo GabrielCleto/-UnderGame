@@ -300,6 +300,7 @@ canvas:focus-visible {
 }
 
 .btn-press-start {
+  pointer-events: auto;
   background: transparent;
   border: none;
   outline: none;
@@ -408,10 +409,24 @@ canvas:focus-visible {
   opacity: 0.45;
 }
 .mode-tag {
+  pointer-events: auto;
+  cursor: pointer;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 4px;
+  padding: 2px 8px;
+  font-family: inherit;
+  font-size: 11px;
   color: #ff476e;
   font-weight: 800;
   letter-spacing: 0.06em;
   text-transform: uppercase;
+  transition: transform 140ms ease, border-color 140ms ease, background 140ms ease;
+}
+.mode-tag:hover {
+  transform: translateY(-1px);
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(245, 194, 73, 0.65);
 }
 
 .menu-footer {

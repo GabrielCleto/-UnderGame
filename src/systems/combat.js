@@ -13,6 +13,7 @@ function spawnPos(minD, maxD, r) {
 
 function spawnEnemy(kind, at, opts = {}) {
   let type = kind, scaleMul = 1, hpMul = 1, extra = {};
+  if (kind === 'small_worm') type = 'worm';
   if (kind === 'bigslime') { type = 'slime'; scaleMul = 1.7; hpMul = 3.5; extra.big = true; }
   if (kind === 'minislime') { type = 'slime'; scaleMul = 0.7; hpMul = 0.36; extra.mini = true; }
   const d = MON[type] || MON.slime;
@@ -80,7 +81,7 @@ function damageEnemy(e, dmg, fromX, fromY, power = 380, opts = {}) {
   if (!opts.noCrit && Math.random() < critChance) { dmg *= 2; crit = true; burst(e.x, e.y - e.r, '#ffe042', 12, 240); }
   if (pref && pref.dmgMul && !opts.noCrit) { dmg = Math.max(1, Math.round(dmg * pref.dmgMul)); }
   if (pref && pref.kbMul && power) { power *= pref.kbMul; }
-  if (pref && pref.id === 'mythical' && player && player.ultMeter < 100) { player.ultMeter = Math.min(100, player.ultMeter + 0.6); }
+  if (pref && pref.id === 'mythical' && player && player.ultMeter < 100) { player.ultMeter = Math.min(100, player.ultMeter + 0.6 * (stats.furyMul || 1)); }
   if (stats.infPower) dmg = Math.ceil(dmg * (1 + 0.25 * stats.infPower));
   if (stats.bloodOrb && player && player.hp <= stats.maxHp * 0.5) dmg = Math.ceil(dmg * (1 + 0.20 * stats.bloodOrb));
   if (e.type === 'twilight_lich' && (e.lichShields || 0) > 0) {
@@ -185,7 +186,7 @@ function killEnemy(e) {
   if (p.combo > maxCombo) maxCombo = p.combo;
   bestiaryKills[e.type] = (bestiaryKills[e.type] || 0) + 1;
   localStorage.setItem('gabriel_bestiary', JSON.stringify(bestiaryKills));
-  p.ultMeter = Math.min(100, p.ultMeter + (isBossType(e.type) ? 40 : e.elite ? 10 : 3.2));
+  p.ultMeter = Math.min(100, p.ultMeter + (isBossType(e.type) ? 40 : e.elite ? 10 : 3.2) * (stats.furyMul || 1));
   const diff = DIFFICULTY_MODES[difficultyIdx] || DIFFICULTY_MODES[0];
   const mult = 1 + Math.floor(p.combo / 10) * 0.25;
   score += Math.round(e.score * mult * diff.scoreMul);
@@ -609,7 +610,7 @@ function collect(k) {
   else if (k.kind === 'ruby') { gainXp(5); SFX.gem(); beep(1600, 0.08, 'triangle', 0.04); }
   else if (k.kind === 'star') {
     SFX.ult();
-    p.ultMeter = Math.min(100, (p.ultMeter || 0) + 35);
+    p.ultMeter = Math.min(100, (p.ultMeter || 0) + 35 * (stats.furyMul || 1));
     p.frenzyT = Math.max(p.frenzyT || 0, 6);
     score += 50;
     texts.push({ x: p.x, y: p.y - 110, txt: '+35 FÚRIA! (Estrela Cadente)', life: 1.3, color: '#ffee55', size: 13 });
@@ -669,6 +670,25 @@ function hurtPlayer(dmg, fx, fy) {
     }
     texts.push({ x: p.x, y: p.y - 115, txt: 'BLOQUEADO!', life: 0.9, color: '#7fe8ff', size: 13 });
     return;
+  }
+  if (p.thornsT > 0) {
+    const thornsDmg = Math.max(2, dmg * 2 + stats.dmg);
+    fxRings.push({ kind: 'nova', x: p.x, y: p.y - 24, r: 14, maxR: 110, life: 0.26, max: 0.26, col: '#7aff61' });
+    for (const e of enemies) {
+      if (!e.dead && (Math.hypot(e.x - p.x, e.y - p.y) < 110 + e.r || (fx !== undefined && Math.hypot(e.x - fx, e.y - fy) < 95 + e.r))) {
+        damageEnemy(e, thornsDmg, p.x, p.y, 380, { color: '#7aff61', noFreeze: true, silent: true });
+      }
+    }
+  }
+  if (p.ironskinT > 0) {
+    if (dmg > 1) dmg = Math.max(1, Math.floor(dmg * 0.5));
+    else if (Math.random() < 0.5) {
+      p.inv = 0.65;
+      SFX.reflect();
+      burst(p.x, p.y - 34, '#ffea60', 12, 180);
+      texts.push({ x: p.x, y: p.y - 110, txt: 'PELE DE FERRO!', life: 0.8, color: '#ffea60', size: 11 });
+      return;
+    }
   }
   if (dmg > 1 && stats.armor && Math.random() < stats.armor * 0.25) dmg = Math.max(1, dmg - 1);
   p.hp -= dmg;

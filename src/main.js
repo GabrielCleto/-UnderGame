@@ -11,10 +11,7 @@ function loop(now) {
     if (!musicOn) {
       if (activeCharMusic) activeCharMusic.pause();
     } else {
-      if (state === 'select_char') {
-        const cur = CHARACTERS[selectedCharIndex];
-        if (cur) playCharacterMusic(cur.id);
-      }
+      startMusic();
     }
     SFX.select();
   }
@@ -97,19 +94,13 @@ function loop(now) {
       if (anyPressed('arrowleft', 'a')) { selectedCharIndex = (selectedCharIndex + CHARACTERS.length - 1) % CHARACTERS.length; selectCharacter(selectedCharIndex); }
       if (anyPressed('arrowright', 'd')) { selectedCharIndex = (selectedCharIndex + 1) % CHARACTERS.length; selectCharacter(selectedCharIndex); }
       if (typeof gpState !== 'undefined' && gpState) {
-        if (gpState.justPressed[4] || gpState.justPressed[14]) {
+        if (gpState.justPressed[4]) {
           selectedCharIndex = (selectedCharIndex + CHARACTERS.length - 1) % CHARACTERS.length;
           selectCharacter(selectedCharIndex);
         }
-        if (gpState.justPressed[5] || gpState.justPressed[15]) {
+        if (gpState.justPressed[5]) {
           selectedCharIndex = (selectedCharIndex + 1) % CHARACTERS.length;
           selectCharacter(selectedCharIndex);
-        }
-        if (gpState.justPressed[0] || gpState.justPressed[9]) {
-          startWithSelectedCharacter();
-        }
-        if (gpState.justPressed[1]) {
-          stopCharacterMusic(); state = 'menu'; SFX.select();
         }
       }
       if (mouse.click) {
@@ -183,8 +174,11 @@ function loop(now) {
         mouse.down = false;
       }
     } else if (state === 'shop') {
-      for (const k of ['1', '2', '3', '4']) if (pressed[k]) buyShopItem(+k - 1);
-      const totalOptions = SHOP_ITEMS.length + 1; // 0..3 itens, 4 = Continuar
+      for (const k of ['1', '2', '3', '4', '5', '6', '7', '8', '9']) {
+        if (pressed[k] && +k - 1 < SHOP_ITEMS.length) buyShopItem(+k - 1);
+      }
+      const totalOptions = SHOP_ITEMS.length + 1; // 0..N-1 itens, N = Continuar
+      const shopCols = H > W ? 3 : 5;
       if (anyPressed('arrowleft', 'a')) {
         shopSel = (shopSel + totalOptions - 1) % totalOptions;
         SFX.select();
@@ -194,11 +188,15 @@ function loop(now) {
         SFX.select();
       }
       if (anyPressed('arrowup', 'w')) {
-        if (shopSel === SHOP_ITEMS.length) shopSel = 0;
+        if (shopSel === SHOP_ITEMS.length) shopSel = SHOP_ITEMS.length - 1;
+        else if (shopSel >= shopCols) shopSel -= shopCols;
         SFX.select();
       }
       if (anyPressed('arrowdown', 's')) {
-        shopSel = SHOP_ITEMS.length;
+        if (shopSel < SHOP_ITEMS.length) {
+          if (shopSel + shopCols < SHOP_ITEMS.length) shopSel += shopCols;
+          else shopSel = SHOP_ITEMS.length;
+        }
         SFX.select();
       }
 

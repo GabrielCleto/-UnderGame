@@ -23,9 +23,11 @@ const DIFFICULTY_MODES = [
   { id: 1, name: 'DIFÍCIL', hpMul: 1.45, spdMul: 1.15, spawnMul: 1.25, scoreMul: 1.5, col: '#ffaa2b', desc: '+45% Vida • +50% Pts' },
   { id: 2, name: 'PESADELO', hpMul: 2.1, spdMul: 1.3, spawnMul: 1.5, scoreMul: 2.25, col: '#ff4268', desc: '2.1x Vida • +125% Pts' },
 ];
-let difficultyIdx = 2; // Modo Pesadelo como padrão
+const savedDiff = localStorage.getItem('gabriel_diff');
+let difficultyIdx = savedDiff !== null ? clamp(+savedDiff, 0, 2) : 2; // Modo Pesadelo como padrão
 let panelOpenAt = 0;
 let currentBiome = 0;
+let shopVisitedWave = 0;
 let rerollsUsed = 0;
 let bansLeft = 1;
 let bannedUpgrades = new Set();
@@ -63,7 +65,7 @@ function reset() {
   shrines = []; hazards = []; fxRings = []; afterimages = []; puddles = [];
   waveEvent = null; meteorTimer = 0;
   cam = { x: player.x, y: player.y, zoom: getCamZoom() }; shake = 0; freeze = 0;
-  currentBiome = 0; rerollsUsed = 0; bansLeft = 1; bannedUpgrades = new Set(); totalDamageDealt = 0; maxCombo = 0;
+  currentBiome = 0; shopVisitedWave = 0; rerollsUsed = 0; bansLeft = 1; bannedUpgrades = new Set(); totalDamageDealt = 0; maxCombo = 0;
   wave = 0; waveTimer = 1.0; toSpawn = 0; spawnTimer = 0; boss = null; bossCount = 0;
   score = 0; coins = 0; kills = 0; banner = null; time = 0; playTime = 0;
   hudGhostHp = player.hp; hudGhostXp = 0;

@@ -479,7 +479,7 @@ function drawMinimap(s, m, topY) {
   ctx.fillStyle = MED.ink; ctx.beginPath(); ctx.moveTo(cx, ny - 9); ctx.lineTo(cx + 7, ny); ctx.lineTo(cx, ny + 7); ctx.lineTo(cx - 7, ny); ctx.fill();
   ctx.fillStyle = MED.gold; ctx.beginPath(); ctx.moveTo(cx, ny - 7); ctx.lineTo(cx + 5, ny); ctx.lineTo(cx, ny + 5); ctx.lineTo(cx - 5, ny); ctx.fill();
   uiTxt('N', cx, ny + 4, Math.round(8 * s), '#0b0910');
-  uiTxt(gamepadInfo.connected ? 'MAPA [RB]' : 'MAPA [N]', cx, cy + r + Math.round(18 * s), Math.round(8.5 * s), '#a89d8b');
+  uiTxt(gamepadInfo.connected ? 'MAPA [R3]' : 'MAPA [N]', cx, cy + r + Math.round(18 * s), Math.round(8.5 * s), '#a89d8b');
   ctx.restore();
   return { bottom: cy + r + Math.round(22 * s), left: cx - r - 6 };
 }

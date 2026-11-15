@@ -155,7 +155,11 @@ function collideStatic(e, r) {
     const dx = e.x - o.x, dy = e.y - o.y, d = Math.hypot(dx, dy), m = r + o.r;
     if (d < m && d > 0) { e.x = o.x + dx / d * m; e.y = o.y + dy / d * m; }
   }
-  for (const o of rocks.concat(props)) {
+  for (const o of rocks) {
+    const dx = e.x - o.x, dy = e.y - o.y, d = Math.hypot(dx, dy), m = r + o.r;
+    if (d < m && d > 0) { e.x = o.x + dx / d * m; e.y = o.y + dy / d * m; }
+  }
+  for (const o of props) {
     const dx = e.x - o.x, dy = e.y - o.y, d = Math.hypot(dx, dy), m = r + o.r;
     if (d < m && d > 0) { e.x = o.x + dx / d * m; e.y = o.y + dy / d * m; }
   }

@@ -149,45 +149,54 @@ let shopRects = [], shopExitRect = null;
 function drawShop() {
   overlay(0.80);
   const isPortrait = H > W;
-  const isCompactH = H <= 540;
-  const s = clamp(Math.min(W / 1280, H / 720), 0.75, 1.4);
+  const s = clamp(Math.min(W / 1280, H / 720), 0.72, 1.35);
   shopRects = [];
 
-  const titleY = Math.round(isPortrait ? 26 : 30 * s);
-  txt('✦ BAZAR DO MERCADOR ERRANTE ✦', W / 2, titleY, Math.round(isPortrait ? 15 : 19 * s), MED.goldLight);
-  txt(gamepadInfo.connected ? 'Troque seu ouro por relíquias ancestrais [D-Pad / A / START]' : 'Troque seu ouro por relíquias e poções mágicas [Clique ou 1-4]', W / 2, titleY + Math.round(18 * s), Math.round(7.5 * s), MED.parch);
-  txt('🪙 SEU TESOURO: ' + coins + ' MOEDAS DE OURO', W / 2, titleY + Math.round(34 * s), Math.round(9 * s), MED.gold);
+  const titleY = Math.round(isPortrait ? 22 : 24 * s);
+  txt('✦ BAZAR DO MERCADOR ERRANTE ✦', W / 2, titleY, Math.round(isPortrait ? 14 : 18 * s), MED.goldLight);
+  txt(gamepadInfo.connected ? 'Troque seu ouro por relíquias ancestrais [D-Pad / A / START]' : 'Troque seu ouro por relíquias e poções mágicas [Clique ou 1-9]', W / 2, titleY + Math.round(16 * s), Math.round(7.2 * s), MED.parch);
+  txt('🪙 SEU TESOURO: ' + coins + ' MOEDAS DE OURO', W / 2, titleY + Math.round(30 * s), Math.round(8.5 * s), MED.gold);
 
-  const y0 = Math.round(titleY + 46 * s);
-  const gap = Math.round(12 * s);
-  const cw = Math.round(clamp((W - 50 - gap * (SHOP_ITEMS.length - 1)) / SHOP_ITEMS.length, 140, 220));
-  const ch = Math.round(clamp(H - y0 - Math.round(68 * s), 200, 260));
-  const x0 = Math.round(W / 2 - (cw * SHOP_ITEMS.length + gap * (SHOP_ITEMS.length - 1)) / 2);
+  const y0 = Math.round(titleY + 40 * s);
+  const cols = isPortrait ? 3 : 5;
+  const rows = Math.ceil(SHOP_ITEMS.length / cols);
+  const gapX = Math.round(10 * s);
+  const gapY = Math.round(10 * s);
+  const availH = H - y0 - Math.round(58 * s);
+  const cw = Math.round(clamp((W - 44 - gapX * (cols - 1)) / cols, 110, 210));
+  const ch = Math.round(clamp((availH - gapY * (rows - 1)) / rows, 118, 210));
 
   SHOP_ITEMS.forEach((it, i) => {
-    const x = Math.round(x0 + i * (cw + gap));
+    const row = Math.floor(i / cols);
+    const col = i % cols;
+    const itemsInRow = row === rows - 1 ? SHOP_ITEMS.length - row * cols : cols;
+    const rowW = itemsInRow * cw + (itemsInRow - 1) * gapX;
+    const rowX0 = Math.round(W / 2 - rowW / 2);
+    const x = Math.round(rowX0 + col * (cw + gapX));
+    const y = Math.round(y0 + row * (ch + gapY));
+
     if (mouse.moved) {
-      const hov = inRect(mouse.x, mouse.y, { x, y: y0, w: cw, h: ch });
+      const hov = inRect(mouse.x, mouse.y, { x, y, w: cw, h: ch });
       if (hov) shopSel = i;
     }
     const sel = shopSel === i;
-    const lift = sel ? -5 : 0;
+    const lift = sel ? -4 : 0;
     const canAfford = coins >= it.cost;
 
-    medPanel(x, y0 + lift, cw, ch, sel ? 'parch' : 'wood');
+    medPanel(x, y + lift, cw, ch, sel ? 'parch' : 'wood');
     if (sel) {
       ctx.strokeStyle = MED.goldLight;
       ctx.lineWidth = 2;
-      ctx.strokeRect(x, y0 + lift, cw, ch);
+      ctx.strokeRect(x, y + lift, cw, ch);
     }
 
-    const iconSz = Math.round(clamp(42 * s, 36, 48));
+    const iconSz = Math.round(clamp(ch * 0.24, 24, 40));
     const iconX = Math.round(x + cw / 2 - iconSz / 2);
-    const iconY = Math.round(y0 + lift + 16 * s);
+    const iconY = Math.round(y + lift + 10 * s);
 
     ctx.fillStyle = MED.ink;
     ctx.beginPath();
-    ctx.ellipse(iconX + iconSz / 2, iconY + iconSz / 2, iconSz * 0.65, iconSz * 0.65, 0, 0, Math.PI * 2);
+    ctx.ellipse(iconX + iconSz / 2, iconY + iconSz / 2, iconSz * 0.62, iconSz * 0.62, 0, 0, Math.PI * 2);
     ctx.fill();
     ctx.strokeStyle = canAfford ? MED.gold : MED.iron;
     ctx.lineWidth = 1.5;
@@ -196,36 +205,41 @@ function drawShop() {
     const im = IMG['i_' + it.icon];
     if (im) ctx.drawImage(im, iconX, iconY, iconSz, iconSz);
 
-    const nameLines = wrap(it.name.toUpperCase(), cw - 16, Math.round(8.5 * s));
-    const nameY = iconY + iconSz + Math.round(14 * s);
-    nameLines.forEach((l, j) => {
-      if (sel) inkTxt(l, x + cw / 2, nameY + j * Math.round(12 * s), Math.round(8.5 * s), '#8c2d08');
-      else txt(l, x + cw / 2, nameY + j * Math.round(12 * s), Math.round(8.5 * s), MED.goldLight);
+    const nameFs = Math.round(clamp(ch * 0.048, 6.8, 8.2));
+    const nameLines = wrap(it.name.toUpperCase(), cw - 12, nameFs);
+    const nameY = iconY + iconSz + Math.round(11 * s);
+    nameLines.slice(0, 1).forEach((l, j) => {
+      if (sel) inkTxt(l, x + cw / 2, nameY + j * Math.round(10 * s), nameFs, '#8c2d08');
+      else txt(l, x + cw / 2, nameY + j * Math.round(10 * s), nameFs, MED.goldLight);
     });
 
-    const costY = nameY + nameLines.length * Math.round(12 * s) + Math.round(6 * s);
+    const costY = nameY + Math.round(12 * s);
     const costTxt = '🪙 ' + it.cost + ' OURO';
-    if (sel) inkTxt(costTxt, x + cw / 2, costY, Math.round(8 * s), canAfford ? '#1a6b22' : MED.blood);
-    else txt(costTxt, x + cw / 2, costY, Math.round(8 * s), canAfford ? MED.leaf : '#ff6b6b');
+    const costFs = Math.round(clamp(ch * 0.045, 6.5, 7.8));
+    if (sel) inkTxt(costTxt, x + cw / 2, costY, costFs, canAfford ? '#1a6b22' : MED.blood);
+    else txt(costTxt, x + cw / 2, costY, costFs, canAfford ? MED.leaf : '#ff6b6b');
 
-    const descY = costY + Math.round(12 * s);
-    const dLines = wrap(it.desc, cw - 20, Math.round(6.8 * s));
-    dLines.slice(0, 2).forEach((l, j) => {
-      if (sel) inkTxt(l, x + cw / 2, descY + j * Math.round(11 * s), Math.round(6.8 * s), MED.parchInk);
-      else txt(l, x + cw / 2, descY + j * Math.round(11 * s), Math.round(6.8 * s), MED.parch);
+    const descY = costY + Math.round(11 * s);
+    const descFs = Math.round(clamp(ch * 0.038, 5.8, 6.6));
+    const dLines = wrap(it.desc, cw - 14, descFs);
+    const maxDescLines = ch >= 150 ? 2 : 1;
+    dLines.slice(0, maxDescLines).forEach((l, j) => {
+      if (sel) inkTxt(l, x + cw / 2, descY + j * Math.round(9.5 * s), descFs, MED.parchInk);
+      else txt(l, x + cw / 2, descY + j * Math.round(9.5 * s), descFs, MED.parch);
     });
 
-    const btnPrompt = canAfford ? (sel ? '✓ COMPRAR' : '[ ' + (i + 1) + ' ] COMPRAR') : 'SEM OURO';
-    const footerY = y0 + lift + ch - Math.round(12 * s);
-    txt(btnPrompt, x + cw / 2, footerY, Math.round(7.5 * s), canAfford ? (sel ? '#8c2d08' : MED.leaf) : MED.parchDark);
+    const btnPrompt = canAfford ? (sel ? '✓ COMPRAR' : '[' + (i + 1) + '] COMPRAR') : 'SEM OURO';
+    const footerY = y + lift + ch - Math.round(8 * s);
+    txt(btnPrompt, x + cw / 2, footerY, Math.round(clamp(ch * 0.042, 6.2, 7.2)), canAfford ? (sel ? '#8c2d08' : MED.leaf) : MED.parchDark);
 
-    shopRects.push({ x, y: y0, w: cw, h: ch, index: i });
+    shopRects.push({ x, y, w: cw, h: ch, index: i });
   });
 
-  const bw = Math.round(clamp(360 * s, 260, 420));
-  const bh = Math.round(clamp(40 * s, 34, 46));
+  const bw = Math.round(clamp(360 * s, 250, 420));
+  const bh = Math.round(clamp(36 * s, 30, 42));
   const bx = Math.round(W / 2 - bw / 2);
-  const by = Math.min(H - Math.round(52 * s), y0 + ch + Math.round(14 * s));
+  const gridBottom = y0 + rows * ch + (rows - 1) * gapY;
+  const by = Math.min(H - bh - Math.round(8 * s), gridBottom + Math.round(10 * s));
   const bsel = shopSel === SHOP_ITEMS.length;
 
   medPanel(bx, by, bw, bh, 'leather');
@@ -234,7 +248,7 @@ function drawShop() {
     ctx.lineWidth = 2;
     ctx.strokeRect(bx, by, bw, bh);
   }
-  txt(gamepadInfo.connected ? '⚔ CONTINUAR BATALHA [START / B / A] ⚔' : '⚔ CONTINUAR BATALHA [ENTER] ⚔', W / 2, by + Math.round(24 * s), Math.round(9.5 * s), bsel ? '#ffffff' : MED.goldLight);
+  txt(gamepadInfo.connected ? '⚔ CONTINUAR BATALHA [START / B / A] ⚔' : '⚔ CONTINUAR BATALHA [ENTER] ⚔', W / 2, by + Math.round(bh * 0.62), Math.round(9 * s), bsel ? '#ffffff' : MED.goldLight);
   shopExitRect = { x: bx, y: by, w: bw, h: bh };
 }
 
@@ -868,6 +882,12 @@ function bindMenuOverlayEvents() {
   on('btn-chars', () => { if (state === 'menu') enterCharacterSelect(); });
   on('btn-souls', () => { if (state === 'menu') { state = 'soul_shrine'; panelOpenAt = performance.now(); SFX.select(); } });
   on('btn-bestiary', () => { if (state === 'menu') { state = 'bestiary'; panelOpenAt = performance.now(); SFX.select(); } });
+  on('ui-diff-desc', () => {
+    if (state !== 'menu') return;
+    difficultyIdx = (difficultyIdx + 1) % DIFFICULTY_MODES.length;
+    localStorage.setItem('gabriel_diff', difficultyIdx);
+    SFX.select();
+  });
   ov.querySelectorAll('.diff-btn').forEach(btn => {
     btn.addEventListener('click', () => {
       if (state !== 'menu') return;
@@ -902,7 +922,12 @@ function syncMenuOverlay(isVisible) {
   setTxt('ui-bestiary-prog', discovered + ' / ' + BESTIARY_ORDER.length + ' descobertos');
   setTxt('ui-best-score', best.toLocaleString('pt-BR'));
   const dm = DIFFICULTY_MODES[difficultyIdx] || DIFFICULTY_MODES[0];
-  setTxt('ui-diff-desc', dm.desc);
+  const diffEl = document.getElementById('ui-diff-desc');
+  if (diffEl) {
+    const diffText = 'MODO ' + dm.name + ' (' + dm.desc + ')';
+    if (diffEl.textContent !== diffText) diffEl.textContent = diffText;
+    diffEl.style.color = dm.col;
+  }
   ov.querySelectorAll('.diff-btn').forEach(btn => {
     btn.classList.toggle('is-active', Number(btn.dataset.diff) === difficultyIdx);
   });
@@ -993,7 +1018,14 @@ function drawMenu() {
   const promptPulse = 0.55 + 0.35 * Math.sin(t * 3.5);
   uiTxt('✦ Clique no Campeão para trocar [TAB] ✦', W / 2, charYOnly + 70 * sCheck, Math.round(9.5 * sCheck), isCharHov ? '#ffd875' : `rgba(217, 164, 65, ${promptPulse})`);
 
-  menuPlayRect = null; menuSoulRect = null; menuBestiaryRect = null; menuDiffRects = [];
+  const playBtnEl = document.getElementById('btn-play');
+  if (playBtnEl) {
+    const r = playBtnEl.getBoundingClientRect();
+    menuPlayRect = { x: r.left, y: r.top, w: r.width, h: r.height };
+  } else {
+    menuPlayRect = { x: Math.round(W / 2 - 180 * sCheck), y: Math.round(charYOnly + 80 * sCheck), w: Math.round(360 * sCheck), h: Math.round(64 * sCheck) };
+  }
+  menuSoulRect = null; menuBestiaryRect = null; menuDiffRects = [];
 }
 
 // =====================================================================

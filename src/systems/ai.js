@@ -18,8 +18,14 @@ function updateEnemy(e, dt) {
     e.bountyT -= dt;
     if (e.bountyT <= 0) { e.bounty = false; }
   }
+  const dx = p.x - e.x, dy = p.y - e.y, d = Math.hypot(dx, dy) || 1;
   if (e.freezeT > 0 && !isBossType(e.type)) {
-    if (!isBossType(e.type) && e.type !== 'flower' && e.type !== 'goblin' && d < 210 && d > 55) {
+    e.kx *= Math.pow(0.003, dt); e.ky *= Math.pow(0.003, dt);
+    e.x += e.kx * dt; e.y += e.ky * dt;
+    collideStatic(e, e.r);
+    return;
+  }
+  if (!isBossType(e.type) && e.type !== 'flower' && e.type !== 'goblin' && d < 210 && d > 55) {
     e.lungeCd = (e.lungeCd || rand(1.2, 3.0)) - dt;
     if (e.lungeCd <= 0) {
       e.lungeCd = rand(2.2, 4.2);
@@ -28,12 +34,6 @@ function updateEnemy(e, dt) {
       e.kx += Math.cos(la) * 320; e.ky += Math.sin(la) * 320;
     }
   }
-  e.kx *= Math.pow(0.003, dt); e.ky *= Math.pow(0.003, dt);
-    e.x += e.kx * dt; e.y += e.ky * dt;
-    collideStatic(e, e.r);
-    return;
-  }
-  const dx = p.x - e.x, dy = p.y - e.y, d = Math.hypot(dx, dy) || 1;
   const ux = dx / d, uy = dy / d;
   let sx = ux * e.speed, sy = uy * e.speed;
   const slowMul = e.freezeT > 0 ? 0.3 : e.slow > 0 ? 0.55 : 1;
@@ -424,7 +424,7 @@ function leviathanAI(e, dt, ux, uy, d) {
   } else if (e.phase === 'summon') {
     if (e.pt <= 0) {
       const n = enraged ? 5 : 3;
-      for (let i = 0; i < n; i++) spawnEnemy(pick(['snake', 'small_worm', 'void_spider']), { x: e.x + rand(-100, 100), y: e.y + rand(-100, 100) }, { noElite: true });
+      for (let i = 0; i < n; i++) spawnEnemy(pick(['snake', 'worm', 'void_spider']), { x: e.x + rand(-100, 100), y: e.y + rand(-100, 100) }, { noElite: true });
       burst(e.x, e.y - 50, '#7dff6b', 30, 260);
       e.phase = 'chase'; e.pt = 2.4;
     }

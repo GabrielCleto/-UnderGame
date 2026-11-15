@@ -108,7 +108,14 @@ const music = {
   }
 };
 
-function startMusic() { }
+function startMusic() {
+  if (!musicOn) return;
+  if (activeCharMusic && !activeCharMusic.paused) return;
+  if (typeof state !== 'undefined' && (state === 'play' || state === 'select_char' || state === 'shop' || state === 'levelup')) {
+    const cur = (typeof CHARACTERS !== 'undefined' && CHARACTERS[selectedCharIndex]) ? CHARACTERS[selectedCharIndex] : null;
+    if (cur) playCharacterMusic(cur.id);
+  }
+}
 
 let actx = null;
 function beep(freq = 440, dur = 0.1, type = 'square', vol = 0.05, slide = 0) {
