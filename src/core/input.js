@@ -322,6 +322,35 @@ const GP_AIM_DEADZONE = 0.26;
 function applyDeadzone(v, dz = GP_DEADZONE) {
   return Math.abs(v) > dz ? (v - Math.sign(v) * dz) / (1 - dz) : 0;
 }
+// Deadzone radial (input-systems skill): preserva diagonais suaves sem prender nos eixos
+function applyRadialDeadzone(x, y, dz = GP_DEADZONE, curve = 1.15) {
+  const mag = Math.hypot(x, y);
+  if (mag <= dz) return { x: 0, y: 0, mag: 0 };
+  const scaled = Math.min(1, (mag - dz) / (1 - dz));
+  const gain = Math.pow(scaled, curve) / mag;
+  return { x: x * gain, y: y * gain, mag: scaled };
+}
+
+// =====================================================================
+//  ACTION BUFFER (input-systems skill)
+//  Armazena ações discretas pressionadas até 140ms antes de ficarem disponíveis
+// =====================================================================
+const actionBuffer = {
+  window: 0.14,
+  _pressedAt: {},
+  press(action, now) {
+    this._pressedAt[action] = now;
+  },
+  consume(action, now) {
+    const t = this._pressedAt[action];
+    if (t === undefined || (now - t) > this.window) return false;
+    delete this._pressedAt[action];
+    return true;
+  },
+  clear() {
+    this._pressedAt = {};
+  }
+};
 
 function pollGamepad(dt = 0) {
   if (gamepadInfo.toastTimer > 0) gamepadInfo.toastTimer -= dt;
@@ -390,9 +419,10 @@ function updateGamepadState(dt) {
   }
   gamepadInfo.prevButtons = curr;
 
-  // Analógico Esquerdo (Movimento)
-  const lx = applyDeadzone(gp.axes[0] || 0);
-  const ly = applyDeadzone(gp.axes[1] || 0);
+  // Analógico Esquerdo (Movimento com Deadzone Radial — input-systems skill)
+  const leftStick = applyRadialDeadzone(gp.axes[0] || 0, gp.axes[1] || 0, GP_DEADZONE, 1.12);
+  const lx = leftStick.x;
+  const ly = leftStick.y;
 
   // Analógico Direito (Mira 360°)
   let rx = 0, ry = 0;

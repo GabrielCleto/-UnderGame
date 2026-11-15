@@ -145,7 +145,7 @@ function triggerExplosion(x, y, radius, dmg, fromPlayer = true) {
     }
   }
   if (!fromPlayer && player && Math.hypot(player.x - x, (player.y - 20) - y) < radius * 0.72) {
-    hurtPlayer(1, x, y);
+    hurtPlayer(1, x, y, 'Explosão / Meteoro');
   }
 }
 

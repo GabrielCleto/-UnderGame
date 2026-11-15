@@ -282,7 +282,8 @@ function updateEnemy(e, dt) {
     }
   }
   if (!((e.type === 'ghost' || e.type === 'necro_boss') && e.faded) && e.type !== 'goblin' && Math.hypot(e.x - p.x, e.y - p.y) < e.r + 14) {
-    hurtPlayer(e.dmg, e.x, e.y);
+    const mName = (typeof BESTIARY_LORE !== 'undefined' && BESTIARY_LORE[e.type] && BESTIARY_LORE[e.type].name) || (MON[e.type] && MON[e.type].bossName) || e.type.toUpperCase();
+    hurtPlayer(e.dmg, e.x, e.y, mName);
     if (e.eliteTrait && e.eliteTrait.id === 'vampiric') e.hp = Math.min(e.maxHp, e.hp + Math.max(2, Math.ceil(e.maxHp * 0.1)));
     if (e.eliteTrait && e.eliteTrait.id === 'frost') p.slow = Math.max(p.slow || 0, 1.4);
   }

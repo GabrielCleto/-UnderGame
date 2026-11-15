@@ -384,7 +384,7 @@ function drawCharacterSelect() {
   let dAngle = targetAngle - charCarouselAngle;
   while (dAngle < -Math.PI) dAngle += Math.PI * 2;
   while (dAngle > Math.PI) dAngle -= Math.PI * 2;
-  charCarouselAngle += dAngle * Math.min(1, dt * 11);
+  charCarouselAngle += dAngle * (1 - Math.exp(-11 * dt));
 
   charCardRects = [];
   charTabRects = [];
@@ -574,6 +574,7 @@ function drawCharacterSelect() {
 function selectCharacter(index) {
   selectedCharIndex = index;
   localStorage.setItem('gabriel_char_index', selectedCharIndex);
+  if (typeof saveProfile === 'function') saveProfile();
   SFX.select();
   const cur = CHARACTERS[selectedCharIndex];
   if (cur) playCharacterMusic(cur.id);
@@ -837,6 +838,7 @@ function buySoulUpgrade(id) {
   soulUps[id] = cur + 1;
   localStorage.setItem('gabriel_essences', soulEssences);
   localStorage.setItem('gabriel_soul_ups', JSON.stringify(soulUps));
+  if (typeof saveProfile === 'function') saveProfile();
   SFX.bloodRite();
 }
 function drawSoulShrine() {
@@ -1053,7 +1055,8 @@ function drawPauseMenu() {
   txt((p ? p.char.name.toUpperCase() : '') + ' • ' + curPrefix + weaponLabel, W / 2, statsY, Math.round(8.5 * s), MED.parch);
 
   const infoY = statsY + Math.round(20 * s);
-  txt('ONDA: ' + toRoman(wave) + '   •   ABATES: ' + kills + '   •   OURO: ' + coins + '   •   PTS: ' + score, W / 2, infoY, Math.round(7.5 * s), MED.gold);
+  const seedLabel = (typeof runSeed !== 'undefined' && runSeed) ? '   •   SEED: #' + runSeed : '';
+  txt('ONDA: ' + toRoman(wave) + '   •   ABATES: ' + kills + '   •   OURO: ' + coins + seedLabel, W / 2, infoY, Math.round(7.2 * s), MED.gold);
 
   // Linha divisória de ferro
   ctx.fillStyle = 'rgba(217, 164, 65, 0.3)';
@@ -1105,14 +1108,14 @@ function drawOver() {
 
   const rows = [
     ['CAMPEÃO', player ? player.char.name.toUpperCase() : 'HERÓI'],
+    ['CAUSA DA QUEDA', (typeof lastDamageSource !== 'undefined' ? lastDamageSource : 'Horda').toUpperCase()],
     ['GLÓRIA (PONTOS)', score],
     ['ONDA RESISTIDA', toRoman(wave)],
     ['NÍVEL ALCANÇADO', player ? player.level : 1],
     ['INIMIGOS ABATIDOS', kills],
     ['DANO TOTAL CAUSADO', totalDamageDealt],
     ['MAIOR COMBO', maxCombo + 'x'],
-    ['ARMA / REFORJA', player && player.prefix ? player.prefix.name.toUpperCase() : 'PADRÃO'],
-    ['OURO COLETADO', coins + ' MOEDAS'],
+    ['SEED DA JORNADA', (typeof runSeed !== 'undefined' && runSeed ? '#' + runSeed : 'PADRÃO')],
     ['TEMPO DE RESISTÊNCIA', `${Math.floor(playTime / 60)}m ${String(Math.floor(playTime % 60)).padStart(2, '0')}s`],
   ];
 

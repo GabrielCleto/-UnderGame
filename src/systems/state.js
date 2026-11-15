@@ -35,8 +35,81 @@ let totalDamageDealt = 0;
 let maxCombo = 0;
 let bestiaryKills = JSON.parse(localStorage.getItem('gabriel_bestiary') || '{}');
 
+let runSeed = '';
+let lastDamageSource = 'Horda da Arena';
+
+// =====================================================================
+//  SISTEMA DE SAVE VERSIONADO & MIGRAÇÃO (save-systems + roguelike skills)
+//  Separa Perfil Persistente (meta-progressão) do Estado da Run
+// =====================================================================
+const SAVE_VERSION = 2;
+const PROFILE_KEY = 'underground_profile_v2';
+
+function saveProfile() {
+  try {
+    const data = {
+      version: SAVE_VERSION,
+      best,
+      soulEssences,
+      soulUps,
+      difficultyIdx,
+      selectedCharIndex: typeof selectedCharIndex !== 'undefined' ? selectedCharIndex : 0,
+      saberColorIndex: typeof saberColorIndex !== 'undefined' ? saberColorIndex : 0,
+      bestiaryKills,
+      updatedAt: Date.now()
+    };
+    const prev = localStorage.getItem(PROFILE_KEY);
+    if (prev) localStorage.setItem(PROFILE_KEY + '_bak', prev);
+    localStorage.setItem(PROFILE_KEY, JSON.stringify(data));
+    // Mantém sincronia retrocompatível com as chaves legadas
+    localStorage.setItem('gabriel_best2', best);
+    localStorage.setItem('gabriel_essences', soulEssences);
+    localStorage.setItem('gabriel_soul_ups', JSON.stringify(soulUps));
+    localStorage.setItem('gabriel_diff', difficultyIdx);
+    localStorage.setItem('gabriel_bestiary', JSON.stringify(bestiaryKills));
+  } catch (e) {}
+}
+
+function loadProfile() {
+  try {
+    let raw = localStorage.getItem(PROFILE_KEY) || localStorage.getItem(PROFILE_KEY + '_bak');
+    if (raw) {
+      const d = JSON.parse(raw);
+      if (d && typeof d === 'object') {
+        best = Math.max(best, +d.best || 0);
+        soulEssences = Math.max(soulEssences, +d.soulEssences || 0);
+        if (d.soulUps && typeof d.soulUps === 'object') soulUps = { vigor: 0, fury: 0, revive: 0, ...d.soulUps };
+        if (typeof d.difficultyIdx === 'number') difficultyIdx = clamp(d.difficultyIdx, 0, 2);
+        if (typeof d.selectedCharIndex === 'number' && typeof selectedCharIndex !== 'undefined') {
+          selectedCharIndex = clamp(d.selectedCharIndex, 0, CHARACTERS.length - 1);
+        }
+        if (typeof d.saberColorIndex === 'number' && typeof saberColorIndex !== 'undefined') {
+          saberColorIndex = clamp(d.saberColorIndex, 0, SABER_COLORS.length - 1);
+        }
+        if (d.bestiaryKills && typeof d.bestiaryKills === 'object') {
+          bestiaryKills = { ...bestiaryKills, ...d.bestiaryKills };
+        }
+        return;
+      }
+    }
+    // Migração v1 (chaves soltas) -> v2 (perfil unificado)
+    saveProfile();
+  } catch (e) {}
+}
+loadProfile();
+
+function generateRunSeed() {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  let out = '';
+  for (let i = 0; i < 6; i++) out += chars[Math.floor(Math.random() * chars.length)];
+  return out;
+}
+
 function reset() {
   keys[' '] = false;
+  if (typeof actionBuffer !== 'undefined') actionBuffer.clear();
+  runSeed = generateRunSeed();
+  lastDamageSource = 'Horda da Arena';
   buildWorld();
   const curChar = CHARACTERS[selectedCharIndex];
   const vigorBonus = (soulUps.vigor || 0) * 2;

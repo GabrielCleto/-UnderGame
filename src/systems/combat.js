@@ -186,6 +186,7 @@ function killEnemy(e) {
   if (p.combo > maxCombo) maxCombo = p.combo;
   bestiaryKills[e.type] = (bestiaryKills[e.type] || 0) + 1;
   localStorage.setItem('gabriel_bestiary', JSON.stringify(bestiaryKills));
+  if (typeof saveProfile === 'function') saveProfile();
   p.ultMeter = Math.min(100, p.ultMeter + (isBossType(e.type) ? 40 : e.elite ? 10 : 3.2) * (stats.furyMul || 1));
   const diff = DIFFICULTY_MODES[difficultyIdx] || DIFFICULTY_MODES[0];
   const mult = 1 + Math.floor(p.combo / 10) * 0.25;
@@ -262,7 +263,7 @@ function killEnemy(e) {
     SFX.explode();
     fxRings.push({ kind: 'nova', x: e.x, y: e.y - 12, r: 12, maxR: 115, life: 0.3, max: 0.3, col: '#ff6420' });
     burst(e.x, e.y - 12, '#ff6420', 20, 240);
-    if (player && Math.hypot(player.x - e.x, player.y - e.y) < 115) hurtPlayer(1, e.x, e.y);
+    if (player && Math.hypot(player.x - e.x, player.y - e.y) < 115) hurtPlayer(1, e.x, e.y, 'Explosão Volátil');
   }
   if (isBossType(e.type)) {
     const otherBoss = enemies.find(o => !o.dead && o !== e && isBossType(o.type));
@@ -272,6 +273,7 @@ function killEnemy(e) {
     const essGain = 3 + Math.floor(wave / 5) * 2;
     soulEssences += essGain;
     localStorage.setItem('gabriel_essences', soulEssences);
+    if (typeof saveProfile === 'function') saveProfile();
     texts.push({ x: e.x, y: e.y - 115, txt: '+' + essGain + ' ESSÊNCIA ABISSAL!', life: 2.0, color: '#c844ff', size: 13 });
     for (let i = 0; i < 22; i++) dropItem('coin', e.x, e.y);
     dropItem('chest', e.x, e.y);
@@ -652,9 +654,10 @@ function collect(k) {
   }
 }
 
-function hurtPlayer(dmg, fx, fy) {
+function hurtPlayer(dmg, fx, fy, sourceName) {
   const p = player;
   if (p.inv > 0 || p.ult || state !== 'play') return;
+  if (sourceName) lastDamageSource = sourceName;
   if (p.shields > 0) {
     p.shields--;
     p.inv = 0.75;
@@ -726,5 +729,6 @@ function gameOver() {
   SFX.over();
   music.volume = 0.12;
   if (score > best) { best = score; localStorage.setItem('gabriel_best2', best); }
+  if (typeof saveProfile === 'function') saveProfile();
 }
 

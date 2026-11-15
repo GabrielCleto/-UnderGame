@@ -173,7 +173,7 @@ function update(dt) {
         shake = Math.max(shake, 6);
         fxRings.push({ kind: 'nova', x: h.x, y: h.y, r: 12, maxR: h.r, life: 0.34, max: 0.34, col: '#c844ff' });
         burst(h.x, h.y, '#e08aff', 18, 220);
-        if (Math.hypot(player.x - h.x, player.y - h.y) < h.r) hurtPlayer(2, h.x, h.y);
+        if (Math.hypot(player.x - h.x, player.y - h.y) < h.r) hurtPlayer(2, h.x, h.y, 'Nova Rúnica');
       } else {
         triggerExplosion(h.x, h.y, h.r, 7 + wave, false);
       }
@@ -282,9 +282,10 @@ function update(dt) {
     particles.push({ x: p.x + rand(-14, 14), y: p.y - rand(5, 55), vx: rand(-20, 20), vy: -50, life: 0.32, max: 0.32, color: pick(['#ffd23f', '#ff6438', '#ffffff']), size: rand(3, 5) });
   }
 
-  // Ultimate (Teclado E/L/Q, Gatilho/Botão Y/X no Controle, ou Botão Touch ULT)
+  // Ultimate (Teclado E/L/Q, Gatilho/Botão Y/X no Controle, ou Botão Touch ULT) + Action Buffer
   const trigUlt = anyPressed('e', 'l', 'q') || (gpState && gpState.ultJust) || touch.justUlt;
-  if (trigUlt && p.ultMeter >= 100 && !p.ult) {
+  if (trigUlt) actionBuffer.press('ult', time);
+  if (p.ultMeter >= 100 && !p.ult && actionBuffer.consume('ult', time)) {
     p.ult = { t: 0, dur: 2.6, tick: 0 };
     p.ultMeter = 0; p.attack = null; p.dash = null;
     SFX.ult();
@@ -293,17 +294,24 @@ function update(dt) {
     banner = { txt: p.char.ultName + '!', life: 1.4, max: 1.4, small: true };
   }
 
-  // Ataque (Teclado Espaço/J, Mouse Clique, Gatilhos RT / RB no Controle, ou Botão Touch ATACAR)
+  // Ataque (Teclado Espaço/J, Mouse Clique, Gatilhos RT / RB no Controle, ou Botão Touch ATACAR) + Action Buffer
   const gpAtkHold = gpState ? gpState.attackHold : false;
   const gpAtkJust = gpState ? gpState.attackJust : false;
   const holdAttack = keys[' '] || keys['j'] || mouse.down || gpAtkHold || touch.isAtkDown;
-  if ((holdAttack || mouse.click || gpAtkJust || touch.justAtk) && !p.attack && !p.dash && !p.ult && p.attackCd <= 0) {
+  if (anyPressed(' ', 'j') || mouse.click || gpAtkJust || touch.justAtk) {
+    actionBuffer.press('attack', time);
+  }
+  if (!p.attack && !p.dash && !p.ult && p.attackCd <= 0 && (holdAttack || actionBuffer.consume('attack', time))) {
+    actionBuffer.consume('attack', time);
     startAttack(mouse.down || mouse.click, touch.isAtkDown || touch.justAtk);
   }
 
-  // Giro / Esquiva (Teclado Shift/K, Botão Dir do Mouse, Gatilho LT / LB / B no Controle, ou Botão Touch GIRO)
+  // Giro / Esquiva (Teclado Shift/K, Botão Dir do Mouse, Gatilho LT / LB / B no Controle, ou Botão Touch GIRO) + Action Buffer
   const gpDash = gpState ? gpState.dashJust : false;
-  if ((anyPressed('shift', 'k') || mouse.rclick || gpDash || touch.justDash) && !p.dash && !p.ult && p.dashCd <= 0) {
+  if (anyPressed('shift', 'k') || mouse.rclick || gpDash || touch.justDash) {
+    actionBuffer.press('dash', time);
+  }
+  if (!p.dash && !p.ult && p.dashCd <= 0 && actionBuffer.consume('dash', time)) {
     let dx = mx, dy = my;
     if (!dx && !dy) { dx = Math.cos(p.aim); dy = Math.sin(p.aim); }
     if (Math.abs(dx) > 0.05) p.flip = dx < 0;
@@ -670,7 +678,7 @@ function update(dt) {
       }
     } else if (pd.kind === 'acid') {
       if (Math.hypot(p.x - pd.x, p.y - pd.y) < pd.r + 10) {
-        hurtPlayer(1, pd.x, pd.y);
+        hurtPlayer(1, pd.x, pd.y, 'Poça de Ácido');
       }
     } else if (pd.tick <= 0) {
       pd.tick = 0.45;
@@ -712,7 +720,7 @@ function update(dt) {
     const timeSlow = (stats.infTime && Math.hypot(b.x - p.x, b.y - p.y) < 170) ? Math.max(0.45, 1 - 0.18 * stats.infTime) : 1;
     b.x += b.vx * dt * timeSlow; b.y += b.vy * dt * timeSlow; b.life -= dt;
     if (b.life <= 0 || b.x < 0 || b.y < 0 || b.x > WORLD.w || b.y > WORLD.h) b.dead = true;
-    if (!b.dead && Math.hypot(b.x - p.x, b.y - (p.y - 35)) < b.r + 16) { b.dead = true; hurtPlayer(1, b.x, b.y); }
+    if (!b.dead && Math.hypot(b.x - p.x, b.y - (p.y - 35)) < b.r + 16) { b.dead = true; hurtPlayer(1, b.x, b.y, 'Projétil Inimigo'); }
   }
   ebullets = ebullets.filter(b => !b.dead);
 
@@ -816,9 +824,17 @@ function update(dt) {
 
   if (p.pendingLevels > 0 && !p.ult && state === 'play') openLevelUp();
 
-  // ---------- CÂMERA ----------
-  cam.x += (p.x - cam.x) * Math.min(1, dt * 8);
-  cam.y += (p.y - 40 - cam.y) * Math.min(1, dt * 8);
+  // ---------- CÂMERA (camera-systems skill: 1 - exp(-rate*dt) + Look-Ahead) ----------
+  const lookDist = p.moving ? 42 : 16;
+  const targetLookX = Math.cos(p.aim) * lookDist;
+  const targetLookY = Math.sin(p.aim) * lookDist * 0.75;
+  const lookRate = 1 - Math.exp(-6.5 * dt);
+  cam.lookX = (cam.lookX || 0) + (targetLookX - (cam.lookX || 0)) * lookRate;
+  cam.lookY = (cam.lookY || 0) + (targetLookY - (cam.lookY || 0)) * lookRate;
+
+  const camRate = 1 - Math.exp(-9.0 * dt);
+  cam.x += (p.x + cam.lookX - cam.x) * camRate;
+  cam.y += (p.y - 40 + cam.lookY - cam.y) * camRate;
   clampCam();
   shake = Math.max(0, shake - dt * 65);
   updateAmbientAtmosphere(dt);
