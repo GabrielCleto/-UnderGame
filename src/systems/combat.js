@@ -34,6 +34,7 @@ function spawnEnemy(kind, at, opts = {}) {
     hpMul *= (eliteTrait.id === 'armored' ? 3.8 : 2.9);
   }
   if (opts.bounty) { scaleMul *= 1.65; hpMul *= 6.5; extra.bounty = true; extra.bountyT = 22; }
+  if (waveEvent === 'mega_horde' && !isBossType(type)) { hpMul *= 0.72; }
   const pos = at || (type === 'flower' ? spawnPos(260, 480, 40) : spawnPos(Math.max(W, H) * 0.55, Math.max(W, H) * 0.7, 30));
 
   // Escalonamento implacável: inimigos ficam mais resistentes, velozes e letais conforme o jogador evolui seus atributos
@@ -41,13 +42,13 @@ function spawnEnemy(kind, at, opts = {}) {
   const diff = DIFFICULTY_MODES[difficultyIdx] || DIFFICULTY_MODES[0];
   const hpScale = (1.25 + (wave - 1) * 0.38 + Math.pow(Math.max(0, wave - 2), 1.68) * 0.20 + attrScale) * diff.hpMul;
   const hp = Math.max(2, Math.round(d.hp * hpMul * (isBossType(type) ? diff.hpMul : hpScale)));
-  const spdScale = (1.12 + Math.min(wave, 30) * 0.035 + Math.min(0.45, player ? (player.level - 1) * 0.025 : 0)) * diff.spdMul * (extra.mini ? 1.28 : 1) * (waveEvent === 'swarm' ? 1.18 : 1) * (waveEvent === 'bloodmoon' ? 1.22 : 1);
+  const spdScale = (1.12 + Math.min(wave, 30) * 0.035 + Math.min(0.45, player ? (player.level - 1) * 0.025 : 0)) * diff.spdMul * (extra.mini ? 1.28 : 1) * (waveEvent === 'swarm' ? 1.18 : 1) * (waveEvent === 'bloodmoon' ? 1.22 : 1) * (waveEvent === 'mega_horde' ? 1.24 : 1);
   const scaledDmg = d.dmg + (wave >= 5 ? 1 : 0) + (wave >= 10 && (elite || isBossType(type)) ? 1 : 0) + (wave >= 16 ? 1 : 0) + (waveEvent === 'bloodmoon' ? 1 : 0);
 
   const e = {
     type, x: pos.x, y: pos.y, vx: 0, vy: 0, kx: 0, ky: 0, hp, maxHp: hp,
     r: d.r * scaleMul, scale: d.scale * scaleMul, speed: d.speed * spdScale,
-    dmg: scaledDmg, xp: Math.ceil(d.xp * (elite ? 2.4 : 1) * (waveEvent === 'swarm' ? 1.25 : 1) * (waveEvent === 'bloodmoon' ? 1.8 : 1)),
+    dmg: scaledDmg, xp: Math.ceil(d.xp * (elite ? 2.4 : 1) * (waveEvent === 'swarm' ? 1.25 : 1) * (waveEvent === 'bloodmoon' ? 1.8 : 1) * (waveEvent === 'mega_horde' ? 2.2 : 1)),
     score: Math.round(d.score * hpMul * (waveEvent === 'bloodmoon' ? 1.5 : 1)),
     t: rand(0, 10), row: 2, hurt: 0, spawn: opts.instant ? 0 : 0.7, act: rand(1.1, 2.6), mode: 'move', slow: 0, freezeT: 0,
     poisonT: 0, poisonDmg: 0, poisonTick: 0, shieldOn: false,
@@ -70,6 +71,53 @@ function spawnEnemy(kind, at, opts = {}) {
   return e;
 }
 
+// =====================================================================
+//  COMBO FEVER & SINERGIAS ÉPICAS (Loop de Dopamina Roguelite)
+// =====================================================================
+const FEVER_TIERS = [
+  { min: 0,   tier: 0, label: '',            col: '#f7d67e', atkBonus: 0.00, critBonus: 0.00, spdBonus: 0.00, magBonus: 0 },
+  { min: 10,  tier: 1, label: 'AQUECIDO',    col: '#ffb347', atkBonus: 0.10, critBonus: 0.05, spdBonus: 0.05, magBonus: 30 },
+  { min: 25,  tier: 2, label: 'IMPARÁVEL',   col: '#ff6b4a', atkBonus: 0.20, critBonus: 0.10, spdBonus: 0.10, magBonus: 70 },
+  { min: 50,  tier: 3, label: 'FEBRE ARENA!',col: '#ffd23f', atkBonus: 0.30, critBonus: 0.18, spdBonus: 0.16, magBonus: 140 },
+  { min: 100, tier: 4, label: 'MODO DEUS!',  col: '#62f6ff', atkBonus: 0.45, critBonus: 0.25, spdBonus: 0.22, magBonus: 240 },
+];
+
+function getFeverBonus(p) {
+  const c = p ? (p.combo || 0) : 0;
+  for (let i = FEVER_TIERS.length - 1; i >= 0; i--) {
+    if (c >= FEVER_TIERS[i].min) return FEVER_TIERS[i];
+  }
+  return FEVER_TIERS[0];
+}
+
+const SYNERGIES = [
+  { id: 'solar_storm',     name: 'TEMPESTADE SOLAR',     col: '#ffb830', icon: 'S_Fire02',   req: () => stats.fire >= 3 && stats.bolt >= 3,     desc: 'Bolas de Fogo disparam Raios em Cadeia!' },
+  { id: 'cosmic_zero',     name: 'ZERO CÓSMICO',         col: '#62f6ff', icon: 'S_Ice01',    req: () => stats.ice >= 3 && stats.wave >= 3,      desc: 'Ondas Cósmicas estilhaçam inimigos congelados!' },
+  { id: 'blood_vortex',    name: 'VÓRTICE SANGUINÁRIO',  col: '#c844ff', icon: 'S_Magic04',  req: () => stats.vortex >= 2 && stats.venom >= 2,  desc: 'Vórtices explodem em Novas Tóxicas!' },
+  { id: 'infinity_blades', name: 'LÂMINAS DO INFINITO',  col: '#ff52d9', icon: 'S_Axe03',    req: () => stats.phantom >= 3 && stats.axe >= 3,   desc: 'Machados invocam Adagas Fantasmas no retorno!' },
+  { id: 'gravity_crush',   name: 'COLAPSO GRAVITACIONAL',col: '#ffd23f', icon: 'S_Earth01',  req: () => stats.earth >= 3 && stats.critNova >= 2,desc: 'Tremores puxam a horda e detonam Críticos!' },
+];
+
+function checkSynergies() {
+  if (!player) return;
+  if (!player.synergies) player.synergies = new Set();
+  for (const syn of SYNERGIES) {
+    if (!player.synergies.has(syn.id) && syn.req()) {
+      player.synergies.add(syn.id);
+      if (SFX.synergy) SFX.synergy(); else SFX.shrine();
+      if (typeof GPU_FX !== 'undefined') {
+        GPU_FX.shockwave(player.x, player.y - 30, 380, 0.055, 0.55);
+        GPU_FX.zoomPunch(0.06);
+        GPU_FX.chroma(0.014);
+        GPU_FX.flash(1, 0.9, 0.5, 0.22);
+      }
+      fxRings.push({ kind: 'nova', x: player.x, y: player.y - 24, r: 20, maxR: 220, life: 0.45, max: 0.45, col: syn.col });
+      burst(player.x, player.y - 30, syn.col, 32, 320, 'spark');
+      banner = { txt: '⚡ SINERGIA DESPERTA!', sub: syn.name + ' — ' + syn.desc, life: 3.0, max: 3.0, small: false };
+    }
+  }
+}
+
 function charThemeHex() {
   if (!player) return '#ffe042';
   return player.char.weaponType === 'orange' ? '#ff8a14' : player.char.weaponType === 'star' ? '#ffe042' : SABER_COLORS[saberColorIndex].hex;
@@ -80,8 +128,13 @@ function damageEnemy(e, dmg, fromX, fromY, power = 380, opts = {}) {
   if ((e.type === 'ghost' || e.type === 'necro_boss') && e.faded) return false;
   let crit = false;
   const pref = (player && player.prefix) || null;
-  const critChance = stats.crit + (pref ? pref.critAdd : 0);
-  if (!opts.noCrit && Math.random() < critChance) { dmg *= 2; crit = true; burst(e.x, e.y - e.r, '#ffe042', 12, 240); if (!opts.silent && SFX.critHit) SFX.critHit(); }
+  const feverCrit = player ? getFeverBonus(player).critBonus : 0;
+  const critChance = stats.crit + (pref ? pref.critAdd : 0) + feverCrit;
+  if (!opts.noCrit && Math.random() < critChance) {
+    dmg *= 2; crit = true;
+    burst(e.x, e.y - e.r, '#ffe042', 12, 260, 'spark');
+    if (!opts.silent && SFX.critHit) SFX.critHit();
+  }
   if (pref && pref.dmgMul && !opts.noCrit) { dmg = Math.max(1, Math.round(dmg * pref.dmgMul)); }
   if (pref && pref.kbMul && power) { power *= pref.kbMul; }
   if (pref && pref.id === 'mythical' && player && player.ultMeter < 100) { player.ultMeter = Math.min(100, player.ultMeter + 0.6 * (stats.furyMul || 1)); }
@@ -93,6 +146,7 @@ function damageEnemy(e, dmg, fromX, fromY, power = 380, opts = {}) {
     if (e.lichShieldHits >= 4) {
       e.lichShields--; e.lichShieldHits = 0;
       SFX.shieldBreak();
+      if (typeof GPU_FX !== 'undefined') GPU_FX.shockwave(e.x, e.y - 30, 180, 0.035, 0.32);
       fxRings.push({ kind: 'nova', x: e.x, y: e.y - 30, r: 16, maxR: 110, life: 0.3, max: 0.3, col: '#ffe042' });
       texts.push({ x: e.x, y: e.y - 80, txt: 'ESCUDO DO LICH QUEBRADO!', life: 1.1, color: '#ffe042', size: 11 });
     }
@@ -117,6 +171,12 @@ function damageEnemy(e, dmg, fromX, fromY, power = 380, opts = {}) {
     e.enragedTriggered = true;
     SFX.bossAwake();
     shake = Math.max(shake, 8);
+    if (typeof addTrauma === 'function') addTrauma(0.55);
+    if (typeof GPU_FX !== 'undefined') {
+      GPU_FX.shockwave(e.x, e.y - 20, 400, 0.055, 0.55);
+      GPU_FX.chroma(0.014);
+      GPU_FX.zoomPunch(0.055);
+    }
     fxRings.push({ kind: 'nova', x: e.x, y: e.y - 20, r: 20, maxR: 220, life: 0.45, max: 0.45, col: '#ff3040' });
     texts.push({ x: e.x, y: e.y - 95, txt: '🔥 CHEFE ENFURECIDO!', life: 1.8, color: '#ff385c', size: 15 });
   }
@@ -130,9 +190,14 @@ function damageEnemy(e, dmg, fromX, fromY, power = 380, opts = {}) {
     const res = isBossType(e.type) ? 0.015 : e.type === 'golem' || e.type === 'bigworm' || e.type === 'flower' ? 0.18 : e.big ? 0.4 : 1;
     e.kx += Math.cos(a) * power * res; e.ky += Math.sin(a) * power * res;
   }
-  burst(e.x, e.y - e.r, '#ffffff', 4, 160);
-  burst(e.x, e.y - e.r, opts.color || charThemeHex(), 5, 200);
+  burst(e.x, e.y - e.r, '#ffffff', 4, 180, 'spark');
+  burst(e.x, e.y - e.r, opts.color || charThemeHex(), 5, 210, 'spark');
   texts.push({ x: e.x + rand(-10, 10), y: e.y - e.r * 2.2 - 10, txt: '' + dmg + (crit ? '!' : ''), life: 0.8, color: crit ? '#ffd23f' : (opts.isPoison ? '#7dff7a' : '#ffffff'), size: crit ? 16 : 11 });
+  if (crit && (stats.critNova > 0 || dmg >= 8) && !opts.isNova && typeof GPU_FX !== 'undefined') {
+    GPU_FX.shockwave(e.x, e.y - 16, 140, 0.022, 0.25);
+    GPU_FX.chroma(0.004);
+    GPU_FX.zoomPunch(0.018);
+  }
   if (crit && stats.critNova > 0 && !opts.isNova) {
     const nr = 75 + stats.critNova * 20;
     fxRings.push({ kind: 'nova', x: e.x, y: e.y - e.r * 0.5, r: 10, maxR: nr, life: 0.25, max: 0.25, col: '#d26bff' });
@@ -160,13 +225,12 @@ function damageEnemy(e, dmg, fromX, fromY, power = 380, opts = {}) {
   if (!opts.noFreeze && (crit || isBossType(e.type) || e.elite)) {
     if (!lastHitStopT || (typeof time !== 'undefined' && time - lastHitStopT > 0.18)) {
       lastHitStopT = typeof time !== 'undefined' ? time : performance.now() / 1000;
-      freeze = Math.min(0.022, crit ? 0.02 : 0.012);
+      freeze = Math.min(0.025, crit ? 0.022 : 0.014);
     }
   }
-  // Não treme a tela em hits comuns contra monstros normais (elimina enjoo e fadiga visual)
   if (opts.heavyImpact || (isBossType(e.type) && crit)) {
     shake = Math.max(shake, 3);
-    addTrauma(0.12);
+    addTrauma(0.16);
   }
   if (e.hp <= 0) killEnemy(e);
   return true;
@@ -189,6 +253,39 @@ function killEnemy(e) {
   kills++;
   const p = player;
   p.combo++; p.comboT = 2.9;
+
+  // Fever Tier progression
+  const fb = getFeverBonus(p);
+  if (fb.tier > (p.feverTier || 0)) {
+    p.feverTier = fb.tier;
+    if (SFX.feverUp) SFX.feverUp();
+    if (typeof GPU_FX !== 'undefined') {
+      GPU_FX.shockwave(p.x, p.y - 25, 220, 0.035, 0.35);
+      GPU_FX.zoomPunch(0.035);
+    }
+    texts.push({ x: p.x, y: p.y - 145, txt: '🔥 FEBRE: ' + fb.label, life: 1.6, color: fb.col, size: 14 });
+  }
+
+  // Multi-abate rápido (5+ monstros em 0.45s)
+  p.multiKillCnt = (p.multiKillCnt || 0) + 1;
+  p.multiKillT = 0.45;
+  if (p.multiKillCnt >= 5 && p.multiKillCnt % 5 === 0) {
+    if (SFX.multiKill) SFX.multiKill();
+    p.ultMeter = Math.min(100, p.ultMeter + 6 * (stats.furyMul || 1));
+    score += p.multiKillCnt * 12;
+    if (typeof GPU_FX !== 'undefined') GPU_FX.shockwave(e.x, e.y, 170, 0.028, 0.28);
+    texts.push({ x: e.x, y: e.y - 52, txt: '⚡ MULTI-ABATE x' + p.multiKillCnt + '!', life: 1.25, color: '#62f6ff', size: 12 });
+  }
+
+  // Essência Abissal Contínua a cada 100 abates
+  const killMilestone = Math.floor(kills / 100);
+  if (killMilestone > (p.lastEssenceKillMilestone || 0)) {
+    p.lastEssenceKillMilestone = killMilestone;
+    soulEssences += 1;
+    if (typeof saveProfileSoon === 'function') saveProfileSoon();
+    texts.push({ x: p.x, y: p.y - 165, txt: '✦ +1 ESSÊNCIA ABISSAL (' + (killMilestone * 100) + ' ABATES)!', life: 2.0, color: '#c844ff', size: 12 });
+  }
+
   if (stats.bloodOrb && p.combo % 12 === 0 && p.hp < stats.maxHp) p.hp = Math.min(stats.maxHp, p.hp + 1);
   if (p.combo > maxCombo) maxCombo = p.combo;
   bestiaryKills[e.type] = (bestiaryKills[e.type] || 0) + 1;
@@ -209,8 +306,8 @@ function killEnemy(e) {
     }
   }
 
-  burst(e.x, e.y - e.r, e.type === 'slime' || e.type === 'viper' ? '#5fd35f' : e.type === 'ghost' || e.type === 'necromancer' ? '#e8ffd0' : isBossType(e.type) ? '#ff9a2e' : '#c9a0ff', 18, 260);
-  burst(e.x, e.y - e.r, '#ffffff', 8, 180);
+  burst(e.x, e.y - e.r, e.type === 'slime' || e.type === 'viper' ? '#5fd35f' : e.type === 'ghost' || e.type === 'necromancer' ? '#e8ffd0' : isBossType(e.type) ? '#ff9a2e' : '#c9a0ff', 18, 280, 'spark');
+  burst(e.x, e.y - e.r, '#ffffff', 8, 190, 'diamond');
   SFX.kill(e.type);
 
   // Explosão de Inimigo Volátil (Bomber) ou Inimigo Envenenado (Peçonha Letal)
@@ -233,6 +330,7 @@ function killEnemy(e) {
     SFX.shrine();
     play('coins_bag', 0.6, 0.08);
     shake = Math.max(shake, 6);
+    if (typeof GPU_FX !== 'undefined') GPU_FX.shockwave(e.x, e.y, 240, 0.04, 0.4);
     for (let i = 0; i < 18; i++) dropItem('coin', e.x, e.y);
     for (let i = 0; i < 4; i++) dropItem('ruby', e.x, e.y);
     dropItem('potion', e.x, e.y);
@@ -268,15 +366,26 @@ function killEnemy(e) {
   if (e.big) for (let i = 0; i < 3; i++) spawnEnemy('minislime', { x: e.x + rand(-20, 20), y: e.y + rand(-20, 20) }, { instant: true, noElite: true });
   if (e.eliteTrait && e.eliteTrait.id === 'volatile') {
     SFX.explode();
+    if (typeof GPU_FX !== 'undefined') GPU_FX.shockwave(e.x, e.y - 12, 180, 0.04, 0.35);
     fxRings.push({ kind: 'nova', x: e.x, y: e.y - 12, r: 12, maxR: 115, life: 0.3, max: 0.3, col: '#ff6420' });
-    burst(e.x, e.y - 12, '#ff6420', 20, 240);
+    burst(e.x, e.y - 12, '#ff6420', 20, 240, 'spark');
     if (player && Math.hypot(player.x - e.x, player.y - e.y) < 115) hurtPlayer(1, e.x, e.y, 'Explosão Volátil');
   }
   if (isBossType(e.type)) {
     const otherBoss = enemies.find(o => !o.dead && o !== e && isBossType(o.type));
     boss = otherBoss || null;
     SFX.bossDie();
-    shake = 10; freeze = 0.2;
+    shake = 10; freeze = 0.06;
+    if (typeof addTrauma === 'function') addTrauma(0.85);
+    if (typeof GPU_FX !== 'undefined') {
+      GPU_FX.slowMo(0.24, 0.25);
+      GPU_FX.shockwave(e.x, e.y - 20, 460, 0.06, 0.55);
+      GPU_FX.shockwave(e.x, e.y - 20, 280, 0.04, 0.32);
+      GPU_FX.chroma(0.018);
+      GPU_FX.zoomPunch(0.07);
+      GPU_FX.flash(1, 0.9, 0.6, 0.22);
+    }
+    burst(e.x, e.y - e.r, '#ffd23f', 36, 360, 'spark');
     const essGain = 3 + Math.floor(wave / 5) * 2;
     soulEssences += essGain;
     localStorage.setItem('gabriel_essences', soulEssences);
@@ -291,17 +400,20 @@ function killEnemy(e) {
     } else {
       banner = { txt: '1º CHEFÃO ABATIDO!', sub: 'Derrote o Chefão restante!', life: 2.2, max: 2.2, small: true };
     }
-  } else if (e.elite || e.big || e.type === 'bigworm' || e.type === 'golem') { shake = Math.max(shake, 10); freeze = Math.max(freeze, 0.07); }
+  } else if (e.elite || e.big || e.type === 'bigworm' || e.type === 'golem') {
+    shake = Math.max(shake, 10); freeze = Math.max(freeze, 0.04);
+    if (typeof addTrauma === 'function') addTrauma(0.28);
+  }
 }
 
 function enemyShoot(e, ang, speed = 200, r = 7, color = 'purple') {
   ebullets.push({ x: e.x, y: e.y - e.r * 1.2, vx: Math.cos(ang) * speed, vy: Math.sin(ang) * speed, r, life: 6, color });
 }
 
-function burst(x, y, color, n, spd) {
+function burst(x, y, color, n, spd, kind = 'spark', add = true) {
   for (let i = 0; i < n; i++) {
     const a = rand(0, Math.PI * 2), s = rand(spd * 0.3, spd);
-    particles.push({ x, y, vx: Math.cos(a) * s, vy: Math.sin(a) * s, life: rand(0.3, 0.7), max: 0.7, color, size: rand(2, 5) });
+    particles.push({ x, y, vx: Math.cos(a) * s, vy: Math.sin(a) * s, life: rand(0.3, 0.7), max: 0.7, color, size: rand(2, 5), kind, add });
   }
 }
 
@@ -378,9 +490,21 @@ function chooseUpgrade(i) {
     banner = { txt: '★ FORMA DESPERTA!', sub: u.name.toUpperCase() + ' ATINGIU O NÍVEL MÁXIMO!', life: 2.2, max: 2.2, small: true };
     SFX.shrine();
   }
+  checkSynergies();
   player.pendingLevels--;
   SFX.select();
-  burst(player.x, player.y - 40, '#ffd23f', 30, 300);
+  burst(player.x, player.y - 40, '#ffd23f', 30, 300, 'spark');
+  if (typeof GPU_FX !== 'undefined') GPU_FX.shockwave(player.x, player.y - 28, 220, 0.032, 0.35);
+  fxRings.push({ kind: 'nova', x: player.x, y: player.y - 24, r: 16, maxR: 150, life: 0.32, max: 0.32, col: '#ffd23f' });
+  for (const e of enemies) {
+    if (!e.dead && !isBossType(e.type)) {
+      const d = Math.hypot(e.x - player.x, e.y - player.y);
+      if (d < 130 && d > 0.1) {
+        e.kx += ((e.x - player.x) / d) * 420;
+        e.ky += ((e.y - player.y) / d) * 420;
+      }
+    }
+  }
   state = 'play';
   player.inv = Math.max(player.inv, 0.8);
 }
@@ -446,7 +570,7 @@ function startAttack(fromMouse, fromTouch) {
       p.aim = touch.joyAngle;
     }
   } else if (fromMouse) {
-    const z = (cam && cam.zoom) || 1;
+    const z = typeof getActiveCamZoom === 'function' ? getActiveCamZoom() : ((cam && cam.zoom) || 1);
     const wx = (mouse.x - W / 2) / z + cam.x, wy = (mouse.y - H / 2) / z + cam.y;
     p.aim = Math.atan2(wy - (p.y - 40), wx - p.x);
   }
@@ -455,10 +579,11 @@ function startAttack(fromMouse, fromTouch) {
   if (Math.abs(c) > 0.05) p.flip = c < 0;
 
   const berserkBonus = stats.berserk ? stats.berserk * 0.08 * (Math.min(1, p.combo / 25) + (p.hp <= 2 ? 0.8 : 0)) : 0;
+  const feverAtkBonus = getFeverBonus(p).atkBonus;
   const pPrefix = p.prefix;
   const prefSpd = pPrefix ? pPrefix.speedMul : 1;
   const prefSize = pPrefix ? pPrefix.sizeMul : 1;
-  const rateMul = stats.atkRate * (1 + berserkBonus) * (p.frenzyT > 0 ? 1.55 : 1) * prefSpd;
+  const rateMul = stats.atkRate * (1 + berserkBonus + feverAtkBonus) * (p.frenzyT > 0 ? 1.55 : 1) * prefSpd;
   const dur = (p.char.weaponType === 'saber' ? 0.32 : 0.25) / rateMul;
   p.attack = { t: 0, dur, hit: new Set() };
 
@@ -615,6 +740,9 @@ function hitBarrel(b) {
 function collect(k) {
   k.dead = true;
   const p = player;
+  if ((k.kind === 'coin' || k.kind === 'gem' || k.kind === 'ruby') && p.combo > 0) {
+    p.comboT = Math.max(p.comboT, 1.9);
+  }
   if (k.kind === 'coin') { coins += (Math.random() < ((stats.coinMul || 1) - 1) ? 2 : 1); score += 10; SFX.coin(); }
   else if (k.kind === 'gem') { gainXp(1); SFX.gem(); }
   else if (k.kind === 'ruby') { gainXp(5); SFX.gem(); beep(1600, 0.08, 'triangle', 0.04); }
@@ -624,24 +752,27 @@ function collect(k) {
     p.frenzyT = Math.max(p.frenzyT || 0, 6);
     score += 50;
     texts.push({ x: p.x, y: p.y - 110, txt: '+35 FÚRIA! (Estrela Cadente)', life: 1.3, color: '#ffee55', size: 13 });
-    burst(p.x, p.y - 40, '#ffee55', 20, 220);
+    burst(p.x, p.y - 40, '#ffee55', 20, 220, 'diamond');
   } else if (k.kind === 'potion') {
     p.hp = Math.min(stats.maxHp, p.hp + 2); SFX.potion();
     texts.push({ x: p.x, y: p.y - 110, txt: '+2 VIDA', life: 1, color: '#ff7a9c', size: 12 });
-    burst(p.x, p.y - 40, '#ff7a9c', 14, 160);
+    burst(p.x, p.y - 40, '#ff7a9c', 14, 160, 'diamond');
   } else if (k.kind === 'magnet_orb') {
     SFX.magnet();
     for (const o of pickups) if (o.kind !== 'chest') o.pull = true;
+    if (typeof GPU_FX !== 'undefined') GPU_FX.shockwave(p.x, p.y - 25, 280, 0.04, 0.4);
     fxRings.push({ kind: 'nova', x: p.x, y: p.y - 25, r: 16, maxR: 220, life: 0.4, max: 0.4, col: '#57e2ff' });
     texts.push({ x: p.x, y: p.y - 115, txt: 'ÍMÃ GLOBAL!', life: 1.2, color: '#57e2ff', size: 13 });
   } else if (k.kind === 'frenzy_orb') {
     p.frenzyT = Math.max(p.frenzyT, 8);
     SFX.shrine();
-    burst(p.x, p.y - 40, '#ff6438', 24, 240);
+    if (typeof GPU_FX !== 'undefined') GPU_FX.zoomPunch(0.035);
+    burst(p.x, p.y - 40, '#ff6438', 24, 240, 'spark');
     texts.push({ x: p.x, y: p.y - 115, txt: 'MODO FRENESI!', life: 1.2, color: '#ff8a3d', size: 13 });
   } else if (k.kind === 'ice_bomb') {
     SFX.freezeBomb();
     shake = Math.max(shake, 5);
+    if (typeof GPU_FX !== 'undefined') { GPU_FX.shockwave(p.x, p.y - 20, 420, 0.045, 0.45); GPU_FX.chroma(0.008); }
     fxRings.push({ kind: 'nova', x: p.x, y: p.y - 20, r: 20, maxR: 380, life: 0.45, max: 0.45, col: '#9beeff' });
     for (const e of enemies) {
       if (!e.dead && e.spawn <= 0 && Math.hypot(e.x - p.x, e.y - p.y) < 420) {
@@ -655,9 +786,10 @@ function collect(k) {
     p.pendingLevels += 1;
     p.ultMeter = 100;
     SFX.potion(); SFX.level();
+    if (typeof GPU_FX !== 'undefined') GPU_FX.shockwave(p.x, p.y - 24, 300, 0.04, 0.42);
     for (let i = 0; i < 12; i++) dropItem('coin', p.x, p.y - 10);
     for (let i = 0; i < 2; i++) dropItem('ruby', p.x, p.y - 10);
-    burst(p.x, p.y - 40, '#ffd23f', 40, 320);
+    burst(p.x, p.y - 40, '#ffd23f', 40, 320, 'diamond');
     texts.push({ x: p.x, y: p.y - 120, txt: 'TESOURO!', life: 1.5, color: '#ffd23f', size: 16 });
   }
 }
@@ -672,8 +804,9 @@ function hurtPlayer(dmg, fx, fy, sourceName) {
     SFX.shieldBreak();
     gamepadRumble(0.3, 0.4, 150);
     shake = 5;
+    if (typeof GPU_FX !== 'undefined') GPU_FX.shockwave(p.x, p.y - 28, 220, 0.036, 0.34);
     fxRings.push({ kind: 'nova', x: p.x, y: p.y - 28, r: 16, maxR: 135, life: 0.3, max: 0.3, col: '#4fe3ff' });
-    burst(p.x, p.y - 36, '#7fe8ff', 20, 260);
+    burst(p.x, p.y - 36, '#7fe8ff', 20, 260, 'spark');
     for (const e of enemies) {
       if (!e.dead && Math.hypot(e.x - p.x, e.y - p.y) < 135 + e.r) {
         damageEnemy(e, 2 + (stats.aegis || 0) * 2, p.x, p.y, 480, { color: '#4fe3ff', noFreeze: true, silent: true });
@@ -696,7 +829,7 @@ function hurtPlayer(dmg, fx, fy, sourceName) {
     else if (Math.random() < 0.5) {
       p.inv = 0.65;
       SFX.reflect();
-      burst(p.x, p.y - 34, '#ffea60', 12, 180);
+      burst(p.x, p.y - 34, '#ffea60', 12, 180, 'spark');
       texts.push({ x: p.x, y: p.y - 110, txt: 'PELE DE FERRO!', life: 0.8, color: '#ffea60', size: 11 });
       return;
     }
@@ -704,11 +837,16 @@ function hurtPlayer(dmg, fx, fy, sourceName) {
   if (dmg > 1 && stats.armor && Math.random() < stats.armor * 0.25) dmg = Math.max(1, dmg - 1);
   p.hp -= dmg;
   p.inv = stats.invTime;
-  p.combo = 0; p.bestStreakMilestone = 0;
-  shake = 7; freeze = 0.06; addTrauma(0.25);
+  p.combo = 0; p.bestStreakMilestone = 0; p.feverTier = 0; p.multiKillCnt = 0;
+  shake = 7; freeze = 0.05; addTrauma(0.5);
+  if (typeof GPU_FX !== 'undefined') {
+    GPU_FX.chroma(0.016);
+    GPU_FX.zoomPunch(-0.04);
+    GPU_FX.flash(1, 0.12, 0.15, 0.24);
+  }
   SFX.hurt();
   gamepadRumble(0.45, 0.75, 230);
-  burst(p.x, p.y - 40, '#ff4d4d', 16, 220);
+  burst(p.x, p.y - 40, '#ff4d4d', 16, 220, 'spark');
   const a = Math.atan2(p.y - fy, p.x - fx);
   p.x += Math.cos(a) * 28; p.y += Math.sin(a) * 28;
   collideStatic(p, 14);
@@ -719,6 +857,10 @@ function hurtPlayer(dmg, fx, fy, sourceName) {
       p.hp = Math.max(2, Math.ceil(stats.maxHp * 0.5));
       p.inv = 2.4;
       SFX.bloodRite();
+      if (typeof GPU_FX !== 'undefined') {
+        GPU_FX.shockwave(p.x, p.y - 24, 340, 0.055, 0.5);
+        GPU_FX.flash(1, 0.85, 0.35, 0.25);
+      }
       fxRings.push({ kind: 'nova', x: p.x, y: p.y - 24, r: 20, maxR: 260, life: 0.5, max: 0.5, col: '#ffd23f' });
       for (const e of enemies) {
         if (!e.dead && Math.hypot(e.x - p.x, e.y - p.y) < 260) damageEnemy(e, 25 + stats.dmg * 4, p.x, p.y, 600, { color: '#ffd23f', noFreeze: true });

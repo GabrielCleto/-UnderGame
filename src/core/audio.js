@@ -193,6 +193,9 @@ function beep(freq = 440, dur = 0.1, type = 'square', vol = 0.05, slide = 0) {
   } catch (e) { }
 }
 
+const PENTA_HZ = [523.25, 587.33, 659.25, 783.99, 880.0, 1046.5, 1174.66, 1318.5, 1567.98, 1760.0];
+let gemPitchIdx = 0, gemPitchLast = 0;
+
 const SFX = {
   slash: () => { play(pick(['swing1', 'swing2', 'swing3']), 0.35, 0.15); beep(240 * (0.92 + Math.random() * 0.16), 0.04, 'triangle', 0.018, -90); },
   hit: () => beep(140 * (0.92 + Math.random() * 0.16), 0.08, 'square', 0.05, -80),
@@ -207,7 +210,24 @@ const SFX = {
   },
   hurt: () => { beep(110, 0.25, 'sawtooth', 0.07, -60); play('mnstr7', 0.15, 0.05); },
   coin: () => play('coin', 0.3, 0.15),
-  gem: () => beep(1200 + Math.random() * 400, 0.05, 'triangle', 0.03),
+  gem: () => {
+    const now = performance.now();
+    if (now - gemPitchLast < 420) gemPitchIdx = Math.min(PENTA_HZ.length - 1, gemPitchIdx + 1);
+    else gemPitchIdx = 0;
+    gemPitchLast = now;
+    beep(PENTA_HZ[gemPitchIdx], 0.065, 'triangle', 0.032, 60);
+  },
+  feverUp: () => [523.25, 659.25, 783.99, 1046.5, 1318.5].forEach((f, i) => setTimeout(() => beep(f, 0.12, 'triangle', 0.045, 90), i * 48)),
+  synergy: () => {
+    play('magic', 0.55, 0.05);
+    [440, 554.37, 659.25, 880, 1108.73, 1318.5].forEach((f, i) => {
+      setTimeout(() => {
+        beep(f, 0.18, 'triangle', 0.05, 40);
+        beep(f * 0.5, 0.20, 'sine', 0.04, 0);
+      }, i * 55);
+    });
+  },
+  multiKill: () => [880, 1174.66, 1567.98].forEach((f, i) => setTimeout(() => beep(f, 0.075, 'triangle', 0.038, 120), i * 36)),
   potion: () => play('bottle', 0.6),
   dash: () => { play('swing2', 0.25, 0.1); beep(320, 0.15, 'sine', 0.04, 500); },
   reflect: () => { play(pick(['clash1', 'clash2']), 0.55, 0.12); play('clang', 0.25, 0.15); },

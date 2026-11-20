@@ -1,8 +1,12 @@
 let last = performance.now();
 function loop(now) {
   try {
-    const dt = Math.min(0.033, (now - last) / 1000);
+    const realDt = Math.min(0.05, Math.max(0.001, (now - last) / 1000));
+    const dt = realDt;
     last = now;
+
+    if (typeof PERF_STATS !== 'undefined') PERF_STATS.recordFrame(realDt);
+    if (typeof GPU_FX !== 'undefined') GPU_FX.update(realDt);
 
   updateGamepadState(dt);
 
@@ -16,6 +20,8 @@ function loop(now) {
     SFX.select();
   }
   if (anyPressed('n')) { minimapOn = !minimapOn; SFX.select(); }
+  if (anyPressed('f') && typeof togglePerfMonitor === 'function') { togglePerfMonitor(); SFX.select(); }
+  if (anyPressed('g') && typeof cycleGfxQuality === 'function') { cycleGfxQuality(); SFX.select(); }
   if (anyPressed('c')) {
     saberColorIndex = (saberColorIndex + 1) % SABER_COLORS.length;
     localStorage.setItem('gabriel_saber_color', saberColorIndex);
@@ -144,8 +150,11 @@ function loop(now) {
     } else if (state === 'play') {
       if (anyPressed('p', 'escape')) state = 'pause';
       else if (anyPressed('tab')) { enterCharacterSelect(); }
-      else if (freeze > 0) { freeze -= dt; shake = Math.max(0, shake - dt * 50); trauma = Math.max(0, trauma - dt * 2.5); }
-      else update(dt);
+      else if (freeze > 0) { freeze -= realDt; shake = Math.max(0, shake - realDt * 50); }
+      else {
+        const simDt = realDt * (typeof GPU_FX !== 'undefined' && GPU_FX.slowMoT > 0 ? GPU_FX.slowMoScale : 1);
+        update(simDt);
+      }
     } else if (state === 'levelup') {
       // Atalhos diretos: 1, 2, 3 no teclado ou botões X, Y, B no controle
       if (pressed['1'] || (gpState && gpState.justPressed[2])) chooseUpgrade(0);
@@ -240,6 +249,9 @@ function loop(now) {
         if (inRect(mouse.x, mouse.y, pauseResumeRect)) { state = 'play'; }
         else if (inRect(mouse.x, mouse.y, pauseCharRect)) { enterCharacterSelect(); }
         else if (inRect(mouse.x, mouse.y, pauseRestartRect)) { reset(); state = 'play'; SFX.wave(); }
+        else if (typeof pauseGfxRect !== 'undefined' && inRect(mouse.x, mouse.y, pauseGfxRect) && typeof cycleGfxQuality === 'function') { cycleGfxQuality(); SFX.select(); }
+        else if (typeof pauseShakeRect !== 'undefined' && inRect(mouse.x, mouse.y, pauseShakeRect) && typeof toggleReduceShake === 'function') { toggleReduceShake(); SFX.select(); }
+        else if (typeof pausePerfRect !== 'undefined' && inRect(mouse.x, mouse.y, pausePerfRect) && typeof togglePerfMonitor === 'function') { togglePerfMonitor(); SFX.select(); }
         mouse.click = false; mouse.down = false;
       }
     } else if (state === 'over') {
@@ -254,6 +266,7 @@ function loop(now) {
     if (typeof usePixi !== 'undefined' && usePixi && typeof renderPixiWorld === 'function') {
       try {
         renderPixiWorld();
+        if (typeof drawPixiWorldOverlay2D === 'function') drawPixiWorldOverlay2D();
         pixiRendered = true;
       } catch (err) {
         console.warn('Erro ao renderizar WebGL, ativando fallback Canvas 2D:', err);
@@ -308,5 +321,29 @@ document.addEventListener('visibilitychange', () => {
   if (document.hidden) { autoPause(); if (typeof flushProfileSave === 'function') flushProfileSave(); }
 });
 addEventListener('pagehide', () => { if (typeof flushProfileSave === 'function') flushProfileSave(); });
+
+try {
+  Object.defineProperty(window, '__GAME_DEBUG', {
+    configurable: true,
+    get() {
+      return {
+        usePixi: typeof usePixi !== 'undefined' ? usePixi : false,
+        quality: typeof GFX_SETTINGS !== 'undefined' ? GFX_SETTINGS.quality : 'high',
+        fps: typeof PERF_STATS !== 'undefined' ? Math.round(PERF_STATS.fps) : 0,
+        frameMs: typeof PERF_STATS !== 'undefined' ? +PERF_STATS.frameMs.toFixed(2) : 0,
+        p95Ms: typeof PERF_STATS !== 'undefined' ? +PERF_STATS.p95Ms.toFixed(2) : 0,
+        enemies: typeof enemies !== 'undefined' ? enemies.length : 0,
+        particles: typeof particles !== 'undefined' ? particles.length : 0,
+        pshots: typeof pshots !== 'undefined' ? pshots.length : 0,
+        pickups: typeof pickups !== 'undefined' ? pickups.length : 0,
+        state: typeof state !== 'undefined' ? state : '',
+        wave: typeof wave !== 'undefined' ? wave : 0,
+        combo: typeof player !== 'undefined' && player ? player.combo : 0,
+        feverTier: typeof player !== 'undefined' && player ? (player.feverTier || 0) : 0,
+        synergies: typeof player !== 'undefined' && player && player.synergies ? Array.from(player.synergies) : [],
+      };
+    }
+  });
+} catch (_) {}
 
 requestAnimationFrame(loop);

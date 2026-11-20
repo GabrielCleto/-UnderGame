@@ -624,13 +624,26 @@ function drawPickup(k) {
 // =====================================================================
 let ambientDust = [];
 function updateAmbientAtmosphere(dt) {
-  if (ambientDust.length < 35) {
+  const targetCnt = (typeof GFX_SETTINGS !== 'undefined' && GFX_SETTINGS.quality === 'low') ? 30 : 70;
+  if (ambientDust.length > targetCnt) ambientDust.length = targetCnt;
+  if (ambientDust.length < targetCnt) {
+    const bio = typeof currentBiome !== 'undefined' ? currentBiome : 0;
+    let col = bio === 1 ? pick(['#ff7a29', '#ffb347', '#ffe066'])
+      : bio === 2 ? pick(['#c06bff', '#8b4dff', '#e09aff'])
+      : bio === 3 ? pick(['#7ee8ff', '#a8f0ff', '#58c0ff'])
+      : pick(['#d2ff96', '#ffe76b', '#b8ffcf']);
+    if (waveEvent === 'bloodmoon') col = '#ff4d60';
+    else if (waveEvent === 'void_eclipse') col = '#c06bff';
+    else if (waveEvent === 'magma_surge') col = '#ff6a1a';
+    else if (waveEvent === 'mega_horde') col = '#62f6ff';
+
+    const vyBase = bio === 1 || waveEvent === 'magma_surge' ? rand(-42, -18) : rand(-18, -6);
     ambientDust.push({
       x: rand(0, WORLD.w), y: rand(0, WORLD.h),
-      vx: rand(-12, 12), vy: rand(-18, -6),
-      size: rand(1.5, 3.2),
-      alpha: rand(0.2, 0.65),
-      col: waveEvent === 'bloodmoon' ? '#ff4d60' : (waveEvent === 'void_eclipse' ? '#c06bff' : '#d2f2ff'),
+      vx: rand(-14, 14), vy: vyBase,
+      size: rand(1.6, 3.6),
+      alpha: rand(0.22, 0.68),
+      col,
       t: rand(0, 10)
     });
   }

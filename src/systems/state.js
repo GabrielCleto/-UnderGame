@@ -119,9 +119,11 @@ function reset() {
   keys[' '] = false;
   if (typeof stopBossMusic === 'function') stopBossMusic(false);
   if (typeof actionBuffer !== 'undefined') actionBuffer.clear();
+  if (typeof GPU_FX !== 'undefined') GPU_FX.reset();
   runSeed = generateRunSeed();
   lastDamageSource = 'Horda da Arena';
   buildWorld();
+  if (typeof rebuildPixiWorld === 'function') rebuildPixiWorld();
   const curChar = CHARACTERS[selectedCharIndex];
   const vigorBonus = (soulUps.vigor || 0) * 2;
   const furyBonus = (soulUps.fury || 0) * 0.15;
@@ -140,7 +142,8 @@ function reset() {
     char: curChar,
     x: WORLD.w / 2, y: WORLD.h / 2, dir: 'down', flip: false, moving: false, aim: Math.PI / 2,
     hp: curChar.hpMod + vigorBonus, inv: 0, animT: 0, idleT: 0, attack: null, attackCd: 0, dash: null, dashCd: 0,
-    ult: null, ultMeter: 0, combo: 0, comboT: 0, bestStreakMilestone: 0,
+    ult: null, ultMeter: 0, combo: 0, comboT: 0, bestStreakMilestone: 0, feverTier: 0,
+    synergies: new Set(), multiKillCnt: 0, multiKillT: 0, lastEssenceKillMilestone: 0, bladeTrail: [], solarBoltT: 0.85,
     level: 1, xp: 0, xpNext: 6, pendingLevels: 0,
     fireAng: 0, boltT: 2, iceT: 0, earthT: 3, phantomT: 1.5, axeT: 1.4, aegisT: 12, vortexT: 3.5,
     frenzyT: 0, shields: 0, ghostT: 0, stepT: 0, goblinT: 16, prefix: null, ironskinT: 0, thornsT: 0, starTimer: 5.0,
@@ -148,7 +151,7 @@ function reset() {
   enemies = []; ebullets = []; pshots = []; particles = []; pickups = []; texts = []; slashes = []; bolts = [];
   shrines = []; hazards = []; fxRings = []; afterimages = []; puddles = [];
   waveEvent = null; meteorTimer = 0;
-  cam = { x: player.x, y: player.y, zoom: getCamZoom() }; shake = 0; freeze = 0;
+  cam = { x: player.x, y: player.y, zoom: getCamZoom(), zoomDyn: 1, lookX: 0, lookY: 0 }; shake = 0; freeze = 0; trauma = 0;
   currentBiome = 0; shopVisitedWave = 0; rerollsUsed = 0; bansLeft = 1; bannedUpgrades = new Set(); totalDamageDealt = 0; maxCombo = 0;
   wave = 0; waveTimer = 1.0; toSpawn = 0; spawnTimer = 0; boss = null; bossCount = 0;
   score = 0; coins = 0; kills = 0; banner = null; time = 0; playTime = 0;

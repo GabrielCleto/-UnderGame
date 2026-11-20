@@ -603,16 +603,16 @@ function drawWaveBanner(s, left) {
 // ---------------------------------------------------------------------
 //  5. BARRA DO CHEFE (pedra e ferro, nome em faixa de sangue)
 // ---------------------------------------------------------------------
-function drawBossBar(s, y, maxW) {
+function drawBossBar(s, y, maxW, dt = 0.016) {
   if (!boss || boss.dead || boss.hp <= 0 || state !== 'play') return y;
   const bw = Math.round(Math.min(560 * s, maxW));
   const bx = Math.round(W / 2 - bw / 2);
   const d = MON[boss.type];
   const name = ((d && d.bossName) ? d.bossName : 'CHEFÃO').toUpperCase();
 
-  // fantasma do dano do chefe
+  // fantasma do dano do chefe (framerate-independent)
   if (!boss._hudGhost || boss._hudGhost < boss.hp) boss._hudGhost = boss.hp;
-  boss._hudGhost += (boss.hp - boss._hudGhost) * 0.06;
+  boss._hudGhost += (boss.hp - boss._hudGhost) * (1 - Math.exp(-5.0 * dt));
 
   medPanel(bx, y, bw, Math.round(42 * s), 'leather');
   // faixa do nome
@@ -642,17 +642,30 @@ function drawBossBar(s, y, maxW) {
 // ---------------------------------------------------------------------
 function drawComboSeal(p, s, y) {
   if (p.combo < 3) return;
-  const tier = p.combo >= 40 ? ['LENDÁRIO', MED.purpleLight] : p.combo >= 20 ? ['BRUTAL', MED.bloodLight] : p.combo >= 10 ? ['FEROZ', '#ff9436'] : ['COMBO', MED.goldLight];
+  const fb = typeof getFeverBonus === 'function' ? getFeverBonus(p) : null;
+  const feverActive = fb && fb.tier >= 1;
+  const tier = feverActive
+    ? [fb.label, fb.col]
+    : (p.combo >= 40 ? ['LENDÁRIO', MED.purpleLight] : p.combo >= 20 ? ['BRUTAL', MED.bloodLight] : p.combo >= 10 ? ['FEROZ', '#ff9436'] : ['COMBO', MED.goldLight]);
   const sc = popScale(hudComboPop, 0.18, 0.45);
   ctx.save();
   ctx.translate(W / 2, y + Math.round(20 * s));
   ctx.scale(sc, sc);
   uiTxt('x' + p.combo, 0, 0, Math.round(22 * s), tier[1], 'center', '900');
-  serifTxt(tier[0], 0, Math.round(16 * s), Math.round(11 * s), MED.goldLight);
+  serifTxt(tier[0], 0, Math.round(16 * s), Math.round((feverActive ? 11.5 : 11) * s), feverActive ? tier[1] : MED.goldLight);
+  if (feverActive) {
+    const parts = [];
+    if (fb.atkBonus > 0) parts.push('+' + Math.round(fb.atkBonus * 100) + '% ATQ');
+    if (fb.spdBonus > 0) parts.push('+' + Math.round(fb.spdBonus * 100) + '% VEL');
+    if (fb.critBonus > 0) parts.push('+' + Math.round(fb.critBonus * 100) + '% CRIT');
+    if (parts.length) {
+      uiTxt(parts.join(' • '), 0, Math.round(29 * s), Math.round(9 * s), '#fff1c9', 'center', 'bold');
+    }
+  }
   ctx.restore();
   // pavio do combo (tempo restante)
   const w = Math.round(80 * s), fr = clamp(p.comboT / 2.9, 0, 1);
-  const x = Math.round(W / 2 - w / 2), yy = y + Math.round(42 * s);
+  const x = Math.round(W / 2 - w / 2), yy = y + Math.round((feverActive ? 54 : 42) * s);
   ctx.fillStyle = '#07050a'; ctx.fillRect(x - 1, yy - 1, w + 2, 5);
   ctx.fillStyle = '#1c1828'; ctx.fillRect(x, yy, w, 3);
   ctx.fillStyle = tier[1]; ctx.fillRect(x, yy, Math.round(w * fr), 3);
@@ -785,6 +798,74 @@ function drawRelicBelt(s, m, topY, rightLimit) {
     x += sz + gap;
   }
   if (extra > 0) uiTxt('+' + extra, x + sz / 2, y + sz / 2 + Math.round(4 * s), Math.round(11 * s), '#f7d67e', 'center', 'bold');
+
+  // Emblemas de Sinergias Desbloqueadas
+  if (player && player.synergies && player.synergies.size > 0 && typeof SYNERGIES !== 'undefined') {
+    const activeSyns = SYNERGIES.filter(syn => player.synergies.has(syn.id));
+    if (activeSyns.length) {
+      const synH = Math.round(20 * s);
+      const synY = topY !== null ? by + bh + Math.round(5 * s) : by - synH - Math.round(5 * s);
+      const fs = Math.round(9.5 * s);
+      let sx = m;
+      const limitX = rightLimit - m;
+      const pulse = 0.7 + 0.3 * Math.sin(time * 5.2);
+      ctx.save();
+      for (const syn of activeSyns) {
+        const label = '✦ ' + syn.name;
+        ctx.font = `bold ${fs}px ${FONT_UI}`;
+        const tw = Math.round(ctx.measureText(label).width + 14 * s);
+        if (sx + tw > limitX && sx > m) break;
+        ctx.fillStyle = 'rgba(12, 9, 20, 0.88)';
+        ctx.fillRect(sx, synY, tw, synH);
+        ctx.save();
+        ctx.globalAlpha = pulse;
+        ctx.strokeStyle = syn.col || MED.goldLight;
+        ctx.lineWidth = 1.25;
+        ctx.strokeRect(sx + 0.5, synY + 0.5, tw - 1, synH - 1);
+        ctx.restore();
+        uiTxt(label, sx + Math.round(7 * s), synY + Math.round(13.5 * s), fs, syn.col || MED.goldLight, 'left', 'bold');
+        sx += tw + Math.round(5 * s);
+      }
+      ctx.restore();
+    }
+  }
+}
+
+function drawPerfBadge(s, m, heroBottom) {
+  if (typeof GFX_SETTINGS === 'undefined' || !GFX_SETTINGS.showPerf) return;
+  const fps = typeof PERF_STATS !== 'undefined' ? Math.round(PERF_STATS.fps) : 0;
+  const fms = typeof PERF_STATS !== 'undefined' ? PERF_STATS.frameMs.toFixed(1) : '0.0';
+  const p95 = typeof PERF_STATS !== 'undefined' ? PERF_STATS.p95Ms.toFixed(1) : '0.0';
+  const qLabel = typeof getGfxBudget === 'function' ? getGfxBudget().label : 'ALTA';
+  const renLabel = (typeof usePixi !== 'undefined' && usePixi) ? 'WebGL GPU' : 'Canvas 2D';
+  const eCount = typeof enemies !== 'undefined' ? enemies.length : 0;
+  const pCount = typeof particles !== 'undefined' ? particles.length : 0;
+
+  const fs1 = Math.round(10 * s);
+  const fs2 = Math.round(8.5 * s);
+  const line1 = `${fps} FPS (${fms}ms • p95 ${p95}ms)`;
+  const line2 = `${renLabel} • ${qLabel} • ${eCount} inim • ${pCount} part`;
+
+  ctx.save();
+  ctx.font = `bold ${fs1}px ${FONT_UI}`;
+  const w1 = ctx.measureText(line1).width;
+  ctx.font = `${fs2}px ${FONT_UI}`;
+  const w2 = ctx.measureText(line2).width;
+  const bw = Math.round(Math.max(w1, w2) + 18 * s);
+  const bh = Math.round(34 * s);
+  const bx = m;
+  const by = heroBottom + Math.round((touch.active ? 54 : 8) * s);
+
+  ctx.fillStyle = 'rgba(10, 8, 18, 0.84)';
+  ctx.fillRect(bx, by, bw, bh);
+  ctx.strokeStyle = 'rgba(217, 164, 65, 0.45)';
+  ctx.lineWidth = 1;
+  ctx.strokeRect(bx + 0.5, by + 0.5, bw - 1, bh - 1);
+
+  const fpsCol = fps >= 55 ? '#6ee7b7' : (fps >= 38 ? '#f7d67e' : '#ff6b6b');
+  uiTxt(line1, bx + Math.round(9 * s), by + Math.round(13 * s), fs1, fpsCol, 'left', 'bold');
+  uiTxt(line2, bx + Math.round(9 * s), by + Math.round(26 * s), fs2, '#c8b49e', 'left', 'normal');
+  ctx.restore();
 }
 
 // ---------------------------------------------------------------------
@@ -905,8 +986,8 @@ function drawHUD() {
   let centerBottom;
   const bossActive = boss && !boss.dead && boss.hp > 0;
   if (bossActive) {
-    if (centerFree >= 300 * s) centerBottom = drawBossBar(s, Math.round(20 * s), centerFree);
-    else centerBottom = drawBossBar(s, hero.bottom + Math.round(16 * s), W - m * 2 - (map ? (W - map.left) + m : 0));
+    if (centerFree >= 300 * s) centerBottom = drawBossBar(s, Math.round(20 * s), centerFree, dt);
+    else centerBottom = drawBossBar(s, hero.bottom + Math.round(16 * s), W - m * 2 - (map ? (W - map.left) + m : 0), dt);
   } else if (bannerFits) {
     centerBottom = drawWaveBanner(s, left);
   } else {
@@ -925,6 +1006,7 @@ function drawHUD() {
   drawOffscreenThreatIndicators(Math.min(topSafe, H * 0.4), skills ? H - skills.y + 10 : 50);
 
   drawTouchControls();
+  drawPerfBadge(s, m, hero.bottom);
   drawAimReticle();
 }
 
@@ -1121,7 +1203,7 @@ function drawAimReticle() {
   const p = player;
   if (!p) return;
 
-  const z = (typeof cam !== 'undefined' && cam && cam.zoom) || 1;
+  const z = typeof getActiveCamZoom === 'function' ? getActiveCamZoom() : ((typeof cam !== 'undefined' && cam && cam.zoom) || 1);
   const now = performance.now();
   const t = now / 1000;
 

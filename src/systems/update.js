@@ -1,6 +1,7 @@
 // =====================================================================
 //  UPDATE
 // =====================================================================
+const _splashQueryBuf = [];
 function update(dt) {
   time += dt; playTime += dt;
   const p = player;
@@ -17,11 +18,13 @@ function update(dt) {
       }
       wave++;
       waveEvent = null;
+      p._megaMagnetDropped = false;
       const nextBiome = Math.floor((wave - 1) / 5) % BIOMES.length;
       if (wave > 1 && nextBiome !== currentBiome) {
         currentBiome = nextBiome;
         SFX.shrine();
         if (SFX.portal) SFX.portal();
+        if (typeof GPU_FX !== 'undefined') GPU_FX.shockwave(p.x, p.y - 24, 340, 0.045, 0.5);
         texts.push({ x: p.x, y: p.y - 130, txt: '🌀 PORTAL: ' + BIOMES[currentBiome].name + '!', life: 2.6, color: '#62f6ff', size: 15 });
       }
       const isBoss = wave % 5 === 0;
@@ -30,13 +33,14 @@ function update(dt) {
       spawnTimer = 0.25;
       if (!isBoss && wave >= 2) {
         const roll = Math.random();
-        if (roll < 0.18 && wave >= 3) { waveEvent = 'meteors'; meteorTimer = 1.2; }
-        else if (roll < 0.34 && wave >= 3) { waveEvent = 'golden'; }
-        else if (roll < 0.50) { waveEvent = 'swarm'; toSpawn = Math.round(toSpawn * 1.35); }
-        else if (roll < 0.65 && wave >= 4) { waveEvent = 'bloodmoon'; }
-        else if (roll < 0.76 && wave >= 3) { waveEvent = 'ambush'; }
-        else if (roll < 0.85 && wave >= 4) { waveEvent = 'bounty'; }
-        else if (roll < 0.93 && wave >= 5) { waveEvent = 'void_eclipse'; }
+        if (roll < 0.16 && wave >= 3) { waveEvent = 'meteors'; meteorTimer = 1.2; }
+        else if (roll < 0.30 && wave >= 3) { waveEvent = 'golden'; }
+        else if (roll < 0.48 && wave >= 3) { waveEvent = 'mega_horde'; toSpawn = Math.round(toSpawn * 1.9); }
+        else if (roll < 0.60) { waveEvent = 'swarm'; toSpawn = Math.round(toSpawn * 1.35); }
+        else if (roll < 0.72 && wave >= 4) { waveEvent = 'bloodmoon'; }
+        else if (roll < 0.82 && wave >= 3) { waveEvent = 'ambush'; }
+        else if (roll < 0.90 && wave >= 4) { waveEvent = 'bounty'; }
+        else if (roll < 0.96 && wave >= 5) { waveEvent = 'void_eclipse'; }
         else if (wave >= 6) { waveEvent = 'magma_surge'; }
       }
       if (stats.nukeNext) {
@@ -73,6 +77,7 @@ function update(dt) {
         }
         const evSub = waveEvent === 'meteors' ? '☄ EVENTO: CHUVA DE METEOROS!'
           : waveEvent === 'golden' ? '✦ EVENTO: INVASÃO DOURADA!'
+          : waveEvent === 'mega_horde' ? '🌊 MARÉ ABISSAL: ENXAME MASSIVO + 2x XP & ÍMÃ!'
           : waveEvent === 'swarm' ? '⚡ EVENTO: ENXAME FRENÉTICO!'
           : waveEvent === 'bloodmoon' ? '🩸 LUA DE SANGUE: INIMIGOS FEROZES + DOBRO DE RECOMPENSAS!'
           : waveEvent === 'ambush' ? '⚔ CERCO RELÂMPAGO: QUEBRE O CÍRCULO INIMIGO!'
@@ -107,16 +112,24 @@ function update(dt) {
   }
   if (toSpawn > 0) {
     spawnTimer -= dt;
-    const cap = (waveEvent === 'swarm' ? 78 : 58) + wave * 4;
+    const maxCap = typeof getGfxBudget === 'function' ? getGfxBudget().maxEnemies : 220;
+    const cap = Math.min(maxCap, (waveEvent === 'mega_horde' ? 180 : waveEvent === 'swarm' ? 130 : 85) + wave * 8);
     if (spawnTimer <= 0 && enemies.length < cap) {
-      const groupSize = (wave >= 2 && (waveEvent === 'swarm' || Math.random() < 0.48)) ? randi(3, 6) : randi(1, 2);
+      const groupSize = waveEvent === 'mega_horde'
+        ? randi(4, 7)
+        : (wave >= 2 && (waveEvent === 'swarm' || Math.random() < 0.48)) ? randi(3, 6) : randi(1, 2);
       const kind = wavePool();
       if (groupSize > 1 && kind !== 'flower' && kind !== 'bigworm' && kind !== 'golem' && kind !== 'necromancer') {
         const c = spawnPos(Math.max(W, H) * 0.52, Math.max(W, H) * 0.68, 30);
         for (let i = 0; i < groupSize && toSpawn > 0; i++) { spawnEnemy(kind, { x: c.x + rand(-45, 45), y: c.y + rand(-45, 45) }); toSpawn--; }
       } else { spawnEnemy(kind); toSpawn--; }
-      const baseRate = Math.max(0.09, 0.56 - wave * 0.042);
-      spawnTimer = waveEvent === 'swarm' ? baseRate * 0.6 : baseRate;
+      const baseRate = Math.max(0.08, 0.54 - wave * 0.042);
+      spawnTimer = waveEvent === 'mega_horde' ? baseRate * 0.42 : (waveEvent === 'swarm' ? baseRate * 0.6 : baseRate);
+      if (waveEvent === 'mega_horde' && !p._megaMagnetDropped && toSpawn <= 14) {
+        p._megaMagnetDropped = true;
+        dropItem('magnet_orb', clamp(p.x + rand(-180, 180), 80, WORLD.w - 80), clamp(p.y + rand(-140, 140), 100, WORLD.h - 60));
+        texts.push({ x: p.x, y: p.y - 110, txt: '🧲 ORBE DE ÍMÃ SURGIU NA MARÉ!', life: 1.6, color: '#62f6ff', size: 11 });
+      }
     }
   }
 
@@ -156,10 +169,12 @@ function update(dt) {
       if (h.t >= h.dur) {
         h.dead = true;
         shake = Math.max(shake, 6);
+        if (typeof addTrauma === 'function') addTrauma(0.35);
+        if (typeof GPU_FX !== 'undefined') GPU_FX.shockwave(h.targetX, h.targetY, 210, 0.036, 0.36);
         SFX.explode();
         fxRings.push({ kind: 'nova', x: h.targetX, y: h.targetY, r: 10, maxR: 125, life: 0.35, max: 0.35, col: '#62f6ff' });
-        burst(h.targetX, h.targetY, '#ffe042', 25, 240);
-        burst(h.targetX, h.targetY, '#7bf5ff', 25, 260);
+        burst(h.targetX, h.targetY, '#ffe042', 25, 240, 'spark');
+        burst(h.targetX, h.targetY, '#7bf5ff', 25, 260, 'diamond');
         for (const e of enemies) {
           if (!e.dead && Math.hypot(e.x - h.targetX, e.y - h.targetY) < 125 + e.r) {
             damageEnemy(e, 85 + wave * 5, h.targetX, h.targetY, 520, { color: '#62f6ff' });
@@ -174,8 +189,9 @@ function update(dt) {
       if (h.kind === 'boss_nova') {
         SFX.explode();
         shake = Math.max(shake, 6);
+        if (typeof GPU_FX !== 'undefined') GPU_FX.shockwave(h.x, h.y, h.r * 1.8, 0.034, 0.34);
         fxRings.push({ kind: 'nova', x: h.x, y: h.y, r: 12, maxR: h.r, life: 0.34, max: 0.34, col: '#c844ff' });
-        burst(h.x, h.y, '#e08aff', 18, 220);
+        burst(h.x, h.y, '#e08aff', 18, 220, 'spark');
         if (Math.hypot(player.x - h.x, player.y - h.y) < h.r) hurtPlayer(2, h.x, h.y, 'Nova Rúnica');
       } else {
         triggerExplosion(h.x, h.y, h.r, 7 + wave, false);
@@ -190,11 +206,13 @@ function update(dt) {
     const inside = Math.hypot(p.x - sh.x, p.y - sh.y) < sh.r + 14;
     if (inside) {
       sh.prog = Math.min(1, sh.prog + dt / 1.65);
-      if (Math.random() < 0.5) particles.push({ x: sh.x + rand(-sh.r, sh.r), y: sh.y + rand(-20, 15), vx: 0, vy: -55, life: 0.45, max: 0.45, color: sh.col, size: 4 });
+      if (Math.random() < 0.5) particles.push({ x: sh.x + rand(-sh.r, sh.r), y: sh.y + rand(-20, 15), vx: 0, vy: -55, life: 0.45, max: 0.45, color: sh.col, size: 4, kind: 'diamond', add: true });
       if (sh.prog >= 1) {
         sh.dead = true;
         SFX.shrine();
         shake = Math.max(shake, 10);
+        if (typeof addTrauma === 'function') addTrauma(0.35);
+        if (typeof GPU_FX !== 'undefined') { GPU_FX.shockwave(sh.x, sh.y, 280, 0.045, 0.45); GPU_FX.zoomPunch(0.035); }
         fxRings.push({ kind: 'nova', x: sh.x, y: sh.y, r: 16, maxR: 190, life: 0.45, max: 0.45, col: sh.col });
         banner = { txt: sh.name + '!', sub: sh.sub, life: 2.0, max: 2.0, small: true };
         if (sh.id === 'frenzy') {
@@ -221,7 +239,7 @@ function update(dt) {
           if (p.hp > 2) {
             p.hp -= 2;
             shake = Math.max(shake, 7);
-            burst(p.x, p.y - 36, '#ff2a55', 24, 240);
+            burst(p.x, p.y - 36, '#ff2a55', 24, 240, 'spark');
           }
           stats.dmg += 1;
           stats.crit += 0.06;
@@ -245,6 +263,12 @@ function update(dt) {
   }
   shrines = shrines.filter(s => !s.dead);
 
+  // ---------- RECONSTRUÇÃO DO SPATIAL GRID O(N) ----------
+  if (typeof enemyGrid !== 'undefined') {
+    enemyGrid.clear();
+    for (let i = 0; i < enemies.length; i++) if (!enemies[i].dead) enemyGrid.insert(enemies[i]);
+  }
+
   // ---------- INPUT & MOVIMENTO ----------
   let mx = 0, my = 0;
   if (keys['a'] || keys['arrowleft']) mx -= 1;
@@ -266,7 +290,7 @@ function update(dt) {
   if (gpState && gpState.hasAim) {
     p.aim = gpState.aimAngle;
   } else if (!touch.active && (mouse.active || mouse.moved || mouse.x > 0 || mouse.y > 0)) {
-    const z = (cam && cam.zoom) || 1;
+    const z = typeof getActiveCamZoom === 'function' ? getActiveCamZoom() : ((cam && cam.zoom) || 1);
     const wx = (mouse.x - W / 2) / z + (cam ? cam.x : 0);
     const wy = (mouse.y - H / 2) / z + (cam ? cam.y : 0);
     mouse.wx = wx;
@@ -288,10 +312,14 @@ function update(dt) {
     spawnTerrariaFallenStar();
   }
   p.comboT -= dt;
-  if (p.comboT <= 0) { p.combo = 0; p.bestStreakMilestone = 0; }
+  if (p.comboT <= 0) { p.combo = 0; p.bestStreakMilestone = 0; p.feverTier = 0; }
+  if (p.multiKillT > 0) {
+    p.multiKillT -= dt;
+    if (p.multiKillT <= 0) p.multiKillCnt = 0;
+  }
 
   if (p.frenzyT > 0 && Math.random() < 0.45) {
-    particles.push({ x: p.x + rand(-14, 14), y: p.y - rand(5, 55), vx: rand(-20, 20), vy: -50, life: 0.32, max: 0.32, color: pick(['#ffd23f', '#ff6438', '#ffffff']), size: rand(3, 5) });
+    particles.push({ x: p.x + rand(-14, 14), y: p.y - rand(5, 55), vx: rand(-20, 20), vy: -50, life: 0.32, max: 0.32, color: pick(['#ffd23f', '#ff6438', '#ffffff']), size: rand(3, 5), kind: 'diamond', add: true });
   }
 
   // Ultimate (Teclado E/L/Q, Gatilho/Botão Y/X no Controle, ou Botão Touch ULT) + Action Buffer
@@ -302,7 +330,12 @@ function update(dt) {
     p.ultMeter = 0; p.attack = null; p.dash = null;
     SFX.ult();
     gamepadRumble(0.6, 0.8, 320);
-    shake = 8; addTrauma(0.25);
+    shake = 8; addTrauma(0.45);
+    if (typeof GPU_FX !== 'undefined') {
+      GPU_FX.shockwave(p.x, p.y - 30, 360, 0.055, 0.55);
+      GPU_FX.zoomPunch(0.055);
+      GPU_FX.chroma(0.015);
+    }
     banner = { txt: p.char.ultName + '!', life: 1.4, max: 1.4, small: true };
   }
 
@@ -337,11 +370,12 @@ function update(dt) {
     gamepadRumble(0.2, 0.3, 90);
   }
 
+  const fBonus = typeof getFeverBonus === 'function' ? getFeverBonus(p) : { spdBonus: 0, magBonus: 0 };
   const crisisBoost = p.hp <= 2 ? 1.14 : 1;
   const slowMulP = (p.slow || 0) > 0 ? 0.72 : 1;
   if ((p.slow || 0) > 0) p.slow = Math.max(0, p.slow - dt);
   const inCitrus = p.char.weaponType === 'orange' && puddles.some(pd => !pd.kind && Math.hypot(pd.x - p.x, pd.y - p.y) < pd.r + 16);
-  let speed = stats.speed * (p.frenzyT > 0 ? 1.3 : 1) * crisisBoost * slowMulP * (inCitrus ? 1.24 : 1);
+  let speed = stats.speed * (1 + fBonus.spdBonus) * (p.frenzyT > 0 ? 1.3 : 1) * crisisBoost * slowMulP * (inCitrus ? 1.24 : 1);
   if (p.attack && p.char.weaponType === 'saber') speed *= 0.62;
   if (p.dash) {
     p.dash.t += dt;
@@ -540,12 +574,14 @@ function update(dt) {
     const isAwakened = stats.fire >= 5;
     p.fireAng += dt * (2.6 + stats.fire * 0.22 + (isAwakened ? 0.5 : 0));
     const n = stats.fire, R = isAwakened ? 92 : 80;
+    const fReachMax = 38 + (isAwakened ? 22 : 16);
     for (let i = 0; i < n; i++) {
       const a = p.fireAng + i * Math.PI * 2 / n;
       const fx = p.x + Math.cos(a) * R, fy = p.y - 35 + Math.sin(a) * R * 0.8;
-      if (Math.random() < 0.5) particles.push({ x: fx, y: fy, vx: rand(-20, 20), vy: rand(-50, -10), life: 0.3, max: 0.3, color: pick(['#ffb02e', '#ff5a1f', '#ffe36b']), size: rand(3, 6) });
-      for (let j = 0; j < enemies.length; j++) {
-        const e = enemies[j];
+      if (Math.random() < 0.5) particles.push({ x: fx, y: fy, vx: rand(-20, 20), vy: rand(-50, -10), life: 0.3, max: 0.3, color: pick(['#ffb02e', '#ff5a1f', '#ffe36b']), size: rand(3, 6), kind: 'diamond', add: true });
+      const nearF = typeof enemyGrid !== 'undefined' ? enemyGrid.query(fx, fy, fReachMax, _gridQueryBuf) : enemies;
+      for (let j = 0; j < nearF.length; j++) {
+        const e = nearF[j];
         if (e.dead || e.fireHit > time) continue;
         const reach = e.r + (isAwakened ? 22 : 16);
         const edx = e.x - fx;
@@ -557,6 +593,27 @@ function update(dt) {
           const thermalSynergy = stats.fire >= 5 && stats.ice >= 4;
           if (thermalSynergy) e.slow = Math.max(e.slow, 2.2);
           damageEnemy(e, 1 + Math.floor(stats.fire / 2) + (isAwakened ? 1 : 0) + (thermalSynergy ? 3 : 0), fx, fy, 200, { color: thermalSynergy ? '#c844ff' : '#ff8a2e', noFreeze: true, silent: true });
+        }
+      }
+    }
+    // Sinergia: TEMPESTADE SOLAR (Bolas de Fogo disparam Raios em Cadeia)
+    if (p.synergies && p.synergies.has('solar_storm') && enemies.length > 0) {
+      p.solarBoltT = (p.solarBoltT || 0.85) - dt;
+      if (p.solarBoltT <= 0) {
+        p.solarBoltT = 0.85;
+        const sxF = p.x + Math.cos(p.fireAng) * R, syF = p.y - 35 + Math.sin(p.fireAng) * R * 0.8;
+        const nearB = typeof enemyGrid !== 'undefined' ? enemyGrid.query(sxF, syF, 260, _gridQueryBuf) : enemies;
+        let bestE = null, bestD = 260;
+        for (let ci = 0; ci < nearB.length; ci++) {
+          const ce = nearB[ci];
+          if (ce.dead || ce.spawn > 0) continue;
+          const cd = Math.hypot(ce.x - sxF, ce.y - syF);
+          if (cd < bestD) { bestD = cd; bestE = ce; }
+        }
+        if (bestE) {
+          bolts.push({ pts: [sxF, syF, bestE.x, bestE.y - bestE.r], life: 0.22 });
+          damageEnemy(bestE, 3 + stats.dmg + stats.bolt, sxF, syF, 160, { color: '#ffb830', noFreeze: true, silent: true });
+          burst(bestE.x, bestE.y - bestE.r, '#ffb830', 6, 180, 'spark');
         }
       }
     }
@@ -609,18 +666,29 @@ function update(dt) {
     if (p.earthT <= 0) {
       p.earthT = Math.max(2.6, 4.5 - stats.earth * 0.45);
       const eR = 120 + stats.earth * 38;
+      const isGrav = p.synergies && p.synergies.has('gravity_crush');
       shake = Math.max(shake, 3);
       beep(120, 0.3, 'sawtooth', 0.08, -80);
       if (SFX.rockSlam) SFX.rockSlam();
-      fxRings.push({ kind: 'nova', x: p.x, y: p.y, r: 20, maxR: eR, life: 0.32, max: 0.32, col: '#d49a62' });
-      burst(p.x, p.y, '#99734e', 24, 280);
-      for (const e of enemies) {
-        if (!e.dead && e.spawn <= 0 && Math.hypot(e.x - p.x, e.y - p.y) < eR + e.r) {
-          damageEnemy(e, 2 + stats.earth, p.x, p.y, 400, { color: '#c79867' });
+      if (typeof GPU_FX !== 'undefined') GPU_FX.shockwave(p.x, p.y, isGrav ? eR * 1.6 : eR * 1.15, isGrav ? 0.04 : 0.024, 0.38);
+      fxRings.push({ kind: 'nova', x: p.x, y: p.y, r: 20, maxR: eR, life: 0.32, max: 0.32, col: isGrav ? '#ffd23f' : '#d49a62' });
+      burst(p.x, p.y, isGrav ? '#ffd23f' : '#99734e', 24, 280, 'spark');
+      const pullR = isGrav ? eR * 1.4 : eR + 40;
+      const nearEarth = typeof enemyGrid !== 'undefined' ? enemyGrid.query(p.x, p.y, pullR, _gridQueryBuf) : enemies;
+      for (let i = 0; i < nearEarth.length; i++) {
+        const e = nearEarth[i];
+        if (e.dead || e.spawn > 0) continue;
+        const d = Math.hypot(e.x - p.x, e.y - p.y);
+        if (isGrav && !isBossType(e.type) && d < pullR && d > 28) {
+          e.x += ((p.x - e.x) / d) * Math.min(75, d * 0.48);
+          e.y += ((p.y - e.y) / d) * Math.min(75, d * 0.48);
+        }
+        if (d < eR + e.r) {
+          damageEnemy(e, (isGrav ? 4 : 2) + stats.earth, p.x, p.y, isGrav ? 260 : 400, { color: isGrav ? '#ffd23f' : '#c79867' });
           e.slow = Math.max(e.slow, 0.9);
         }
       }
-      texts.push({ x: p.x, y: p.y - 60, txt: 'TREMOR!', life: 0.8, color: '#e0a96d', size: 12 });
+      texts.push({ x: p.x, y: p.y - 60, txt: isGrav ? 'COLAPSO!' : 'TREMOR!', life: 0.8, color: isGrav ? '#ffd23f' : '#e0a96d', size: 12 });
     }
   }
   if (stats.phantom > 0) {
@@ -704,6 +772,23 @@ function update(dt) {
           }
         }
       }
+      // Sinergia: VÓRTICE SANGUINÁRIO (Explode em Nova Tóxica ao encerrar)
+      if (pd.life <= 0 && p.synergies && p.synergies.has('blood_vortex')) {
+        fxRings.push({ kind: 'nova', x: pd.x, y: pd.y, r: 16, maxR: pd.r * 1.45, life: 0.36, max: 0.36, col: '#5dff6b' });
+        fxRings.push({ kind: 'nova', x: pd.x, y: pd.y, r: 10, maxR: pd.r * 1.15, life: 0.30, max: 0.30, col: '#c844ff' });
+        if (typeof GPU_FX !== 'undefined') GPU_FX.shockwave(pd.x, pd.y, pd.r * 1.8, 0.036, 0.36);
+        burst(pd.x, pd.y, '#c844ff', 14, 240, 'spark');
+        burst(pd.x, pd.y, '#5dff6b', 12, 220, 'diamond');
+        const nearV = typeof enemyGrid !== 'undefined' ? enemyGrid.query(pd.x, pd.y, pd.r * 1.5 + 36, _gridQueryBuf) : enemies;
+        for (let ci = 0; ci < nearV.length; ci++) {
+          const o = nearV[ci];
+          if (!o.dead && Math.hypot(o.x - pd.x, o.y - pd.y) < pd.r * 1.45 + o.r) {
+            o.poisonT = Math.max(o.poisonT || 0, 4.0);
+            o.poisonDmg = Math.max(o.poisonDmg || 0, 2 + (stats.venom || 1));
+            damageEnemy(o, 4 + (stats.venom || 1) * 2, pd.x, pd.y, 260, { color: '#c844ff', noFreeze: true, silent: true, isNova: true });
+          }
+        }
+      }
     } else if (pd.kind === 'acid') {
       if (Math.hypot(p.x - pd.x, p.y - pd.y) < pd.r + 10) {
         hurtPlayer(1, pd.x, pd.y, 'Poça de Ácido');
@@ -735,6 +820,12 @@ function update(dt) {
   for (const e of enemies) updateEnemy(e, dt);
   enemies = enemies.filter(e => !e.dead);
 
+  // Re-indexa SpatialGrid com posições atualizadas para colisões precisas de projéteis
+  if (typeof enemyGrid !== 'undefined') {
+    enemyGrid.clear();
+    for (let i = 0; i < enemies.length; i++) enemyGrid.insert(enemies[i]);
+  }
+
   if (stats.gauntletSnap && enemies.length >= 6) {
     stats.gauntletSnap = false;
     let snapped = 0;
@@ -763,7 +854,25 @@ function update(dt) {
         const sp = Math.hypot(s.vx, s.vy);
         if (sp > 540) { s.vx = (s.vx / sp) * 540; s.vy = (s.vy / sp) * 540; }
         if (s.age > 0.7 && Math.hypot(p.x - s.x, (p.y - 34) - s.y) < 30) s.dead = true;
-        if (s.age > 0.52 && !s.resetHit) { s.resetHit = true; s.hit.clear(); }
+        if (s.age > 0.52 && !s.resetHit) {
+          s.resetHit = true; s.hit.clear();
+          // Sinergia: LÂMINAS DO INFINITO (Machados invocam 2 adagas fantasma no retorno)
+          if (p.synergies && p.synergies.has('infinity_blades') && enemies.length > 0) {
+            const nearAx = typeof enemyGrid !== 'undefined' ? enemyGrid.query(s.x, s.y, 460, _gridQueryBuf) : enemies;
+            let spawned = 0;
+            for (let ci = 0; ci < nearAx.length && spawned < 2; ci++) {
+              const tgt = nearAx[ci];
+              if (tgt && !tgt.dead && tgt.spawn <= 0) {
+                const ang = Math.atan2(tgt.y - s.y, tgt.x - s.x);
+                pshots.push({
+                  kind: 'dagger', x: s.x, y: s.y, vx: Math.cos(ang) * 480, vy: Math.sin(ang) * 480,
+                  r: 10, dmg: stats.dmg + 2, pierce: 1, life: 1.5, target: tgt, hit: new Set(),
+                });
+                spawned++;
+              }
+            }
+          }
+        }
       }
     }
     if (s.kind === 'dagger' && s.target && !s.target.dead) {
@@ -775,19 +884,20 @@ function update(dt) {
     if (s.kind === 'star') {
       s.rot += dt * 15;
       if (Math.random() < 0.45) {
-        particles.push({ x: s.x, y: s.y, vx: rand(-15, 15), vy: rand(-15, 15), life: 0.25, max: 0.25, color: '#ffe769', size: 3 });
+        particles.push({ x: s.x, y: s.y, vx: rand(-15, 15), vy: rand(-15, 15), life: 0.25, max: 0.25, color: '#ffe769', size: 3, kind: 'diamond', add: true });
       }
     }
     if (s.kind === 'orange') {
       s.rot += dt * 18;
       if (Math.random() < 0.5) {
-        particles.push({ x: s.x, y: s.y, vx: rand(-20, 20), vy: rand(-20, 20), life: 0.3, max: 0.3, color: pick(['#ff9214', '#ffa834', '#ff7000', '#ffd65c']), size: rand(3, 5) });
+        particles.push({ x: s.x, y: s.y, vx: rand(-20, 20), vy: rand(-20, 20), life: 0.3, max: 0.3, color: pick(['#ff9214', '#ffa834', '#ff7000', '#ffd65c']), size: rand(3, 5), kind: 'spark', add: true });
       }
     }
     s.x += s.vx * dt; s.y += s.vy * dt; s.life -= dt;
     if (s.life <= 0) s.dead = true;
-    for (let j = 0; j < enemies.length; j++) {
-      const e = enemies[j];
+    const hitCand = typeof enemyGrid !== 'undefined' ? enemyGrid.query(s.x, s.y, s.r + 48, _gridQueryBuf) : enemies;
+    for (let j = 0; j < hitCand.length; j++) {
+      const e = hitCand[j];
       if (s.dead || e.dead || s.hit.has(e)) continue;
       const reach = e.r + s.r;
       const sdx = e.x - s.x;
@@ -798,13 +908,14 @@ function update(dt) {
         s.hit.add(e);
         if (s.kind === 'orange') {
           SFX.orangePop();
-          burst(s.x, s.y, '#ff8a14', 16, 260);
-          burst(s.x, s.y, '#ffd242', 10, 200);
+          burst(s.x, s.y, '#ff8a14', 16, 260, 'spark');
+          burst(s.x, s.y, '#ffd242', 10, 200, 'diamond');
           fxRings.push({ kind: 'orange_splash', x: s.x, y: s.y, r: 22, maxR: 70 * stats.range, life: 0.28, max: 0.28, col: '#ff8a14' });
           if (puddles.length < 18) puddles.push({ x: s.x, y: e.y, r: 42 * stats.range, life: 2.0, max: 2.0, tick: 0.35 });
           const splashR = 72 * stats.range;
-          for (let k = 0; k < enemies.length; k++) {
-            const o = enemies[k];
+          const splList = typeof enemyGrid !== 'undefined' ? enemyGrid.query(s.x, s.y, splashR + 36, _splashQueryBuf) : enemies;
+          for (let k = 0; k < splList.length; k++) {
+            const o = splList[k];
             if (!o.dead && o !== e) {
               const odx = o.x - s.x;
               if (odx >= splashR || odx <= -splashR) continue;
@@ -813,6 +924,20 @@ function update(dt) {
               if (odx * odx + ody * ody < splashR * splashR) {
                 damageEnemy(o, Math.max(1, Math.round(s.dmg * 0.6)), s.x, s.y, 180, { color: '#ff8a14', noFreeze: true, silent: true });
               }
+            }
+          }
+        }
+        // Sinergia: ZERO CÓSMICO (Ondas Cósmicas estilhaçam inimigos congelados/lentos)
+        if (s.kind === 'wave' && !s.shatterCd && p.synergies && p.synergies.has('cosmic_zero') && (e.slow > 0 || e.freezeT > 0)) {
+          s.shatterCd = true;
+          fxRings.push({ kind: 'nova', x: e.x, y: e.y - 12, r: 10, maxR: 110, life: 0.28, max: 0.28, col: '#62f6ff' });
+          burst(e.x, e.y - e.r, '#9beeff', 12, 240, 'diamond');
+          const czList = typeof enemyGrid !== 'undefined' ? enemyGrid.query(e.x, e.y, 125, _splashQueryBuf) : enemies;
+          for (let ci = 0; ci < czList.length; ci++) {
+            const o = czList[ci];
+            if (!o.dead && o !== e && Math.hypot(o.x - e.x, o.y - e.y) < 110 + o.r) {
+              o.freezeT = Math.max(o.freezeT || 0, 1.2);
+              damageEnemy(o, 3 + stats.dmg, e.x, e.y, 200, { color: '#62f6ff', noFreeze: true, silent: true, isNova: true });
             }
           }
         }
@@ -827,13 +952,15 @@ function update(dt) {
   props = props.filter(b => !b.dead);
 
   // ---------- ITENS & COLETÁVEIS ----------
+  const dragK = Math.pow(0.95, dt * 60);
+  const magBase = stats.magnet + fBonus.magBonus;
   for (const k of pickups) {
     k.t += dt;
     k.vz -= 700 * dt; k.z += k.vz * dt;
     if (k.z < 0) { k.z = 0; k.vz = -k.vz * 0.4; k.vx *= 0.5; k.vy *= 0.5; }
-    k.x += k.vx * dt; k.y += k.vy * dt; k.vx *= 0.95; k.vy *= 0.95;
+    k.x += k.vx * dt; k.y += k.vy * dt; k.vx *= dragK; k.vy *= dragK;
     const d = Math.hypot(p.x - k.x, p.y - 20 - k.y);
-    const mag = k.kind === 'chest' ? 0 : stats.magnet;
+    const mag = k.kind === 'chest' ? 0 : magBase;
     if (k.t > 0.35 && (d < mag || k.pull)) {
       k.pull = true;
       const sp = 360 + k.t * 250;
@@ -844,19 +971,21 @@ function update(dt) {
   }
   pickups = pickups.filter(k => !k.dead);
 
-  // ---------- PARTÍCULAS, ANÉIS, RASTROS & TEXTOS (LIMITES ANTI-LAG) ----------
-  for (let i = 0; i < particles.length; i++) { const q = particles[i]; q.x += q.vx * dt; q.y += q.vy * dt; q.vx *= 0.92; q.vy *= 0.92; q.life -= dt; }
+  // ---------- PARTÍCULAS, ANÉIS, RASTROS & TEXTOS (BUDGET DINÂMICO 60/120/144Hz) ----------
+  const dragP = Math.pow(0.92, dt * 60);
+  for (let i = 0; i < particles.length; i++) { const q = particles[i]; q.x += q.vx * dt; q.y += q.vy * dt; q.vx *= dragP; q.vy *= dragP; q.life -= dt; }
   particles = particles.filter(q => q.life > 0);
-  if (particles.length > 140) particles.splice(0, particles.length - 140);
+  const maxP = typeof getGfxBudget === 'function' ? getGfxBudget().maxParticles : 750;
+  if (particles.length > maxP) particles.splice(0, particles.length - maxP);
   for (let i = 0; i < fxRings.length; i++) fxRings[i].life -= dt;
   fxRings = fxRings.filter(r => r.life > 0);
-  if (fxRings.length > 16) fxRings.splice(0, fxRings.length - 16);
+  if (fxRings.length > 24) fxRings.splice(0, fxRings.length - 24);
   for (let i = 0; i < afterimages.length; i++) afterimages[i].life -= dt;
   afterimages = afterimages.filter(g => g.life > 0);
-  if (afterimages.length > 14) afterimages.splice(0, afterimages.length - 14);
+  if (afterimages.length > 16) afterimages.splice(0, afterimages.length - 16);
   for (let i = 0; i < texts.length; i++) { const t = texts[i]; t.y -= 40 * dt; t.life -= dt; }
   texts = texts.filter(t => t.life > 0);
-  if (texts.length > 22) texts.splice(0, texts.length - 22);
+  if (texts.length > 26) texts.splice(0, texts.length - 26);
   for (const s of slashes) s.life -= dt;
   slashes = slashes.filter(s => s.life > 0);
   for (const b of bolts) b.life -= dt;
@@ -866,7 +995,10 @@ function update(dt) {
 
   if (p.pendingLevels > 0 && !p.ult && state === 'play') openLevelUp();
 
-  // ---------- CÂMERA (camera-systems skill: 1 - exp(-rate*dt) + Look-Ahead) ----------
+  // ---------- CÂMERA (camera-systems skill: 1 - exp(-rate*dt) + Look-Ahead + Zoom Tático) ----------
+  const targetDynZoom = ((boss && !boss.dead) || enemies.length > 45) ? 0.93 : 1.0;
+  cam.zoomDyn = (cam.zoomDyn || 1.0) + (targetDynZoom - (cam.zoomDyn || 1.0)) * (1 - Math.exp(-2.8 * dt));
+
   const lookDist = p.moving ? 42 : 16;
   const targetLookX = Math.cos(p.aim) * lookDist;
   const targetLookY = Math.sin(p.aim) * lookDist * 0.75;
@@ -880,7 +1012,6 @@ function update(dt) {
   clampCam();
   shake = Math.max(0, shake - dt * 65);
   updateAmbientAtmosphere(dt);
-  trauma = Math.max(0, trauma - dt * 3.5);
 }
 
 

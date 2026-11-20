@@ -36,8 +36,8 @@ function buildWorld() {
       } else if (r < 0.85) {
         tile(IMG.grassalt, 1, 3, x * TS, y * TS);
       } else {
-        // Variações de grama na linha 3 (miolo sólido com lâminas/flores, nunca linha 5 de quinas escuras)
-        tile(Math.random() < 0.5 ? IMG.grass : IMG.grassalt, randi(0, 2), 3, x * TS, y * TS);
+        // Variações sólidas de grama na linha 5 (linha 3 cols 0 e 2 são bordas semi-transparentes)
+        tile(Math.random() < 0.5 ? IMG.grass : IMG.grassalt, randi(0, 2), 5, x * TS, y * TS);
       }
     }
   }
@@ -48,7 +48,7 @@ function buildWorld() {
         const tx = i === 0 ? 0 : i === bw - 1 ? 2 : 1;
         const ty = j === 0 ? 2 : j === bh - 1 ? 4 : 3;
         if (tx === 1 && ty === 3 && interiorVariants && Math.random() < 0.35) {
-          tile(img, randi(0, 2), 3, (bx + i) * TS, (by + j) * TS);
+          tile(img, randi(0, 2), 5, (bx + i) * TS, (by + j) * TS);
         } else {
           tile(img, tx, ty, (bx + i) * TS, (by + j) * TS);
         }
@@ -145,6 +145,12 @@ function spawnShrine() {
 function triggerExplosion(x, y, radius, dmg, fromPlayer = true) {
   SFX.explode();
   shake = Math.max(shake, 7);
+  if (typeof addTrauma === 'function') addTrauma(0.42);
+  if (typeof GPU_FX !== 'undefined') {
+    GPU_FX.shockwave(x, y, radius * 2.1, 0.048, 0.42);
+    GPU_FX.chroma(0.009);
+    GPU_FX.zoomPunch(0.025);
+  }
   fxRings.push({ kind: 'explosion', x, y, r: 12, maxR: radius, life: 0.34, max: 0.34, col: '#ff7b24' });
   burst(x, y - 10, '#ff6a1a', 26, 340);
   burst(x, y - 10, '#ffe159', 16, 250);

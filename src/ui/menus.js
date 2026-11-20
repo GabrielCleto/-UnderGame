@@ -1041,13 +1041,14 @@ function drawMenu() {
 //  MENU DE PAUSA (v.2 — Game UI/UX Design System)
 // =====================================================================
 let pauseResumeRect = null, pauseCharRect = null, pauseRestartRect = null;
+let pauseGfxRect = null, pauseShakeRect = null, pausePerfRect = null;
 function drawPauseMenu() {
   overlay(0.75);
   const isCompactH = H <= 520;
   const s = clamp(Math.min(W / 1280, H / 720), 0.75, 1.4);
   const p = player;
-  const pw = Math.round(clamp(480 * s, 320, 520));
-  const ph = Math.round(clamp(340 * s, 260, 380));
+  const pw = Math.round(clamp(480 * s, 320, 540));
+  const ph = Math.round(clamp(394 * s, 305, 435));
   const px = Math.round(W / 2 - pw / 2);
   const py = Math.round(H / 2 - ph / 2);
 
@@ -1092,9 +1093,38 @@ function drawPauseMenu() {
   medPanel(r2.x, r2.y, r2.w, r2.h, hov2 ? 'parch' : 'wood');
   txt('↺ REINICIAR JORNADA [R]', W / 2, r2.y + Math.round(22 * s), Math.round(8.5 * s), hov2 ? MED.blood : '#c8b49e');
 
+  // Linha compacta de configurações WebGL/Acessibilidade/FPS
+  const optY = r2.y + btnH + btnGap;
+  const optH = Math.round(clamp(30 * s, 26, 36));
+  const optGap = Math.round(6 * s);
+  const optW = Math.floor((btnW - optGap * 2) / 3);
+  const rGfx = { x: r2.x, y: optY, w: optW, h: optH };
+  const rShake = { x: r2.x + optW + optGap, y: optY, w: optW, h: optH };
+  const rPerf = { x: r2.x + (optW + optGap) * 2, y: optY, w: btnW - (optW + optGap) * 2, h: optH };
+
+  const hovGfx = inRect(mouse.x, mouse.y, rGfx);
+  const hovShake = inRect(mouse.x, mouse.y, rShake);
+  const hovPerf = inRect(mouse.x, mouse.y, rPerf);
+
+  const qLbl = typeof getGfxBudget === 'function' ? getGfxBudget().label : 'ALTA';
+  const shakeOn = typeof GFX_SETTINGS !== 'undefined' && GFX_SETTINGS.reduceShake;
+  const perfOn = typeof GFX_SETTINGS !== 'undefined' && GFX_SETTINGS.showPerf;
+
+  medPanel(rGfx.x, rGfx.y, rGfx.w, rGfx.h, hovGfx ? 'parch' : 'wood');
+  txt(`⚡ ${qLbl} [G]`, rGfx.x + rGfx.w / 2, rGfx.y + Math.round(19 * s), Math.round(7.2 * s), hovGfx ? MED.parchInk : MED.goldLight);
+
+  medPanel(rShake.x, rShake.y, rShake.w, rShake.h, hovShake ? 'parch' : 'wood');
+  txt(`TREMOR: ${shakeOn ? 'SUAVE' : 'MAX'}`, rShake.x + rShake.w / 2, rShake.y + Math.round(19 * s), Math.round(7.0 * s), hovShake ? MED.parchInk : (shakeOn ? '#6ee7b7' : MED.parch));
+
+  medPanel(rPerf.x, rPerf.y, rPerf.w, rPerf.h, hovPerf ? 'parch' : 'wood');
+  txt(`FPS: ${perfOn ? 'ON' : 'OFF'} [F]`, rPerf.x + rPerf.w / 2, rPerf.y + Math.round(19 * s), Math.round(7.2 * s), hovPerf ? MED.parchInk : (perfOn ? '#6ee7b7' : '#c8b49e'));
+
   pauseResumeRect = r0;
   pauseCharRect = r1;
   pauseRestartRect = r2;
+  pauseGfxRect = rGfx;
+  pauseShakeRect = rShake;
+  pausePerfRect = rPerf;
 }
 
 function drawOver() {

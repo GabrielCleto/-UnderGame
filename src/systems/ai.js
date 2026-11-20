@@ -243,11 +243,14 @@ function updateEnemy(e, dt) {
   e.y += (sy * slowMul + e.ky) * dt;
   const fx = Math.abs(sx) + Math.abs(sy) > 1 ? sx : dx, fy = Math.abs(sx) + Math.abs(sy) > 1 ? sy : dy;
   e.row = Math.abs(fx) > Math.abs(fy) ? (fx > 0 ? 3 : 1) : (fy > 0 ? 2 : 0);
-  // Separação de inimigos com rejeição rápida AABB (evita O(N^2) Math.hypot em ondas altas)
+  // Separação O(N) via SpatialGrid (Zero-GC, suporta 280+ monstros em 144Hz)
   if (!isBossType(e.type) && e.type !== 'flower') {
     const er = e.r;
-    for (let j = 0; j < enemies.length; j++) {
-      const o = enemies[j];
+    const list = (typeof enemyGrid !== 'undefined' && typeof _sepQueryBuf !== 'undefined')
+      ? enemyGrid.query(e.x, e.y, er + 42, _sepQueryBuf)
+      : enemies;
+    for (let j = 0; j < list.length; j++) {
+      const o = list[j];
       if (o === e || o.dead) continue;
       const m = (er + o.r) * 0.9;
       const ox = e.x - o.x;
@@ -316,6 +319,7 @@ function bossAI(e, dt, ux, uy, d) {
         const ang = rand(0, Math.PI * 2);
         e.x = clamp(p.x + Math.cos(ang) * 165, 80, WORLD.w - 80);
         e.y = clamp(p.y + Math.sin(ang) * 165, 110, WORLD.h - 60);
+        if (typeof GPU_FX !== 'undefined') GPU_FX.shockwave(e.x, e.y - 16, 260, 0.045, 0.42);
         fxRings.push({ kind: 'nova', x: e.x, y: e.y - 20, r: 16, maxR: 130, life: 0.3, max: 0.3, col: '#ff8a14' });
         for (let i = 0; i < 12; i++) enemyShoot(e, (i * Math.PI * 2) / 12, 260, 8, 'orange');
         e.phase = 'chase'; e.pt = enraged ? 0.9 : 1.25;
@@ -654,6 +658,7 @@ function bossMagmaColossusAI(e, dt, ux, uy, d) {
     if (e.pt <= 0) {
       shake = Math.max(shake, 12);
       addTrauma(0.4);
+      if (typeof GPU_FX !== 'undefined') GPU_FX.shockwave(e.x, e.y - 16, 260, 0.045, 0.42);
       if (SFX.rockSlam) SFX.rockSlam();
       fxRings.push({ kind: 'nova', x: e.x, y: e.y, r: 15, maxR: 150, life: 0.38, max: 0.38, col: '#ff5500' });
       const n = enraged ? 16 : 12;
@@ -733,6 +738,7 @@ function aetherSliderAI(e, dt, ux, uy, d) {
     if (e.pt <= 0) {
       e.phase = 'cooldown'; e.pt = enraged ? 0.65 : 0.95; e.vx = 0; e.vy = 0;
       shake = Math.max(shake, 6); SFX.explode();
+      if (typeof GPU_FX !== 'undefined') GPU_FX.shockwave(e.x, e.y - 16, 260, 0.045, 0.42);
       fxRings.push({ kind: 'nova', x: e.x, y: e.y - 16, r: 16, maxR: 135, life: 0.3, max: 0.3, col: '#62f6ff' });
       for (let i = 0; i < (enraged ? 10 : 6); i++) enemyShoot(e, (i * Math.PI * 2) / (enraged ? 10 : 6), 210, 7, 'cyan');
     }
