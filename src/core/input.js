@@ -12,14 +12,22 @@ addEventListener('keydown', e => {
 });
 addEventListener('keyup', e => (keys[e.key.toLowerCase()] = false));
 
-const mouse = { x: 0, y: 0, down: false, click: false, rclick: false, moved: false };
+const mouse = { x: 0, y: 0, down: false, click: false, rclick: false, moved: false, active: false, wx: 0, wy: 0 };
 canvas.addEventListener('mousedown', e => {
+  mouse.x = e.clientX;
+  mouse.y = e.clientY;
+  mouse.active = true;
   if (e.button === 0) { mouse.down = true; mouse.click = true; }
   if (e.button === 2) mouse.rclick = true;
   startMusic();
 });
 addEventListener('mouseup', e => { if (e.button === 0) mouse.down = false; });
-canvas.addEventListener('mousemove', e => { mouse.x = e.clientX; mouse.y = e.clientY; mouse.moved = true; });
+canvas.addEventListener('mousemove', e => {
+  mouse.x = e.clientX;
+  mouse.y = e.clientY;
+  mouse.moved = true;
+  mouse.active = true;
+});
 canvas.addEventListener('contextmenu', e => e.preventDefault());
 
 // =====================================================================

@@ -260,9 +260,18 @@ function update(dt) {
   }
   const ml = Math.hypot(mx, my);
 
-  // Entrada de Mira: Stick Direito (360° twin-stick) tem prioridade, senão direção do movimento
+  // Entrada de Mira: Stick Direito (360° twin-stick) tem prioridade,
+  // senão Mira de Alta Precisão com o Mouse (se em PC e mouse ativo),
+  // senão direção do movimento (se puro teclado ou mobile)
   if (gpState && gpState.hasAim) {
     p.aim = gpState.aimAngle;
+  } else if (!touch.active && (mouse.active || mouse.moved || mouse.x > 0 || mouse.y > 0)) {
+    const z = (cam && cam.zoom) || 1;
+    const wx = (mouse.x - W / 2) / z + (cam ? cam.x : 0);
+    const wy = (mouse.y - H / 2) / z + (cam ? cam.y : 0);
+    mouse.wx = wx;
+    mouse.wy = wy;
+    p.aim = Math.atan2(wy - (p.y - 32), wx - p.x);
   } else if (ml > 0.05) {
     p.aim = Math.atan2(my, mx);
   }
@@ -392,8 +401,13 @@ function update(dt) {
     if (Math.abs(mx) > Math.abs(my) + 0.05) p.dir = mx > 0 ? 'right' : 'left';
     else p.dir = my > 0 ? 'down' : 'up';
     if (!p.attack) {
-      if (Math.abs(mx) > 0.05) p.flip = mx < 0;
-      else if (p.dir === 'left' || p.dir === 'right') p.flip = p.dir === 'left';
+      if (!touch.active && (mouse.active || mouse.moved || (gpState && gpState.hasAim))) {
+        p.flip = Math.cos(p.aim) < 0;
+      } else if (Math.abs(mx) > 0.05) {
+        p.flip = mx < 0;
+      } else if (p.dir === 'left' || p.dir === 'right') {
+        p.flip = p.dir === 'left';
+      }
     }
     p.stepT -= dt;
     if (p.stepT <= 0) {
@@ -403,6 +417,9 @@ function update(dt) {
     }
   } else {
     p.idleT += dt;
+    if (!p.attack && !touch.active && (mouse.active || mouse.moved || (gpState && gpState.hasAim))) {
+      p.flip = Math.cos(p.aim) < 0;
+    }
   }
   collideStatic(p, 14);
   p.animT += dt;

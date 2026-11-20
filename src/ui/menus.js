@@ -604,7 +604,6 @@ function startWithSelectedCharacter() {
   setTimeout(() => {
     reset();
     state = 'play';
-    if (typeof canvas !== 'undefined' && canvas) canvas.style.cursor = 'default';
     startMusic();
     music.volume = 0.3;
     if (ov) {

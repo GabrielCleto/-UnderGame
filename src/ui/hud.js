@@ -925,6 +925,7 @@ function drawHUD() {
   drawOffscreenThreatIndicators(Math.min(topSafe, H * 0.4), skills ? H - skills.y + 10 : 50);
 
   drawTouchControls();
+  drawAimReticle();
 }
 
 function drawTouchControls() {
@@ -1093,6 +1094,196 @@ function drawTouchControls() {
     ctx.fillRect(hx, hy, hintW, hintH);
     ctx.strokeRect(hx, hy, hintW, hintH);
     txt('📱 GIRE O CELULAR P/ MODO PAISAGEM', W / 2, hy + 16, 7, '#ffe042');
+  }
+
+  ctx.restore();
+}
+
+// =====================================================================
+//  MIRA TÁTICA / CROSSHAIR RETICLE (Arcade Medieval de Alta Precisão)
+// =====================================================================
+let reticleKick = 0;
+let reticleLockT = 0;
+
+function drawAimReticle() {
+  if (state !== 'play' || touch.active) {
+    if (typeof canvas !== 'undefined' && canvas && canvas.style.cursor === 'none') {
+      canvas.style.cursor = 'default';
+    }
+    return;
+  }
+
+  // Oculta ponteiro padrão do sistema para usar mira customizada de alta precisão
+  if (typeof canvas !== 'undefined' && canvas && canvas.style.cursor !== 'none') {
+    canvas.style.cursor = 'none';
+  }
+
+  const p = player;
+  if (!p) return;
+
+  const z = (typeof cam !== 'undefined' && cam && cam.zoom) || 1;
+  const now = performance.now();
+  const t = now / 1000;
+
+  // Posição do jogador na tela
+  const psx = (p.x - cam.x) * z + W / 2;
+  const psy = (p.y - 32 - cam.y) * z + H / 2;
+
+  // Determina coordenadas da mira na tela
+  let rx = mouse.x, ry = mouse.y;
+  let isGpAim = false;
+  if (typeof gpState !== 'undefined' && gpState && gpState.hasAim) {
+    isGpAim = true;
+    const aimDist = clamp(135 * z, 90, 200);
+    rx = psx + Math.cos(gpState.aimAngle) * aimDist;
+    ry = psy + Math.sin(gpState.aimAngle) * aimDist;
+  } else if (rx === 0 && ry === 0) {
+    rx = psx + Math.cos(p.aim) * 110;
+    ry = psy + Math.sin(p.aim) * 110;
+  }
+
+  // Coordenadas de mundo para detecção de inimigo sob a mira
+  const rwx = (rx - W / 2) / z + cam.x;
+  const rwy = (ry - H / 2) / z + cam.y;
+
+  let lockedEnemy = null;
+  let minDist = Infinity;
+  if (typeof enemies !== 'undefined' && Array.isArray(enemies)) {
+    for (const e of enemies) {
+      if (e.dead) continue;
+      const ey = e.y - (e.r || 20) * 0.7;
+      const d = Math.hypot(e.x - rwx, ey - rwy);
+      if (d < (e.r || 20) + 26 && d < minDist) {
+        minDist = d;
+        lockedEnemy = e;
+      }
+    }
+  }
+
+  // Efeito dinâmico de recuo e bloqueio
+  const isFiring = (p.attack !== null) || mouse.down || (typeof gpState !== 'undefined' && gpState && gpState.atkDown);
+  if (isFiring) {
+    reticleKick = Math.min(1, reticleKick + 0.38);
+  } else {
+    reticleKick = Math.max(0, reticleKick - 0.09);
+  }
+
+  if (lockedEnemy) {
+    reticleLockT = Math.min(1, reticleLockT + 0.22);
+  } else {
+    reticleLockT = Math.max(0, reticleLockT - 0.14);
+  }
+
+  ctx.save();
+
+  // 1. TRAJETÓRIA / LINHA GUIA SUTIL DO GOLPE
+  const dToPlayer = Math.hypot(rx - psx, ry - psy);
+  if (dToPlayer > 48) {
+    const guideAlpha = lockedEnemy ? 0.36 : (isFiring ? 0.30 : 0.16);
+    const guideColor = lockedEnemy
+      ? `rgba(255, 68, 68, ${guideAlpha})`
+      : p.char.weaponType === 'star'
+        ? `rgba(127, 224, 255, ${guideAlpha})`
+        : p.char.weaponType === 'orange'
+          ? `rgba(255, 160, 50, ${guideAlpha})`
+          : `rgba(247, 214, 126, ${guideAlpha})`;
+
+    ctx.strokeStyle = guideColor;
+    ctx.lineWidth = lockedEnemy ? 1.4 : 1.0;
+    ctx.setLineDash([4, 6]);
+    ctx.lineDashOffset = -t * 34;
+    ctx.beginPath();
+    const ang = Math.atan2(ry - psy, rx - psx);
+    ctx.moveTo(psx + Math.cos(ang) * 22, psy + Math.sin(ang) * 22);
+    ctx.lineTo(rx - Math.cos(ang) * 16, ry - Math.sin(ang) * 16);
+    ctx.stroke();
+    ctx.setLineDash([]);
+  }
+
+  // Paleta da mira conforme o personagem e alvo
+  const primaryColor = lockedEnemy
+    ? '#ff3b30'
+    : p.char.weaponType === 'star'
+      ? '#7fe0ff'
+      : p.char.weaponType === 'orange'
+        ? '#ff9d3b'
+        : (typeof SABER_COLORS !== 'undefined' && typeof saberColorIndex !== 'undefined' && SABER_COLORS[saberColorIndex] ? SABER_COLORS[saberColorIndex].blade : '#f7d67e');
+
+  const glowColor = lockedEnemy ? 'rgba(255, 59, 48, 0.65)' : 'rgba(247, 214, 126, 0.40)';
+  const baseRadius = (lockedEnemy ? 15 : 12) + reticleKick * 6;
+
+  // 2. AURA DE CONTRASTE CENTRAL
+  const glowGrad = ctx.createRadialGradient(rx, ry, 2, rx, ry, baseRadius + 7);
+  glowGrad.addColorStop(0, glowColor);
+  glowGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+  ctx.fillStyle = glowGrad;
+  ctx.beginPath();
+  ctx.arc(rx, ry, baseRadius + 7, 0, Math.PI * 2);
+  ctx.fill();
+
+  // 3. ANEL EXTERNO SEGMENTADO (4 quadrantes giratórios)
+  const ringRot = t * 1.25 + reticleKick * 0.4;
+  ctx.strokeStyle = primaryColor;
+  ctx.lineWidth = lockedEnemy ? 2.2 : 1.6;
+  ctx.shadowColor = '#000000';
+  ctx.shadowBlur = 3;
+
+  for (let i = 0; i < 4; i++) {
+    const aStart = ringRot + i * (Math.PI / 2) + 0.22;
+    const aEnd = ringRot + (i + 1) * (Math.PI / 2) - 0.22;
+    ctx.beginPath();
+    ctx.arc(rx, ry, baseRadius, aStart, aEnd);
+    ctx.stroke();
+  }
+
+  // 4. LOCK-ON BRACKETS QUANDO SOB INIMIGO [ + ]
+  if (reticleLockT > 0.05) {
+    const brkSize = (7 + reticleKick * 2) * reticleLockT;
+    const brkOffset = (baseRadius + 5) * reticleLockT;
+    ctx.strokeStyle = '#ff3b30';
+    ctx.lineWidth = 2.0;
+
+    const corners = [
+      [-1, -1], [1, -1], [1, 1], [-1, 1]
+    ];
+    for (const [cx, cy] of corners) {
+      const bx = rx + cx * brkOffset;
+      const by = ry + cy * brkOffset;
+      ctx.beginPath();
+      ctx.moveTo(bx, by - cy * brkSize);
+      ctx.lineTo(bx, by);
+      ctx.lineTo(bx - cx * brkSize, by);
+      ctx.stroke();
+    }
+  }
+
+  // 5. MARCAS CARDINAIS DE PRECISÃO (TICKS)
+  const tickGap = baseRadius - 3;
+  const tickLen = 6 + reticleKick * 3;
+  ctx.strokeStyle = primaryColor;
+  ctx.lineWidth = 1.6;
+
+  ctx.beginPath();
+  ctx.moveTo(rx, ry - tickGap - tickLen); ctx.lineTo(rx, ry - tickGap);
+  ctx.moveTo(rx, ry + tickGap); ctx.lineTo(rx, ry + tickGap + tickLen);
+  ctx.moveTo(rx - tickGap - tickLen, ry); ctx.lineTo(rx - tickGap, ry);
+  ctx.moveTo(rx + tickGap, ry); ctx.lineTo(rx + tickGap + tickLen, ry);
+  ctx.stroke();
+
+  // 6. PONTO CENTRAL DE PRECISÃO (CENTER PIP)
+  ctx.shadowBlur = 0;
+  ctx.fillStyle = lockedEnemy ? '#ff5252' : '#ffffff';
+  ctx.beginPath();
+  ctx.arc(rx, ry, 2.2, 0, Math.PI * 2);
+  ctx.fill();
+
+  // 7. ONDA DE IMPACTO AO ATIRAR / DISPARAR
+  if (reticleKick > 0.12) {
+    ctx.strokeStyle = lockedEnemy ? `rgba(255, 80, 80, ${reticleKick * 0.7})` : `rgba(255, 215, 100, ${reticleKick * 0.7})`;
+    ctx.lineWidth = 1.2;
+    ctx.beginPath();
+    ctx.arc(rx, ry, baseRadius * 1.45, 0, Math.PI * 2);
+    ctx.stroke();
   }
 
   ctx.restore();

@@ -248,6 +248,7 @@ function loop(now) {
 
     ctx.clearRect(0, 0, W, H);
     drawWorld();
+    if (state !== 'play' && canvas && canvas.style.cursor === 'none') canvas.style.cursor = 'default';
     if (state !== 'menu' && typeof syncMenuOverlay === 'function') syncMenuOverlay(false);
     if (state === 'menu') drawMenu();
     else if (state === 'soul_shrine') drawSoulShrine();
