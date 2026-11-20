@@ -24,3 +24,28 @@ CRÉDITOS DE ARTE E ÁUDIO (Licenças Livres)
 5. Fonte Press Start 2P
    - Autor: CodeMan38
    - Licença: SIL Open Font License (OFL)
+
+6. Dungeon Crawl Stone Soup 32x32 Tiles (Sprites de Monstros, Chefes, Altares e Totem)
+   - Autores: Contribuidores do Dungeon Crawl Stone Soup (DCSS) / OpenGameArt (medicine_storm)
+   - Fonte: https://opengameart.org/content/dungeon-crawl-32x32-tiles
+   - Licença: CC0 (Domínio Público)
+
+7. Epic Boss Battle [Seamlessly Looping] (assets/audio/music/boss_battle.mp3)
+   - Autor: Juhani Junkala (SubSpaceAudio)
+   - Fonte: https://opengameart.org/content/boss-battle-music
+   - Licença: CC0 (Domínio Público)
+
+8. 50 RPG Sound Effects (Efeitos de livro, moedas, portal e passos)
+   - Autor: Kenney (kenney.nl)
+   - Fonte: https://opengameart.org/content/50-rpg-sound-effects
+   - Licença: CC0 (Domínio Público)
+
+9. 20 Sword Sound Effects & 10 Impact/Shield Blocks (Efeitos de choque metálico e impacto pesado)
+   - Autor: StarNinjas
+   - Fonte: https://opengameart.org/content/20-sword-sound-effects-attacks-and-clashes | https://opengameart.org/content/10-impactshield-blocks
+   - Licença: CC0 (Domínio Público)
+
+10. 75 CC0 Breaking / Falling / Hit SFX (Efeitos de cristal, madeira e rocha quebrando)
+    - Autor: rubberduck
+    - Fonte: https://opengameart.org/content/75-cc0-breaking-falling-hit-sfx
+    - Licença: CC0 (Domínio Público)

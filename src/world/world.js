@@ -105,12 +105,12 @@ function refillBarrels(n) {
 }
 
 const SHRINE_TYPES = [
-  { id: 'frenzy', name: 'ALTAR DO FRENESI', sub: '+Velocidade e Cadência Máxima por 10s!', col: '#ff6438', icon: 'i_S_Fire01' },
-  { id: 'shield', name: 'ALTAR CELESTIAL', sub: '+2 Escudos Orbitais Protetores!', col: '#4fe3ff', icon: 'i_S_Buff03' },
-  { id: 'fortune', name: 'ALTAR DA FORTUNA', sub: 'Chuva de Moedas + Ímã Global!', col: '#ffd23f', icon: 'i_I_GoldCoin' },
-  { id: 'storm', name: 'ALTAR DO TROVÃO', sub: 'Tempestade de Raios + Fúria!', col: '#d26bff', icon: 'i_S_Light02' },
-  { id: 'pact', name: 'ALTAR DO PACTO', sub: 'Sacrifique 1 Coração por +1 NÍVEL e +1 DANO!', col: '#ff2a55', icon: 'i_I_Ruby' },
-  { id: 'cursed', name: 'BAÚ DESAFIADOR', sub: 'Derrote a Emboscada de Elites por Recompensa Épica!', col: '#ff9a2e', icon: 'i_I_Chest01' },
+  { id: 'frenzy', name: 'ALTAR DO FRENESI', sub: '+Velocidade e Cadência Máxima por 10s!', col: '#ff6438', icon: 'i_S_Fire01', sprite: 'altar_frenzy' },
+  { id: 'shield', name: 'ALTAR CELESTIAL', sub: '+2 Escudos Orbitais Protetores!', col: '#4fe3ff', icon: 'i_S_Buff03', sprite: 'altar_shield' },
+  { id: 'fortune', name: 'ALTAR DA FORTUNA', sub: 'Chuva de Moedas + Ímã Global!', col: '#ffd23f', icon: 'i_I_GoldCoin', sprite: 'altar_fortune' },
+  { id: 'storm', name: 'ALTAR DO TROVÃO', sub: 'Tempestade de Raios + Fúria!', col: '#d26bff', icon: 'i_S_Light02', sprite: 'altar_storm' },
+  { id: 'pact', name: 'ALTAR DO PACTO', sub: 'Sacrifique 1 Coração por +1 NÍVEL e +1 DANO!', col: '#ff2a55', icon: 'i_I_Ruby', sprite: 'altar_pact' },
+  { id: 'cursed', name: 'BAÚ DESAFIADOR', sub: 'Derrote a Emboscada de Elites por Recompensa Épica!', col: '#ff9a2e', icon: 'i_I_Chest01', sprite: 'altar_cursed' },
 ];
 
 function spawnShrine() {

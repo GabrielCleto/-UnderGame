@@ -98,6 +98,16 @@ function loadProfile() {
 }
 loadProfile();
 
+// Save com debounce: agrupa varias mudancas numa unica escrita a cada 3s
+let _saveTimer = null;
+function saveProfileSoon() {
+  if (_saveTimer) return;
+  _saveTimer = setTimeout(() => { _saveTimer = null; saveProfile(); }, 3000);
+}
+function flushProfileSave() {
+  if (_saveTimer) { clearTimeout(_saveTimer); _saveTimer = null; saveProfile(); }
+}
+
 function generateRunSeed() {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
   let out = '';
@@ -107,6 +117,7 @@ function generateRunSeed() {
 
 function reset() {
   keys[' '] = false;
+  if (typeof stopBossMusic === 'function') stopBossMusic(false);
   if (typeof actionBuffer !== 'undefined') actionBuffer.clear();
   runSeed = generateRunSeed();
   lastDamageSource = 'Horda da Arena';

@@ -387,7 +387,7 @@ function leviathanAI(e, dt, ux, uy, d) {
         enemyShoot(e, i * Math.PI * 2 / 12, 230, 9, 'green');
       }
       if (Math.hypot(e.x - p.x, e.y - p.y) < 140) {
-        hurtPlayer(2, e.x, e.y);
+        hurtPlayer(2, e.x, e.y, 'Leviatã Abissal');
       }
       e.phase = 'chase'; e.pt = 2.0;
     }
@@ -644,6 +644,7 @@ function bossMagmaColossusAI(e, dt, ux, uy, d) {
     if (e.pt <= 0) {
       shake = Math.max(shake, 12);
       addTrauma(0.4);
+      if (SFX.rockSlam) SFX.rockSlam();
       fxRings.push({ kind: 'nova', x: e.x, y: e.y, r: 15, maxR: 150, life: 0.38, max: 0.38, col: '#ff5500' });
       const n = enraged ? 16 : 12;
       for (let i = 0; i < n; i++) enemyShoot(e, (i * Math.PI * 2) / n, 190, 9, 'orange');

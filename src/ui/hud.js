@@ -777,7 +777,7 @@ function drawRelicBelt(s, m, topY, rightLimit) {
   for (const u of shown) {
     ctx.fillStyle = '#07050a'; ctx.fillRect(x - 1, y - 1, sz + 2, sz + 2);
     ctx.fillStyle = '#1c1928'; ctx.fillRect(x, y, sz, sz);
-    ctx.fillStyle = 'rgba(217,164,65,0.35)'; ctx.strokeRect(x, y, sz, sz);
+    ctx.strokeStyle = 'rgba(217,164,65,0.35)'; ctx.lineWidth = 1; ctx.strokeRect(x, y, sz, sz);
     const ic = hudImg('i_' + u.icon);
     if (ic) ctx.drawImage(ic, x + 2, y + 2, sz - 4, sz - 4);
     const n = ups[u.id];

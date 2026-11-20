@@ -21,10 +21,12 @@ function update(dt) {
       if (wave > 1 && nextBiome !== currentBiome) {
         currentBiome = nextBiome;
         SFX.shrine();
+        if (SFX.portal) SFX.portal();
         texts.push({ x: p.x, y: p.y - 130, txt: '🌀 PORTAL: ' + BIOMES[currentBiome].name + '!', life: 2.6, color: '#62f6ff', size: 15 });
       }
       const isBoss = wave % 5 === 0;
       toSpawn = isBoss ? 15 + Math.floor(wave * 2.5) : 16 + Math.floor(wave * 4.8);
+      if (!isBoss) toSpawn = Math.round(toSpawn * (1 + ((DIFFICULTY_MODES[difficultyIdx] || DIFFICULTY_MODES[0]).spawnMul - 1) * 0.5));
       spawnTimer = 0.25;
       if (!isBoss && wave >= 2) {
         const roll = Math.random();
@@ -55,6 +57,7 @@ function update(dt) {
           banner = { txt: 'ONDA ' + wave, sub: 'CHEFÃO: ' + MON[bObj.type].bossName + '!', life: 3.2, max: 3.2, boss: true };
         }
         SFX.boss();
+        if (typeof playBossMusic === 'function') playBossMusic();
       } else {
         if (waveEvent === 'ambush') {
           const ringCnt = Math.min(14, 7 + Math.floor(wave * 0.6));
@@ -395,6 +398,7 @@ function update(dt) {
     p.stepT -= dt;
     if (p.stepT <= 0) {
       p.stepT = 0.18;
+      if (SFX.footstep) SFX.footstep();
       particles.push({ x: p.x + rand(-8, 8), y: p.y, vx: rand(-20, 20), vy: -10, life: 0.4, max: 0.4, color: 'rgba(200,180,140,0.6)', size: 4 });
     }
   } else {
@@ -584,6 +588,7 @@ function update(dt) {
       const eR = 120 + stats.earth * 38;
       shake = Math.max(shake, 3);
       beep(120, 0.3, 'sawtooth', 0.08, -80);
+      if (SFX.rockSlam) SFX.rockSlam();
       fxRings.push({ kind: 'nova', x: p.x, y: p.y, r: 20, maxR: eR, life: 0.32, max: 0.32, col: '#d49a62' });
       burst(p.x, p.y, '#99734e', 24, 280);
       for (const e of enemies) {

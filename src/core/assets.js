@@ -26,13 +26,22 @@ const IMAGE_LIST = {
   trunk: 'assets/sprites/world/trunk.png',
   rock: 'assets/sprites/world/rock.png',
   barrel: 'assets/sprites/world/barrel.png',
+  altar_frenzy: 'assets/sprites/world/altar_frenzy.png',
+  altar_shield: 'assets/sprites/world/altar_shield.png',
+  altar_fortune: 'assets/sprites/world/altar_fortune.png',
+  altar_storm: 'assets/sprites/world/altar_storm.png',
+  altar_pact: 'assets/sprites/world/altar_pact.png',
+  altar_cursed: 'assets/sprites/world/altar_cursed.png',
+  void_totem: 'assets/sprites/world/void_totem.png',
 };
 
 const MONSTER_SPRITES = [
   'slime', 'bat', 'bee', 'snake', 'small_worm', 'eyeball', 'ghost',
   'big_worm', 'man_eater_flower', 'pumpking',
   'chaos_imp', 'void_spider', 'boss_void_overlord', 'boss_magma_colossus',
-  'twilight_lich', 'aether_slider', 'carminite_ghast'
+  'twilight_lich', 'aether_slider', 'carminite_ghast',
+  'goblin', 'necromancer', 'golem', 'sniper', 'viper', 'bomber',
+  'necro_boss', 'hydra_boss', 'beholder_boss'
 ];
 MONSTER_SPRITES.forEach(m => {
   IMAGE_LIST['m_' + m] = `assets/sprites/monsters/${m}.png`;

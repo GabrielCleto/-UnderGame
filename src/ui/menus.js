@@ -48,7 +48,7 @@ function drawLevelUp() {
     }
 
     const lvl = ups[u.id] || 0;
-    const isLegendary = (lvl >= 4 || u.id === 'reforge');
+    const isLegendary = (lvl >= 4);
     const isEpic = (lvl >= 2 || ['vortex', 'berserk', 'venom', 'ricochet'].includes(u.id));
     const isRare = (lvl >= 1);
     const rarityName = isLegendary ? '★ LENDÁRIO ★' : isEpic ? '◆ ÉPICO ◆' : isRare ? '▲ RARO ▲' : '● COMUM ●';
@@ -249,6 +249,12 @@ function drawShop() {
     ctx.strokeRect(bx, by, bw, bh);
   }
   txt(gamepadInfo.connected ? '⚔ CONTINUAR BATALHA [START / B / A] ⚔' : '⚔ CONTINUAR BATALHA [ENTER] ⚔', W / 2, by + Math.round(bh * 0.62), Math.round(9 * s), bsel ? '#ffffff' : MED.goldLight);
+  if (shopToast && performance.now() < shopToast.until) {
+    const tw = Math.round(clamp(440 * s, 260, 520)), th = Math.round(34 * s);
+    const tx = Math.round(W / 2 - tw / 2), ty = Math.round(H * 0.5 - th / 2);
+    medPanel(tx, ty, tw, th, 'leather');
+    txt(shopToast.txt, W / 2, ty + Math.round(th * 0.64), Math.round(9 * s), shopToast.col);
+  }
   shopExitRect = { x: bx, y: by, w: bw, h: bh };
 }
 
@@ -619,7 +625,7 @@ let bestiaryPage = 0, bestiaryPrevRect = null, bestiaryNextRect = null, bestiary
 function changeBestiaryPage(delta) {
   const total = BESTIARY_ORDER.length;
   bestiaryPage = (bestiaryPage + delta + total) % total;
-  SFX.select();
+  if (typeof SFX !== 'undefined' && SFX.bookFlip) SFX.bookFlip(); else SFX.select();
 }
 
 function drawBestiaryMonsterSprite(key, cx, cy, maxBox) {
@@ -629,7 +635,9 @@ function drawBestiaryMonsterSprite(key, cx, cy, maxBox) {
   if (!img || !img.complete) return;
   const t = performance.now() / 1000;
   let col = 0, row = 0;
-  if (['chaos_imp', 'void_spider', 'boss_void_overlord', 'boss_magma_colossus'].includes(key)) {
+  if (d.single) {
+    col = 0; row = 0;
+  } else if (['chaos_imp', 'void_spider', 'boss_void_overlord', 'boss_magma_colossus'].includes(key)) {
     col = Math.floor(t * 6) % 4;
   } else if (['twilight_lich', 'aether_slider', 'carminite_ghast'].includes(key)) {
     col = Math.floor(t * 8) % 4;
@@ -883,7 +891,7 @@ function bindMenuOverlayEvents() {
   on('btn-play', () => { if (state === 'menu') startWithSelectedCharacter(); });
   on('btn-chars', () => { if (state === 'menu') enterCharacterSelect(); });
   on('btn-souls', () => { if (state === 'menu') { state = 'soul_shrine'; panelOpenAt = performance.now(); SFX.select(); } });
-  on('btn-bestiary', () => { if (state === 'menu') { state = 'bestiary'; panelOpenAt = performance.now(); SFX.select(); } });
+  on('btn-bestiary', () => { if (state === 'menu') { state = 'bestiary'; panelOpenAt = performance.now(); if (SFX.bookOpen) SFX.bookOpen(); else SFX.select(); } });
   on('ui-diff-desc', () => {
     if (state !== 'menu') return;
     difficultyIdx = (difficultyIdx + 1) % DIFFICULTY_MODES.length;

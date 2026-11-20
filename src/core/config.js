@@ -2,6 +2,18 @@
 //  UNDERGROUND GAME  —  Ação Roguelite Top-Down no Navegador
 //  Personagens: Manguinha, Amxral e Tuiuba
 // =====================================================================
+// Se o navegador bloquear localStorage (privacidade estrita), usa um shim em memoria
+(function () {
+  try { localStorage.getItem('__t'); } catch (e) {
+    const m = {};
+    const shim = {
+      getItem: k => (k in m ? m[k] : null),
+      setItem: (k, v) => { m[k] = String(v); },
+      removeItem: k => { delete m[k]; },
+    };
+    try { Object.defineProperty(window, 'localStorage', { value: shim, configurable: true }); } catch (_) { }
+  }
+})();
 const canvas = document.getElementById('game');
 const ctx = canvas.getContext('2d');
 let W = 0, H = 0;

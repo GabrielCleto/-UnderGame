@@ -47,9 +47,13 @@ function drawBarrel(b) {
     ctx.fillStyle = `rgba(200,68,255,${pulse})`;
     ctx.beginPath(); ctx.ellipse(b.x, b.y - 26, 20, 32, 0, 0, Math.PI * 2); ctx.fill();
     ctx.restore();
-    ctx.fillStyle = '#261438'; ctx.fillRect(b.x - 12 + sx, b.y - 52, 24, 52);
-    ctx.fillStyle = '#6830a8'; ctx.fillRect(b.x - 10 + sx, b.y - 50, 20, 48);
-    ctx.fillStyle = '#e08aff'; ctx.fillRect(b.x - 5 + sx, b.y - 42, 10, 10);
+    if (IMG.void_totem && IMG.void_totem.complete) {
+      ctx.drawImage(IMG.void_totem, b.x - 23 + sx, b.y - 46, 46, 46);
+    } else {
+      ctx.fillStyle = '#261438'; ctx.fillRect(b.x - 12 + sx, b.y - 52, 24, 52);
+      ctx.fillStyle = '#6830a8'; ctx.fillRect(b.x - 10 + sx, b.y - 50, 20, 48);
+      ctx.fillStyle = '#e08aff'; ctx.fillRect(b.x - 5 + sx, b.y - 42, 10, 10);
+    }
     txt('TOTEM', b.x + sx, b.y - 58, 7, '#e08aff');
     return;
   }
@@ -111,8 +115,14 @@ function drawShrine(sh) {
   ctx.globalAlpha = 1;
   shadow(sh.x, sh.y, 18, 7, 0.35);
   const bob = Math.sin(sh.t * 4) * 5;
-  if (IMG[sh.icon]) ctx.drawImage(IMG[sh.icon], sh.x - 18, sh.y - 44 + bob, 36, 36);
-  txt(sh.name, sh.x, sh.y - 54 + bob, 7, sh.col);
+  if (sh.sprite && IMG[sh.sprite] && IMG[sh.sprite].complete) {
+    ctx.drawImage(IMG[sh.sprite], sh.x - 24, sh.y - 44, 48, 48);
+    if (IMG[sh.icon]) ctx.drawImage(IMG[sh.icon], sh.x - 11, sh.y - 68 + bob, 22, 22);
+    txt(sh.name, sh.x, sh.y - 74 + bob, 7, sh.col);
+  } else {
+    if (IMG[sh.icon]) ctx.drawImage(IMG[sh.icon], sh.x - 18, sh.y - 44 + bob, 36, 36);
+    txt(sh.name, sh.x, sh.y - 54 + bob, 7, sh.col);
+  }
   ctx.restore();
 }
 
@@ -188,7 +198,10 @@ function drawEnemy(e) {
   const wimg = WHITE['m_' + d.img] || WHITE[d.img] || img;
   const s = e.scale * (e.spawn > 0 ? Math.max(0.05, 1 - e.spawn / 0.7) : 1);
   let row = e.row, col = 0;
-  if (['chaos_imp', 'void_spider', 'boss_void_overlord', 'boss_magma_colossus'].includes(e.type)) {
+  if (d.single) {
+    col = 0;
+    row = 0;
+  } else if (['chaos_imp', 'void_spider', 'boss_void_overlord', 'boss_magma_colossus'].includes(e.type)) {
     const isAtk = (e.mode === 'shoot' || e.act < 0.35 || e.phase === 'charge');
     const animFrames = isAtk ? [4, 5] : [0, 1, 2, 3];
     const fps = isAtk ? 8 : (e.type === 'chaos_imp' ? 12 : 6);
@@ -200,10 +213,15 @@ function drawEnemy(e) {
   } else {
     col = Math.floor(e.t * (e.type === 'bat' || e.type === 'bee' ? 12 : 7)) % 3;
   }
-  if (e.type === 'slime' || e.type === 'bomber') col = e.z > 6 ? 2 : e.z > 1 ? 1 : 0;
-  if (e.type === 'flower' || e.type === 'hydra_boss') { row = e.mode === 'open' ? 1 + (Math.floor(e.t * 10) % 3) : 0; col = Math.floor(e.t * 5) % 3; }
+  if (e.type === 'slime') col = e.z > 6 ? 2 : e.z > 1 ? 1 : 0;
+  if (e.type === 'flower') { row = e.mode === 'open' ? 1 + (Math.floor(e.t * 10) % 3) : 0; col = Math.floor(e.t * 5) % 3; }
   const w = d.fw * s, h = d.fh * s;
-  const dx = e.x - w / 2, dy = e.y - h + 4 * s - (e.z || 0);
+  let singleYOff = 0;
+  if (d.single) {
+    if (d.fly || e.type === 'bomber') singleYOff = Math.sin(e.t * 4.5) * 5;
+    else if (e.type !== 'hydra_boss') singleYOff = Math.abs(Math.sin(e.t * 8.5)) * 4;
+  }
+  const dx = e.x - w / 2, dy = e.y - h + 4 * s - (e.z || 0) - singleYOff;
 
   if (e.spawn > 0) {
     ctx.strokeStyle = `rgba(255,70,70,${0.4 + 0.4 * Math.sin(e.t * 20)})`; ctx.lineWidth = 3;
@@ -262,9 +280,23 @@ function drawEnemy(e) {
   ctx.globalAlpha = alpha;
   ctx.save();
   ctx.translate(e.x, e.y);
-  const flipH = ['chaos_imp', 'void_spider', 'boss_void_overlord'].includes(e.type) && (typeof player !== 'undefined' && player && player.x < e.x);
+  const pLeft = typeof player !== 'undefined' && player && player.x < e.x;
+  const flipH = e.type === 'goblin'
+    ? (typeof player !== 'undefined' && player && player.x > e.x)
+    : ((d.single || ['chaos_imp', 'void_spider', 'boss_void_overlord'].includes(e.type)) && pLeft);
   if (flipH) {
     ctx.scale(-1, 1);
+  }
+  if (d.single) {
+    if (e.type === 'bomber') {
+      const pSc = 1 + Math.sin(e.t * 14) * 0.08;
+      ctx.scale(pSc, pSc);
+    } else if (e.type === 'hydra_boss') {
+      const hSc = (e.mode === 'open' ? 1.08 : 1.0) + Math.sin(e.t * 4) * 0.05;
+      ctx.scale(hSc, hSc);
+    } else if (!d.fly) {
+      ctx.rotate(Math.sin(e.t * 8.5) * 0.06);
+    }
   }
   if (e.hurt > 0) {
     const k = e.hurt / 0.18;
@@ -431,7 +463,7 @@ function drawPlayer() {
 
 function drawFireballs() {
   if (!stats.fire) return;
-  const p = player, n = stats.fire, R = 80;
+  const p = player, n = stats.fire, R = stats.fire >= 5 ? 92 : 80;
   for (let i = 0; i < n; i++) {
     const a = p.fireAng + i * Math.PI * 2 / n;
     const fx = p.x + Math.cos(a) * R, fy = p.y - 35 + Math.sin(a) * R * 0.8;

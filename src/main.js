@@ -9,7 +9,7 @@ function loop(now) {
   if (anyPressed('m')) {
     musicOn = !musicOn;
     if (!musicOn) {
-      if (activeCharMusic) activeCharMusic.pause();
+      music.pause();
     } else {
       startMusic();
     }
@@ -43,7 +43,7 @@ function loop(now) {
       else if (anyPressed('2')) { difficultyIdx = 1; localStorage.setItem('gabriel_diff', 1); SFX.select(); }
       else if (anyPressed('3')) { difficultyIdx = 2; localStorage.setItem('gabriel_diff', 2); SFX.select(); }
       else if (anyPressed('s')) { state = 'soul_shrine'; panelOpenAt = performance.now(); SFX.select(); }
-      else if (anyPressed('b')) { state = 'bestiary'; panelOpenAt = performance.now(); SFX.select(); }
+      else if (anyPressed('b')) { state = 'bestiary'; panelOpenAt = performance.now(); SFX.bookOpen(); }
       else if (anyPressed('enter', ' ')) {
         startWithSelectedCharacter();
       } else if (mouse.click) {
@@ -55,7 +55,7 @@ function loop(now) {
         else if (inRect(mouse.x, mouse.y, menuSoulRect)) {
           state = 'soul_shrine'; panelOpenAt = performance.now(); SFX.select();
         } else if (inRect(mouse.x, mouse.y, menuBestiaryRect)) {
-          state = 'bestiary'; panelOpenAt = performance.now(); SFX.select();
+          state = 'bestiary'; panelOpenAt = performance.now(); SFX.bookOpen();
         } else if ((menuCharRect && inRect(mouse.x, mouse.y, menuCharRect)) || Math.hypot(mouse.x - W / 2, mouse.y - H * 0.39) < 85) {
           if (canvas) canvas.style.cursor = 'default';
           enterCharacterSelect();
@@ -65,13 +65,13 @@ function loop(now) {
         mouse.click = false; mouse.down = false;
       }
     } else if (state === 'bestiary') {
-      if (anyPressed('escape', 'b')) { state = 'menu'; SFX.select(); }
+      if (anyPressed('escape', 'b')) { state = 'menu'; SFX.bookClose(); }
       else if (anyPressed('arrowleft', 'a')) { changeBestiaryPage(-1); }
       else if (anyPressed('arrowright', 'd')) { changeBestiaryPage(1); }
       if (mouse.click) {
         if (inRect(mouse.x, mouse.y, bestiaryPrevRect)) changeBestiaryPage(-1);
         else if (inRect(mouse.x, mouse.y, bestiaryNextRect)) changeBestiaryPage(1);
-        else if (inRect(mouse.x, mouse.y, bestiaryBackRect)) { state = 'menu'; SFX.select(); }
+        else if (inRect(mouse.x, mouse.y, bestiaryBackRect)) { state = 'menu'; SFX.bookClose(); }
         mouse.click = false; mouse.down = false;
       }
     } else if (state === 'soul_shrine') {
@@ -277,4 +277,20 @@ function loop(now) {
     requestAnimationFrame(loop);
   }
 }
+
+// Auto-pause ao perder foco (troca de aba/janela) e flush do save
+function autoPause() {
+  if (state === 'play') {
+    state = 'pause';
+    for (const k in keys) keys[k] = false;
+    mouse.down = false;
+    touch.isAtkDown = false;
+  }
+}
+addEventListener('blur', autoPause);
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) { autoPause(); if (typeof flushProfileSave === 'function') flushProfileSave(); }
+});
+addEventListener('pagehide', () => { if (typeof flushProfileSave === 'function') flushProfileSave(); });
+
 requestAnimationFrame(loop);

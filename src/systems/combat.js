@@ -59,8 +59,9 @@ function spawnEnemy(kind, at, opts = {}) {
     bossCount++;
     const bossAttrScale = player ? Math.max(0, player.level - 1) * 0.09 + Math.max(0, stats.dmg - 1) * 0.16 : 0;
     const bossWaveScale = 1.35 + Math.max(0, wave - 5) * 0.25 + Math.pow(Math.max(0, bossCount - 1), 1.3) * 0.45 + bossAttrScale;
-    e.hp = e.maxHp = Math.round((d.hp + (bossCount - 1) * 160) * bossWaveScale);
+    e.hp = e.maxHp = Math.round((d.hp + (bossCount - 1) * 160) * bossWaveScale * diff.hpMul);
     e.phase = 'chase'; e.pt = 2.4; e.cycle = 0; e.spawn = 1.2;
+    if (type === 'aether_slider') { e.phase = 'hover'; e.pt = 1.1; SFX.bossAwake(); }
     boss = e;
   }
   enemies.push(e);
@@ -78,7 +79,7 @@ function damageEnemy(e, dmg, fromX, fromY, power = 380, opts = {}) {
   let crit = false;
   const pref = (player && player.prefix) || null;
   const critChance = stats.crit + (pref ? pref.critAdd : 0);
-  if (!opts.noCrit && Math.random() < critChance) { dmg *= 2; crit = true; burst(e.x, e.y - e.r, '#ffe042', 12, 240); }
+  if (!opts.noCrit && Math.random() < critChance) { dmg *= 2; crit = true; burst(e.x, e.y - e.r, '#ffe042', 12, 240); if (!opts.silent && SFX.critHit) SFX.critHit(); }
   if (pref && pref.dmgMul && !opts.noCrit) { dmg = Math.max(1, Math.round(dmg * pref.dmgMul)); }
   if (pref && pref.kbMul && power) { power *= pref.kbMul; }
   if (pref && pref.id === 'mythical' && player && player.ultMeter < 100) { player.ultMeter = Math.min(100, player.ultMeter + 0.6 * (stats.furyMul || 1)); }
@@ -96,9 +97,6 @@ function damageEnemy(e, dmg, fromX, fromY, power = 380, opts = {}) {
   }
   if (crit && stats.infPower && !opts.isNova) {
     fxRings.push({ kind: 'nova', x: e.x, y: e.y - 16, r: 10, maxR: 95, life: 0.25, max: 0.25, col: '#c844ff' });
-  }
-  if (stats.bloodOrb && player && player.combo > 0 && player.combo % 12 === 0) {
-    player.hp = Math.min(stats.maxHp, player.hp + 1);
   }
   if (e.eliteTrait && e.eliteTrait.id === 'armored') {
     dmg = Math.max(1, Math.ceil(dmg * 0.75));
@@ -183,10 +181,10 @@ function killEnemy(e) {
   kills++;
   const p = player;
   p.combo++; p.comboT = 2.9;
+  if (stats.bloodOrb && p.combo % 12 === 0 && p.hp < stats.maxHp) p.hp = Math.min(stats.maxHp, p.hp + 1);
   if (p.combo > maxCombo) maxCombo = p.combo;
   bestiaryKills[e.type] = (bestiaryKills[e.type] || 0) + 1;
-  localStorage.setItem('gabriel_bestiary', JSON.stringify(bestiaryKills));
-  if (typeof saveProfile === 'function') saveProfile();
+  if (typeof saveProfileSoon === 'function') saveProfileSoon();
   p.ultMeter = Math.min(100, p.ultMeter + (isBossType(e.type) ? 40 : e.elite ? 10 : 3.2) * (stats.furyMul || 1));
   const diff = DIFFICULTY_MODES[difficultyIdx] || DIFFICULTY_MODES[0];
   const mult = 1 + Math.floor(p.combo / 10) * 0.25;
@@ -225,6 +223,7 @@ function killEnemy(e) {
 
   if (e.type === 'goblin') {
     SFX.shrine();
+    play('coins_bag', 0.6, 0.08);
     shake = Math.max(shake, 6);
     for (let i = 0; i < 18; i++) dropItem('coin', e.x, e.y);
     for (let i = 0; i < 4; i++) dropItem('ruby', e.x, e.y);
@@ -279,6 +278,7 @@ function killEnemy(e) {
     dropItem('chest', e.x, e.y);
     if (!boss) {
       ebullets = [];
+      if (typeof stopBossMusic === 'function') stopBossMusic(true);
       banner = { txt: 'CHEFÃO DERROTADO!', sub: 'Pegue o baú do tesouro!', life: 3, max: 3 };
     } else {
       banner = { txt: '1º CHEFÃO ABATIDO!', sub: 'Derrote o Chefão restante!', life: 2.2, max: 2.2, small: true };
@@ -392,12 +392,12 @@ function buyShopItem(i) {
     coins -= curCost;
     shopBuys[item.id] = (shopBuys[item.id] || 0) + 1;
     item.buy(stats, player);
-    shopToast = { txt: '✓ COMPROU ' + item.name.toUpperCase() + '!', time: 1.5, col: '#7aff7a' };
+    shopToast = { txt: '✓ COMPROU ' + item.name.toUpperCase() + '!', until: performance.now() + 1500, col: '#7aff7a' };
     texts.push({ x: player.x, y: player.y - 90, txt: 'COMPRADO!', life: 0.9, color: '#7aff7a', size: 14 });
     SFX.shopBuy();
     gamepadRumble(0.2, 0.4, 100);
   } else {
-    shopToast = { txt: '❌ MOEDAS INSUFICIENTES (' + curCost + ' necessarias)!', time: 1.5, col: '#ff5d5d' };
+    shopToast = { txt: '❌ MOEDAS INSUFICIENTES (' + curCost + ' necessarias)!', until: performance.now() + 1500, col: '#ff5d5d' };
     SFX.shopNo();
     gamepadRumble(0.4, 0.5, 140);
   }
@@ -594,7 +594,7 @@ function hitBarrel(b) {
       return;
     }
     burst(b.x, b.y - 25, '#6b4220', 16, 240);
-    play('clang', 0.25, 0.3);
+    if (SFX.barrelBreak) SFX.barrelBreak(); else play('clang', 0.25, 0.3);
     const r = Math.random();
     if (r < 0.28) dropItem('potion', b.x, b.y);
     else if (r < 0.44) dropItem('ruby', b.x, b.y);
@@ -727,6 +727,7 @@ function gameOver() {
   state = 'over';
   time = 0;
   SFX.over();
+  if (typeof stopBossMusic === 'function') stopBossMusic(false);
   music.volume = 0.12;
   if (score > best) { best = score; localStorage.setItem('gabriel_best2', best); }
   if (typeof saveProfile === 'function') saveProfile();
