@@ -7,6 +7,7 @@ function shadow(x, y, rx, ry, a = 0.28) {
 }
 
 const TS15 = 1.5;
+const depthList = [];
 function drawTree(t) {
   const c = t.v % 2, r = t.v < 2 ? 0 : 1, tc = r;
   const ox = t.x - 48 * TS15, oy = t.y - 122 * TS15;
@@ -720,35 +721,53 @@ function drawWorld() {
     ctx.restore();
   }
 
-  for (const k of pickups) drawPickup(k);
+  const halfW = (W / 2) / z, halfH = (H / 2) / z;
+  const viewL = cam.x - halfW - 120, viewR = cam.x + halfW + 120, viewT = cam.y - halfH - 100, viewB = cam.y + halfH + 160;
+  const vis = o => o.x > viewL && o.x < viewR && o.y > viewT && o.y < viewB;
 
-  // Rastros Fantasmas de Dash / Frenesi
-  for (const g of afterimages) {
-    const a = (g.life / g.max) * 0.48;
-    drawCharacterFrame(g.char, g.f, g.x, g.y, g.flip, 0.65, { alpha: a, additive: true });
+  for (let i = 0; i < pickups.length; i++) {
+    const k = pickups[i];
+    if (vis(k)) drawPickup(k);
   }
 
-  const halfW = (W / 2) / z, halfH = (H / 2) / z;
-  const viewL = cam.x - halfW - 200, viewR = cam.x + halfW + 200, viewT = cam.y - halfH - 100, viewB = cam.y + halfH + 250;
-  const vis = o => o.x > viewL && o.x < viewR && o.y > viewT && o.y < viewB;
-  const list = [];
-  for (const t of trees) if (vis(t)) list.push({ y: t.y, d: () => drawTree(t) });
-  for (const r of rocks) if (vis(r)) list.push({ y: r.y, d: () => drawRock(r) });
-  for (const b of props) if (vis(b)) list.push({ y: b.y, d: () => drawBarrel(b) });
-  for (const e of enemies) if (vis(e)) list.push({ y: e.y, d: () => drawEnemy(e) });
-  if (player && state !== 'menu' && state !== 'select_char') list.push({ y: player.y, d: drawPlayer });
-  list.sort((a, b) => a.y - b.y);
-  for (const o of list) o.d();
+  // Rastros Fantasmas de Dash / Frenesi
+  for (let i = 0; i < afterimages.length; i++) {
+    const g = afterimages[i];
+    if (vis(g)) {
+      const a = (g.life / g.max) * 0.48;
+      drawCharacterFrame(g.char, g.f, g.x, g.y, g.flip, 0.65, { alpha: a, additive: true });
+    }
+  }
+
+  // Ordenação por profundidade Y sem alocação de closures (Zero-GC)
+  depthList.length = 0;
+  for (let i = 0; i < trees.length; i++) { const t = trees[i]; if (vis(t)) depthList.push({ y: t.y, type: 1, obj: t }); }
+  for (let i = 0; i < rocks.length; i++) { const r = rocks[i]; if (vis(r)) depthList.push({ y: r.y, type: 2, obj: r }); }
+  for (let i = 0; i < props.length; i++) { const b = props[i]; if (vis(b)) depthList.push({ y: b.y, type: 3, obj: b }); }
+  for (let i = 0; i < enemies.length; i++) { const e = enemies[i]; if (vis(e)) depthList.push({ y: e.y, type: 4, obj: e }); }
+  if (player && state !== 'menu' && state !== 'select_char') depthList.push({ y: player.y, type: 5, obj: player });
+  depthList.sort((a, b) => a.y - b.y);
+
+  for (let i = 0; i < depthList.length; i++) {
+    const item = depthList[i];
+    if (item.type === 4) drawEnemy(item.obj);
+    else if (item.type === 1) drawTree(item.obj);
+    else if (item.type === 2) drawRock(item.obj);
+    else if (item.type === 3) drawBarrel(item.obj);
+    else if (item.type === 5) drawPlayer();
+  }
 
   if (player && state !== 'menu' && state !== 'select_char') drawFireballs();
   drawAmbientAtmosphere();
-  for (const s of slashes) drawSlash(s);
-  for (const s of pshots) drawShot(s);
-  for (const b of ebullets) drawBullet(b);
-  for (const b of bolts) drawBolt(b);
+  for (let i = 0; i < slashes.length; i++) drawSlash(slashes[i]);
+  for (let i = 0; i < pshots.length; i++) { const s = pshots[i]; if (vis(s)) drawShot(s); }
+  for (let i = 0; i < ebullets.length; i++) { const b = ebullets[i]; if (vis(b)) drawBullet(b); }
+  for (let i = 0; i < bolts.length; i++) drawBolt(bolts[i]);
 
-  // Anéis de Choque, Explosões & Splash Cítrico
-  for (const r of fxRings) {
+  // Anéis de Choque, Explosões & Splash Cítrico (com culling)
+  for (let i = 0; i < fxRings.length; i++) {
+    const r = fxRings[i];
+    if (!vis(r)) continue;
     const k = r.max > 0 ? clamp(1 - r.life / r.max, 0, 1) : 1;
     const curR = Math.max(0.5, r.r + (r.maxR - r.r) * k);
     ctx.save();
@@ -763,13 +782,20 @@ function drawWorld() {
     ctx.restore();
   }
 
-  for (const q of particles) {
+  // Partículas com culling de viewport
+  for (let i = 0; i < particles.length; i++) {
+    const q = particles[i];
+    if (q.x < viewL || q.x > viewR || q.y < viewT || q.y > viewB) continue;
     ctx.globalAlpha = Math.max(0, q.life / q.max);
     ctx.fillStyle = q.color;
     ctx.fillRect(q.x - q.size / 2, q.y - q.size / 2, q.size, q.size);
   }
   ctx.globalAlpha = 1;
-  for (const t of texts) {
+
+  // Textos de combate com culling de viewport
+  for (let i = 0; i < texts.length; i++) {
+    const t = texts[i];
+    if (t.x < viewL || t.x > viewR || t.y < viewT || t.y > viewB) continue;
     const maxL = t.maxLife || 0.8;
     const progress = clamp(1 - t.life / maxL, 0, 1);
     const pop = progress < 0.18 ? 1 + (progress / 0.18) * 0.38 : 1.38 - ((progress - 0.18) / 0.82) * 0.38;

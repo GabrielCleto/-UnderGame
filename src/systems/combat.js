@@ -1,3 +1,5 @@
+let lastHitStopT = 0;
+
 function spawnPos(minD, maxD, r) {
   const z = (cam && cam.zoom) || 1;
   const adjMin = minD / Math.min(1, z);
@@ -154,7 +156,13 @@ function damageEnemy(e, dmg, fromX, fromY, power = 380, opts = {}) {
     }
   }
   if (!opts.silent) SFX.hit();
-  if (!opts.noFreeze) freeze = Math.max(freeze, crit ? 0.03 : 0.015);
+  // Hit-stop otimizado: throttle com intervalo mínimo de 180ms para evitar micro-congelamentos contínuos em hordas
+  if (!opts.noFreeze && (crit || isBossType(e.type) || e.elite)) {
+    if (!lastHitStopT || (typeof time !== 'undefined' && time - lastHitStopT > 0.18)) {
+      lastHitStopT = typeof time !== 'undefined' ? time : performance.now() / 1000;
+      freeze = Math.min(0.022, crit ? 0.02 : 0.012);
+    }
+  }
   // Não treme a tela em hits comuns contra monstros normais (elimina enjoo e fadiga visual)
   if (opts.heavyImpact || (isBossType(e.type) && crit)) {
     shake = Math.max(shake, 3);

@@ -243,12 +243,22 @@ function updateEnemy(e, dt) {
   e.y += (sy * slowMul + e.ky) * dt;
   const fx = Math.abs(sx) + Math.abs(sy) > 1 ? sx : dx, fy = Math.abs(sx) + Math.abs(sy) > 1 ? sy : dy;
   e.row = Math.abs(fx) > Math.abs(fy) ? (fx > 0 ? 3 : 1) : (fy > 0 ? 2 : 0);
-  for (const o of enemies) {
-    if (o === e || o.dead) continue;
-    const ox = e.x - o.x, oy = e.y - o.y, od = Math.hypot(ox, oy), m = (e.r + o.r) * 0.9;
-    if (od < m && od > 0) {
-      const push = isBossType(e.type) || e.type === 'flower' ? 0 : (m - od) * 0.5;
-      e.x += ox / od * push; e.y += oy / od * push;
+  // Separação de inimigos com rejeição rápida AABB (evita O(N^2) Math.hypot em ondas altas)
+  if (!isBossType(e.type) && e.type !== 'flower') {
+    const er = e.r;
+    for (let j = 0; j < enemies.length; j++) {
+      const o = enemies[j];
+      if (o === e || o.dead) continue;
+      const m = (er + o.r) * 0.9;
+      const ox = e.x - o.x;
+      if (ox >= m || ox <= -m) continue;
+      const oy = e.y - o.y;
+      if (oy >= m || oy <= -m) continue;
+      const d2 = ox * ox + oy * oy;
+      if (d2 >= m * m || d2 === 0) continue;
+      const od = Math.sqrt(d2);
+      const push = (m - od) * 0.5;
+      e.x += (ox / od) * push; e.y += (oy / od) * push;
     }
   }
   if (!MON[e.type].fly && !isBossType(e.type)) collideStatic(e, e.r);

@@ -544,9 +544,15 @@ function update(dt) {
       const a = p.fireAng + i * Math.PI * 2 / n;
       const fx = p.x + Math.cos(a) * R, fy = p.y - 35 + Math.sin(a) * R * 0.8;
       if (Math.random() < 0.5) particles.push({ x: fx, y: fy, vx: rand(-20, 20), vy: rand(-50, -10), life: 0.3, max: 0.3, color: pick(['#ffb02e', '#ff5a1f', '#ffe36b']), size: rand(3, 6) });
-      for (const e of enemies) {
+      for (let j = 0; j < enemies.length; j++) {
+        const e = enemies[j];
         if (e.dead || e.fireHit > time) continue;
-        if (Math.hypot(e.x - fx, e.y - e.r - fy) < e.r + (isAwakened ? 22 : 16)) {
+        const reach = e.r + (isAwakened ? 22 : 16);
+        const edx = e.x - fx;
+        if (edx >= reach || edx <= -reach) continue;
+        const edy = e.y - e.r - fy;
+        if (edy >= reach || edy <= -reach) continue;
+        if (edx * edx + edy * edy < reach * reach) {
           e.fireHit = time + (isAwakened ? 0.35 : 0.45);
           const thermalSynergy = stats.fire >= 5 && stats.ice >= 4;
           if (thermalSynergy) e.slow = Math.max(e.slow, 2.2);
@@ -780,9 +786,15 @@ function update(dt) {
     }
     s.x += s.vx * dt; s.y += s.vy * dt; s.life -= dt;
     if (s.life <= 0) s.dead = true;
-    for (const e of enemies) {
+    for (let j = 0; j < enemies.length; j++) {
+      const e = enemies[j];
       if (s.dead || e.dead || s.hit.has(e)) continue;
-      if (Math.hypot(e.x - s.x, e.y - e.r - s.y) < e.r + s.r) {
+      const reach = e.r + s.r;
+      const sdx = e.x - s.x;
+      if (sdx >= reach || sdx <= -reach) continue;
+      const sdy = e.y - e.r - s.y;
+      if (sdy >= reach || sdy <= -reach) continue;
+      if (sdx * sdx + sdy * sdy < reach * reach) {
         s.hit.add(e);
         if (s.kind === 'orange') {
           SFX.orangePop();
@@ -790,9 +802,17 @@ function update(dt) {
           burst(s.x, s.y, '#ffd242', 10, 200);
           fxRings.push({ kind: 'orange_splash', x: s.x, y: s.y, r: 22, maxR: 70 * stats.range, life: 0.28, max: 0.28, col: '#ff8a14' });
           if (puddles.length < 18) puddles.push({ x: s.x, y: e.y, r: 42 * stats.range, life: 2.0, max: 2.0, tick: 0.35 });
-          for (const o of enemies) {
-            if (!o.dead && o !== e && Math.hypot(o.x - s.x, o.y - s.y) < 72 * stats.range) {
-              damageEnemy(o, Math.max(1, Math.round(s.dmg * 0.6)), s.x, s.y, 180, { color: '#ff8a14', noFreeze: true, silent: true });
+          const splashR = 72 * stats.range;
+          for (let k = 0; k < enemies.length; k++) {
+            const o = enemies[k];
+            if (!o.dead && o !== e) {
+              const odx = o.x - s.x;
+              if (odx >= splashR || odx <= -splashR) continue;
+              const ody = o.y - s.y;
+              if (ody >= splashR || ody <= -splashR) continue;
+              if (odx * odx + ody * ody < splashR * splashR) {
+                damageEnemy(o, Math.max(1, Math.round(s.dmg * 0.6)), s.x, s.y, 180, { color: '#ff8a14', noFreeze: true, silent: true });
+              }
             }
           }
         }
@@ -824,19 +844,19 @@ function update(dt) {
   }
   pickups = pickups.filter(k => !k.dead);
 
-  // ---------- PARTÍCULAS, ANÉIS, RASTROS & TEXTOS ----------
-  for (const q of particles) { q.x += q.vx * dt; q.y += q.vy * dt; q.vx *= 0.92; q.vy *= 0.92; q.life -= dt; }
+  // ---------- PARTÍCULAS, ANÉIS, RASTROS & TEXTOS (LIMITES ANTI-LAG) ----------
+  for (let i = 0; i < particles.length; i++) { const q = particles[i]; q.x += q.vx * dt; q.y += q.vy * dt; q.vx *= 0.92; q.vy *= 0.92; q.life -= dt; }
   particles = particles.filter(q => q.life > 0);
-  if (particles.length > 400) particles.splice(0, particles.length - 400);
-  for (const r of fxRings) r.life -= dt;
+  if (particles.length > 140) particles.splice(0, particles.length - 140);
+  for (let i = 0; i < fxRings.length; i++) fxRings[i].life -= dt;
   fxRings = fxRings.filter(r => r.life > 0);
-  if (fxRings.length > 30) fxRings.splice(0, fxRings.length - 30);
-  for (const g of afterimages) g.life -= dt;
+  if (fxRings.length > 16) fxRings.splice(0, fxRings.length - 16);
+  for (let i = 0; i < afterimages.length; i++) afterimages[i].life -= dt;
   afterimages = afterimages.filter(g => g.life > 0);
-  if (afterimages.length > 35) afterimages.splice(0, afterimages.length - 35);
-  for (const t of texts) { t.y -= 40 * dt; t.life -= dt; }
+  if (afterimages.length > 14) afterimages.splice(0, afterimages.length - 14);
+  for (let i = 0; i < texts.length; i++) { const t = texts[i]; t.y -= 40 * dt; t.life -= dt; }
   texts = texts.filter(t => t.life > 0);
-  if (texts.length > 45) texts.splice(0, texts.length - 45);
+  if (texts.length > 22) texts.splice(0, texts.length - 22);
   for (const s of slashes) s.life -= dt;
   slashes = slashes.filter(s => s.life > 0);
   for (const b of bolts) b.life -= dt;
