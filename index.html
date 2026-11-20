@@ -15,6 +15,7 @@
   <link rel="stylesheet" href="css/style.css?v=2.2.0" />
 </head>
 <body>
+  <canvas id="webgl-canvas"></canvas>
   <canvas id="game"></canvas>
 
   <!-- Modern AAA Menu Overlay -->
@@ -90,6 +91,9 @@
     </footer>
   </div>
 
+  <!-- WebGL GPU Engine (PixiJS) -->
+  <script src="src/vendor/pixi.min.js"></script>
+
   <!-- Core Engine -->
   <script src="src/core/config.js?v=2.2.0"></script>
   <script src="src/core/assets.js?v=2.2.0"></script>
@@ -112,6 +116,7 @@
 
   <!-- Rendering & UI -->
   <script src="src/render/worldRenderer.js?v=2.2.0"></script>
+  <script src="src/render/pixiRenderer.js?v=2.2.0"></script>
   <script src="src/ui/hud.js?v=2.2.0"></script>
   <script src="src/ui/menus.js?v=2.2.0"></script>
 

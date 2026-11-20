@@ -21,22 +21,37 @@ function buildWorld() {
   ground.width = WORLD.w; ground.height = WORLD.h;
   const g = ground.getContext('2d');
   g.imageSmoothingEnabled = false;
+
+  // Fundo base verde sólido para eliminar qualquer artefato de transparência
+  g.fillStyle = '#225526';
+  g.fillRect(0, 0, WORLD.w, WORLD.h);
+
   const tile = (img, tx, ty, dx, dy) => g.drawImage(img, tx * 32, ty * 32, 32, 32, dx, dy, TS, TS);
 
-  for (let y = 0; y < ROWS; y++)
+  for (let y = 0; y < ROWS; y++) {
     for (let x = 0; x < COLS; x++) {
       const r = Math.random();
-      if (r < 0.55) tile(IMG.grass, 1, 3, x * TS, y * TS);
-      else tile(Math.random() < 0.5 ? IMG.grass : IMG.grassalt, randi(0, 2), 5, x * TS, y * TS);
+      if (r < 0.60) {
+        tile(IMG.grass, 1, 3, x * TS, y * TS);
+      } else if (r < 0.85) {
+        tile(IMG.grassalt, 1, 3, x * TS, y * TS);
+      } else {
+        // Variações de grama na linha 3 (miolo sólido com lâminas/flores, nunca linha 5 de quinas escuras)
+        tile(Math.random() < 0.5 ? IMG.grass : IMG.grassalt, randi(0, 2), 3, x * TS, y * TS);
+      }
     }
+  }
   const cx = COLS / 2, cy = ROWS / 2;
   const block = (img, bx, by, bw, bh, interiorVariants) => {
     for (let j = 0; j < bh; j++)
       for (let i = 0; i < bw; i++) {
         const tx = i === 0 ? 0 : i === bw - 1 ? 2 : 1;
         const ty = j === 0 ? 2 : j === bh - 1 ? 4 : 3;
-        if (tx === 1 && ty === 3 && interiorVariants && Math.random() < 0.4) tile(img, randi(0, 2), 5, (bx + i) * TS, (by + j) * TS);
-        else tile(img, tx, ty, (bx + i) * TS, (by + j) * TS);
+        if (tx === 1 && ty === 3 && interiorVariants && Math.random() < 0.35) {
+          tile(img, randi(0, 2), 3, (bx + i) * TS, (by + j) * TS);
+        } else {
+          tile(img, tx, ty, (bx + i) * TS, (by + j) * TS);
+        }
       }
   };
   block(IMG.dirt, cx - 4, cy - 3, 8, 6, true);

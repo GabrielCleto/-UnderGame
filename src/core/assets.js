@@ -85,5 +85,9 @@ Promise.all([...loadPromises, document.fonts ? document.fonts.load('16px "Press 
     WHITE[m] = WHITE['m_' + m];
   });
   buildWorld();
+  if (typeof initPixiRenderer === 'function') {
+    initPixiRenderer();
+    if (typeof buildPixiWorld === 'function') buildPixiWorld();
+  }
   ready = true;
 });

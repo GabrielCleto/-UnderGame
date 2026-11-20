@@ -13,6 +13,10 @@ $RECYCLE.BIN/
 *.swp
 *.swo
 
+# Dependências
+node_modules/
+package-lock.json
+
 # Logs & Temporários
 *.log
 npm-debug.log*
