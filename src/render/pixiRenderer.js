@@ -107,75 +107,84 @@ function getPixiTexture(imgKey, sx, sy, sw, sh) {
 function buildPixiWorld() {
   if (!usePixi || !pixiLayers) return;
 
-  const { groundLayer, entityLayer } = pixiLayers;
-  groundLayer.removeChildren();
+  try {
+    const { groundLayer, entityLayer } = pixiLayers;
+    groundLayer.removeChildren();
 
-  // 1. Fundo de Grama Verde Sólida (#1d4220) para evitar transparências pretas
-  const bg = new PIXI.Graphics();
-  bg.beginFill(0x1d4220);
-  bg.drawRect(-2000, -2000, WORLD.w + 4000, WORLD.h + 4000);
-  bg.endFill();
-  groundLayer.addChild(bg);
+    // 1. Fundo de Grama Verde Sólida (#1d4220) para evitar transparências pretas
+    const bg = new PIXI.Graphics();
+    bg.beginFill(0x1d4220);
+    bg.drawRect(-2000, -2000, (WORLD ? WORLD.w : 2400) + 4000, (WORLD ? WORLD.h : 1824) + 4000);
+    bg.endFill();
+    groundLayer.addChild(bg);
 
-  // 2. Textura do Chão Única na GPU (1 Draw Call para todo o terreno)
-  if (typeof ground !== 'undefined' && ground) {
-    const groundBase = new PIXI.BaseTexture(new PIXI.CanvasResource(ground), {
-      scaleMode: PIXI.SCALE_MODES.NEAREST,
-      mipmap: PIXI.MIPMAP_MODES.OFF,
-      wrapMode: PIXI.WRAP_MODES.CLAMP
-    });
-    const groundTex = new PIXI.Texture(groundBase);
-    pixiGroundSprite = new PIXI.Sprite(groundTex);
-    groundLayer.addChild(pixiGroundSprite);
-  }
-
-  // 3. Props estáticos (Árvores e Pedras)
-  pixiStaticSprites.forEach(s => s.destroy());
-  pixiStaticSprites.length = 0;
-
-  if (typeof trees !== 'undefined') {
-    for (const t of trees) {
-      const c = t.v % 2, r = t.v < 2 ? 0 : 1, tc = r;
-      const trunkTex = getPixiTexture('trunk', tc * 96, 0, 96, 96);
-      const topTex = getPixiTexture('treetop', c * 96, r * 96, 96, 96);
-
-      const treeCont = new PIXI.Container();
-      treeCont.zIndex = t.y;
-
-      if (trunkTex) {
-        const trSpr = new PIXI.Sprite(trunkTex);
-        trSpr.scale.set(1.5);
-        trSpr.position.set(t.x - 48 * 1.5, t.y - 122 * 1.5 + 64 * 1.5);
-        treeCont.addChild(trSpr);
+    // 2. Textura do Chão Única na GPU (1 Draw Call para todo o terreno)
+    if (typeof ground !== 'undefined' && ground && ground.width > 0) {
+      try {
+        const groundBase = new PIXI.BaseTexture(new PIXI.CanvasResource(ground), {
+          scaleMode: PIXI.SCALE_MODES.NEAREST,
+          mipmap: PIXI.MIPMAP_MODES.OFF,
+          wrapMode: PIXI.WRAP_MODES.CLAMP
+        });
+        const groundTex = new PIXI.Texture(groundBase);
+        pixiGroundSprite = new PIXI.Sprite(groundTex);
+        groundLayer.addChild(pixiGroundSprite);
+      } catch (errGround) {
+        console.warn('Textura WebGL do chão não pôde ser criada (modo seguro):', errGround);
       }
-      if (topTex) {
-        const topSpr = new PIXI.Sprite(topTex);
-        topSpr.scale.set(1.5);
-        topSpr.position.set(t.x - 48 * 1.5, t.y - 122 * 1.5);
-        treeCont.addChild(topSpr);
-      }
-      entityLayer.addChild(treeCont);
-      pixiStaticSprites.push(treeCont);
     }
-  }
 
-  if (typeof rocks !== 'undefined') {
-    for (const r of rocks) {
-      const rockTex = r.stack ? getPixiTexture('barrel', 64, 2, 48, 61) : getPixiTexture('rock', 0, 0, 32, 32);
-      if (rockTex) {
-        const spr = new PIXI.Sprite(rockTex);
-        spr.zIndex = r.y;
-        if (r.stack) {
-          spr.position.set(r.x - 36, r.y - 80);
-          spr.width = 72; spr.height = 92;
-        } else {
-          spr.position.set(r.x - 24, r.y - 40);
-          spr.width = 48; spr.height = 48;
+    // 3. Props estáticos (Árvores e Pedras)
+    pixiStaticSprites.forEach(s => { try { s.destroy(); } catch (_) { } });
+    pixiStaticSprites.length = 0;
+
+    if (typeof trees !== 'undefined' && Array.isArray(trees)) {
+      for (const t of trees) {
+        const c = t.v % 2, r = t.v < 2 ? 0 : 1, tc = r;
+        const trunkTex = getPixiTexture('trunk', tc * 96, 0, 96, 96);
+        const topTex = getPixiTexture('treetop', c * 96, r * 96, 96, 96);
+
+        const treeCont = new PIXI.Container();
+        treeCont.zIndex = t.y;
+
+        if (trunkTex) {
+          const trSpr = new PIXI.Sprite(trunkTex);
+          trSpr.scale.set(1.5);
+          trSpr.position.set(t.x - 48 * 1.5, t.y - 122 * 1.5 + 64 * 1.5);
+          treeCont.addChild(trSpr);
         }
-        entityLayer.addChild(spr);
-        pixiStaticSprites.push(spr);
+        if (topTex) {
+          const topSpr = new PIXI.Sprite(topTex);
+          topSpr.scale.set(1.5);
+          topSpr.position.set(t.x - 48 * 1.5, t.y - 122 * 1.5);
+          treeCont.addChild(topSpr);
+        }
+        entityLayer.addChild(treeCont);
+        pixiStaticSprites.push(treeCont);
       }
     }
+
+    if (typeof rocks !== 'undefined' && Array.isArray(rocks)) {
+      for (const r of rocks) {
+        const rockTex = r.stack ? getPixiTexture('barrel', 64, 2, 48, 61) : getPixiTexture('rock', 0, 0, 32, 32);
+        if (rockTex) {
+          const spr = new PIXI.Sprite(rockTex);
+          spr.zIndex = r.y;
+          if (r.stack) {
+            spr.position.set(r.x - 36, r.y - 80);
+            spr.width = 72; spr.height = 92;
+          } else {
+            spr.position.set(r.x - 24, r.y - 40);
+            spr.width = 48; spr.height = 48;
+          }
+          entityLayer.addChild(spr);
+          pixiStaticSprites.push(spr);
+        }
+      }
+    }
+  } catch (err) {
+    console.warn('Falha geral em buildPixiWorld, revertendo para Canvas 2D:', err);
+    usePixi = false;
   }
 }
 

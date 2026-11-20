@@ -73,7 +73,7 @@ const loadPromises = Object.entries(IMAGE_LIST).map(([k, src]) => new Promise(re
   im.onerror = () => { console.warn('Falha ao carregar imagem:', src); loaded++; res(); };
   im.src = src;
 }));
-Promise.all([...loadPromises, document.fonts ? document.fonts.load('16px "Press Start 2P"').catch(() => { }) : null]).then(() => {
+function onAssetsReady() {
   for (const k in IMG) {
     if (k.startsWith('player_') || k.startsWith('m_')) {
       WHITE[k] = makeWhite(IMG[k]);
@@ -84,10 +84,38 @@ Promise.all([...loadPromises, document.fonts ? document.fonts.load('16px "Press 
     IMG[m] = IMG['m_' + m];
     WHITE[m] = WHITE['m_' + m];
   });
-  buildWorld();
+
+  if (typeof buildWorld === 'function') {
+    try {
+      buildWorld();
+    } catch (e) {
+      console.warn('Erro em buildWorld:', e);
+    }
+  }
+
   if (typeof initPixiRenderer === 'function') {
-    initPixiRenderer();
-    if (typeof buildPixiWorld === 'function') buildPixiWorld();
+    try {
+      initPixiRenderer();
+      if (typeof usePixi !== 'undefined' && usePixi && typeof buildPixiWorld === 'function') {
+        buildPixiWorld();
+      }
+    } catch (e) {
+      console.warn('Fallback PixiJS para Canvas 2D:', e);
+      if (typeof usePixi !== 'undefined') usePixi = false;
+    }
   }
   ready = true;
-});
+}
+
+Promise.all([...loadPromises, document.fonts ? document.fonts.load('16px "Press Start 2P"').catch(() => { }) : null])
+  .then(() => {
+    if (document.readyState === 'loading') {
+      window.addEventListener('DOMContentLoaded', onAssetsReady);
+    } else {
+      onAssetsReady();
+    }
+  })
+  .catch((err) => {
+    console.error('Falha no carregamento de recursos:', err);
+    ready = true; // Garante que nunca trave a tela de carregamento
+  });

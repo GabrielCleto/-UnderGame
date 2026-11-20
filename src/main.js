@@ -27,6 +27,9 @@ function loop(now) {
     txt('Carregando... ' + Math.floor(loaded / total * 100) + '%', W / 2, H / 2, 16);
   } else {
     if (state === 'loading') {
+      if (typeof buildWorld === 'function' && (typeof ground === 'undefined' || !ground.width || (typeof trees !== 'undefined' && trees.length === 0))) {
+        try { buildWorld(); } catch (e) { }
+      }
       reset();
       if (typeof location !== 'undefined' && location.search && location.search.includes('play')) {
         startWithSelectedCharacter();
@@ -247,9 +250,17 @@ function loop(now) {
     }
 
     ctx.clearRect(0, 0, W, H);
+    let pixiRendered = false;
     if (typeof usePixi !== 'undefined' && usePixi && typeof renderPixiWorld === 'function') {
-      renderPixiWorld();
-    } else {
+      try {
+        renderPixiWorld();
+        pixiRendered = true;
+      } catch (err) {
+        console.warn('Erro ao renderizar WebGL, ativando fallback Canvas 2D:', err);
+        usePixi = false;
+      }
+    }
+    if (!pixiRendered) {
       drawWorld();
     }
     if (state !== 'play' && canvas && canvas.style.cursor === 'none') canvas.style.cursor = 'default';
