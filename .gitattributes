@@ -1,0 +1,14 @@
+# LF no repositório e em todo checkout, inclusive no Windows, para que o
+# core.autocrlf de cada máquina não reescreva arquivos inteiros com CRLF
+* text=auto eol=lf
+
+# Sem conversão de fim de linha nem diff/merge textual em arquivos binários
+*.png binary
+*.ogg binary
+*.wav binary
+*.mp3 binary
+*.ttf binary
+
+# Ferramentas de apoio ao desenvolvimento, não fazem parte do jogo: ficam fora
+# da barra de linguagens do GitHub
+.agents/** linguist-vendored

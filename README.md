@@ -23,7 +23,7 @@ Na **Roleta Cilíndrica 3D**, cada campeão possui seu próprio pedestal ilumina
 
 ---
 
-## ✨ Principais Funcionalidades (Versão 2.1)
+## ✨ Principais Funcionalidades (Versão 2.2)
 
 - **🎠 Roleta Cilíndrica 3D de Seleção:** Carrossel em perspectiva orbital com profundidade (*z-order*), iluminação de santuário, ficha de atributos em pergaminho e troca instantânea da música-tema do personagem.
 - **🛡️ HUD & UI Medieval Dark Fantasy:**
@@ -90,7 +90,7 @@ Na **Roleta Cilíndrica 3D**, cada campeão possui seu próprio pedestal ilumina
 
 ---
 
-## 📂 Estrutura do Projeto (Arquitetura Modular v2.1)
+## 📂 Estrutura do Projeto (Arquitetura Modular v2.2)
 
 O código-fonte e os recursos foram organizados em módulos independentes de responsabilidade única para máximo desempenho e facilidade de manutenção:
 
@@ -136,7 +136,9 @@ O código-fonte e os recursos foram organizados em módulos independentes de res
 │   ├── CREDITOS.txt            # Atribuição das licenças de áudio e arte
 │   ├── CREDITS-LPC.TXT         # Créditos detalhados Liberated Pixel Cup
 │   └── GUIA_DAS_ATUALIZACOES.md # Guia de novidades e balanceamento v2.0+
+├── .gitattributes              # Finais de linha (LF) e tipos binários do repositório
 ├── .gitignore                  # Filtros de arquivos do repositório
+├── LICENSE                     # Licença MIT do código-fonte
 └── README.md                   # Documentação principal do projeto
 ```
 
@@ -160,6 +162,8 @@ Não é necessário instalar nenhuma dependência, *bundler* ou biblioteca exter
 ---
 
 ## 📜 Créditos & Licenças
+
+O código-fonte (`src/`, `css/` e `index.html`) está sob a licença MIT — veja [`LICENSE`](LICENSE). Os assets de terceiros não entram nessa licença: cada um mantém a própria licença, registrada em [`docs/CREDITOS.txt`](docs/CREDITOS.txt).
 
 Consulte [`docs/CREDITOS.txt`](docs/CREDITOS.txt) e [`docs/CREDITS-LPC.TXT`](docs/CREDITS-LPC.TXT) para detalhes de atribuição:
 - **LPC Base Assets**: CC-BY-SA 3.0 / GPL 3.0 (Redshrike, Sharm, CharlesGabriel, etc.)
