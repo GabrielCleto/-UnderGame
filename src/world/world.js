@@ -36,12 +36,13 @@ function buildWorld() {
       } else if (r < 0.85) {
         tile(IMG.grassalt, 1, 3, x * TS, y * TS);
       } else {
-        // Variações sólidas de grama na linha 5 (linha 3 cols 0 e 2 são bordas semi-transparentes)
-        tile(Math.random() < 0.5 ? IMG.grass : IMG.grassalt, randi(0, 2), 5, x * TS, y * TS);
+        // Variações sólidas de grama na linha 5 (sempre IMG.grass para evitar quadrados vazados)
+        tile(IMG.grass, randi(0, 2), 5, x * TS, y * TS);
       }
     }
   }
   const cx = COLS / 2, cy = ROWS / 2;
+  const centerX = cx * TS, centerY = cy * TS;
   const block = (img, bx, by, bw, bh, interiorVariants) => {
     for (let j = 0; j < bh; j++)
       for (let i = 0; i < bw; i++) {
@@ -55,6 +56,43 @@ function buildWorld() {
       }
   };
   block(IMG.dirt, cx - 4, cy - 3, 8, 6, true);
+  // 4 caminhos de lajes antigas saindo da Praça Ancestral Central (N/S/L/O)
+  for (let d = 3; d <= 9; d++) {
+    const drawFlagstone = (fx, fy) => {
+      g.fillStyle = 'rgba(42, 38, 52, 0.55)';
+      g.fillRect(fx - 18, fy - 14, 36, 28);
+      g.fillStyle = 'rgba(130, 122, 148, 0.45)';
+      g.fillRect(fx - 16, fy - 12, 15, 11);
+      g.fillRect(fx + 1, fy - 10, 14, 12);
+      g.fillRect(fx - 14, fy + 1, 28, 10);
+    };
+    drawFlagstone(centerX + d * TS, centerY + rand(-4, 4));
+    drawFlagstone(centerX - d * TS, centerY + rand(-4, 4));
+    drawFlagstone(centerX + rand(-4, 4), centerY + d * TS * 0.85);
+    drawFlagstone(centerX + rand(-4, 4), centerY - d * TS * 0.85);
+  }
+  // Praça Ancestral Central: anéis concêntricos de pedra e 8 runas místicas
+  g.save();
+  g.fillStyle = 'rgba(45, 42, 58, 0.42)';
+  g.beginPath(); g.arc(centerX, centerY, 138, 0, Math.PI * 2); g.fill();
+  g.strokeStyle = '#8b839e';
+  g.lineWidth = 4;
+  g.beginPath(); g.arc(centerX, centerY, 136, 0, Math.PI * 2); g.stroke();
+  g.strokeStyle = 'rgba(139, 131, 158, 0.72)';
+  g.lineWidth = 2;
+  g.beginPath(); g.arc(centerX, centerY, 96, 0, Math.PI * 2); g.stroke();
+  g.beginPath(); g.arc(centerX, centerY, 52, 0, Math.PI * 2); g.stroke();
+  for (let k = 0; k < 8; k++) {
+    const a = (k * Math.PI * 2) / 8;
+    const rx = centerX + Math.cos(a) * 116;
+    const ry = centerY + Math.sin(a) * 116;
+    g.fillStyle = '#9f96b8';
+    g.fillRect(rx - 5, ry - 5, 10, 10);
+    g.fillStyle = '#e4dcff';
+    g.fillRect(rx - 2, ry - 2, 4, 4);
+  }
+  g.restore();
+
   for (let n = 0; n < 9; n++) {
     const bw = randi(3, 6), bh = randi(3, 5);
     block(IMG.dirt, randi(1, COLS - bw - 1), randi(1, ROWS - bh - 1), bw, bh, true);
@@ -77,6 +115,19 @@ function buildWorld() {
       const p = pick([[35, 0, 16, 9], [43, 11, 18, 15], [34, 13, 10, 6]]);
       g.drawImage(IMG.rock, p[0], p[1], p[2], p[3], x, y, p[2] * 1.5, p[3] * 1.5);
     }
+  }
+  // Flores silvestres coloridas espalhadas pela grama
+  const flowerCols = ['#ffd84a', '#ff6b9d', '#7ee8ff', '#ffffff'];
+  for (let i = 0; i < 240; i++) {
+    const fx = rand(40, WORLD.w - 40), fy = rand(60, WORLD.h - 40);
+    if (Math.hypot(fx - centerX, fy - centerY) < 160) continue;
+    if (ponds.some(pd => fx > pd.x - 10 && fx < pd.x + pd.w + 10 && fy > pd.y - 10 && fy < pd.y + pd.h + 10)) continue;
+    g.fillStyle = '#1f4d20';
+    g.fillRect(fx - 2, fy + 1, 5, 3);
+    g.fillStyle = pick(flowerCols);
+    g.fillRect(fx - 2, fy - 2, 4, 4);
+    g.fillStyle = '#fff9d6';
+    g.fillRect(fx - 1, fy - 1, 2, 2);
   }
   tries = 0;
   while (trees.length < 55 && tries++ < 2000) {
@@ -103,6 +154,123 @@ function buildWorld() {
   for (let i = 0; i < 6; i++) {
     const p = { x: rand(100, WORLD.w - 100), y: rand(120, WORLD.h - 60), r: 30, stack: true };
     if (!blocked(p.x, p.y, 50) && Math.hypot(p.x - WORLD.w / 2, p.y - WORLD.h / 2) > 250) rocks.push(p);
+  }
+
+  // Ruínas Ancestrais: 4 pilares emoldurando os cantos externos do pátio central + 8 pelo mapa
+  const plazaCorners = [
+    [centerX - 185, centerY - 135],
+    [centerX + 185, centerY - 135],
+    [centerX - 185, centerY + 135],
+    [centerX + 185, centerY + 135],
+  ];
+  for (const [px, py] of plazaCorners) {
+    if (!blocked(px, py, 24)) {
+      props.push({ kind: 'pillar', x: px, y: py, r: 18, sprite: 'ruin_pillar', solid: true });
+    }
+  }
+  tries = 0;
+  while (props.filter(p => p.kind === 'pillar').length < 12 && tries++ < 600) {
+    const px = rand(120, WORLD.w - 120), py = rand(140, WORLD.h - 100);
+    if (blocked(px, py, 45) || Math.hypot(px - centerX, py - centerY) < 240) continue;
+    props.push({ kind: 'pillar', x: px, y: py, r: 18, sprite: 'ruin_pillar', solid: true });
+  }
+
+  // Estátuas dos Campeões Caídos: 2 flanqueando o norte do pátio + 2 externas
+  const statueSpots = [
+    [(cx - 5) * TS, (cy - 4) * TS],
+    [(cx + 5) * TS, (cy - 4) * TS],
+    [(cx - 12) * TS, (cy + 8) * TS],
+    [(cx + 12) * TS, (cy - 8) * TS],
+  ];
+  for (const [sx, sy] of statueSpots) {
+    if (!blocked(sx, sy, 28)) {
+      props.push({ kind: 'statue', x: sx, y: sy, r: 20, sprite: 'hero_statue', solid: true });
+    }
+  }
+
+  // Geodos de Cristal Arcano Interativos: 2 perto da praça + 8 espalhados
+  const nearGeodes = [
+    [centerX - 235, centerY + 15],
+    [centerX + 235, centerY - 15],
+  ];
+  for (const [gx, gy] of nearGeodes) {
+    if (!blocked(gx, gy, 24)) {
+      props.push({ kind: 'geode', x: gx, y: gy, r: 16, hp: 3, maxHp: 3, sprite: 'crystal_geode', hurt: 0 });
+    }
+  }
+  tries = 0;
+  while (props.filter(p => p.kind === 'geode').length < 10 && tries++ < 700) {
+    const gx = rand(140, WORLD.w - 140), gy = rand(140, WORLD.h - 120);
+    if (blocked(gx, gy, 45) || Math.hypot(gx - centerX, gy - centerY) < 250) continue;
+    props.push({ kind: 'geode', x: gx, y: gy, r: 16, hp: 3, maxHp: 3, sprite: 'crystal_geode', hurt: 0 });
+  }
+
+  // Cogumelos Mágicos Bioluminescentes (noCollide: true para não travar movimento)
+  for (let i = 0; i < 6; i++) {
+    const a = (i * Math.PI * 2) / 6 + 0.35;
+    const mx = centerX + Math.cos(a) * 165;
+    const my = centerY + Math.sin(a) * 130;
+    if (!blocked(mx, my, 10)) {
+      props.push({ kind: 'shroom', x: mx, y: my, r: 12, sprite: 'magic_mushroom', glow: Math.random(), noCollide: true });
+    }
+  }
+  for (let i = 0; i < 22; i++) {
+    const mx = rand(90, WORLD.w - 90), my = rand(100, WORLD.h - 80);
+    if (!blocked(mx, my, 20)) {
+      props.push({ kind: 'shroom', x: mx, y: my, r: 12, sprite: 'magic_mushroom', glow: Math.random(), noCollide: true });
+    }
+  }
+}
+
+function applyEventMapMutation(eventName) {
+  if (!Array.isArray(props)) return;
+  props = props.filter(p => !p.eventProp);
+
+  const refX = (typeof player !== 'undefined' && player) ? player.x : WORLD.w / 2;
+  const refY = (typeof player !== 'undefined' && player) ? player.y : WORLD.h / 2;
+
+  const makeSpec = (kind) => {
+    if (kind === 'noir_lamp') return { kind: 'noir_lamp', r: 14, sprite: 'noir_lamp', solid: true, eventProp: true };
+    if (kind === 'blood_obelisk') return { kind: 'blood_obelisk', r: 18, hp: 3, maxHp: 3, hurt: 0, sprite: 'blood_obelisk', eventProp: true };
+    if (kind === 'void_rift') return { kind: 'void_rift', r: 22, sprite: 'void_rift', noCollide: true, phase: Math.random() * 6.28, eventProp: true };
+    if (kind === 'ice_spire') return { kind: 'ice_spire', r: 17, hp: 2, maxHp: 2, hurt: 0, sprite: 'ice_spire', eventProp: true };
+    if (kind === 'solar_monolith') return { kind: 'solar_monolith', r: 18, hp: 3, maxHp: 3, hurt: 0, sprite: 'solar_monolith', eventProp: true };
+    if (kind === 'geode') return { kind: 'geode', r: 16, hp: 3, maxHp: 3, hurt: 0, sprite: 'crystal_geode', eventProp: true };
+    return { kind: 'shroom', r: 12, sprite: 'magic_mushroom', glow: Math.random(), noCollide: true, eventProp: true };
+  };
+
+  let kinds = [];
+  if (eventName === 'noir') kinds = ['noir_lamp'];
+  else if (eventName === 'bloodmoon') kinds = ['blood_obelisk'];
+  else if (eventName === 'void_eclipse') kinds = ['void_rift'];
+  else if (eventName === 'glacial') kinds = ['ice_spire'];
+  else if (eventName === 'solar' || eventName === 'magma_surge') kinds = ['solar_monolith'];
+  else if (eventName === 'psychedelic') kinds = ['void_rift', 'geode', 'shroom'];
+  else return;
+
+  // 4 objetos próximos ao jogador para aparecerem imediatamente na tela!
+  for (let i = 0; i < 4; i++) {
+    const chosenKind = kinds[i % kinds.length];
+    let placed = false;
+    for (let t = 0; t < 30 && !placed; t++) {
+      const ang = (i * Math.PI / 2) + (Math.PI / 4) + rand(-0.35, 0.35);
+      const distR = rand(170, 310);
+      const px = clamp(refX + Math.cos(ang) * distR, 90, WORLD.w - 90);
+      const py = clamp(refY + Math.sin(ang) * distR * 0.78, 120, WORLD.h - 70);
+      if (!blocked(px, py, 22)) {
+        props.push({ ...makeSpec(chosenKind), x: px, y: py });
+        placed = true;
+      }
+    }
+  }
+  // Mais 5 objetos espalhados pela arena
+  let extra = 0, tries = 0;
+  while (extra < 5 && tries++ < 200) {
+    const chosenKind = kinds[extra % kinds.length];
+    const px = rand(110, WORLD.w - 110), py = rand(130, WORLD.h - 80);
+    if (Math.hypot(px - refX, py - refY) < 280 || blocked(px, py, 32)) continue;
+    props.push({ ...makeSpec(chosenKind), x: px, y: py });
+    extra++;
   }
 }
 
@@ -181,6 +349,7 @@ function collideStatic(e, r) {
     if (d < m && d > 0) { e.x = o.x + dx / d * m; e.y = o.y + dy / d * m; }
   }
   for (const o of props) {
+    if (o.noCollide) continue;
     const dx = e.x - o.x, dy = e.y - o.y, d = Math.hypot(dx, dy), m = r + o.r;
     if (d < m && d > 0) { e.x = o.x + dx / d * m; e.y = o.y + dy / d * m; }
   }

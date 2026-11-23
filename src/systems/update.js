@@ -16,9 +16,16 @@ function update(dt) {
         waveTimer = 1.2;
         return;
       }
+      if (typeof clearEventMutations === 'function') {
+        try { clearEventMutations(); } catch (_) {}
+      }
+      if (typeof stopEventMusic === 'function') {
+        try { stopEventMusic(); } catch (_) {}
+      }
       wave++;
       waveEvent = null;
       p._megaMagnetDropped = false;
+      p.midWaveCataclysmT = rand(14, 24);
       const nextBiome = Math.floor((wave - 1) / 5) % BIOMES.length;
       if (wave > 1 && nextBiome !== currentBiome) {
         currentBiome = nextBiome;
@@ -32,16 +39,47 @@ function update(dt) {
       if (!isBoss) toSpawn = Math.round(toSpawn * (1 + ((DIFFICULTY_MODES[difficultyIdx] || DIFFICULTY_MODES[0]).spawnMul - 1) * 0.5));
       spawnTimer = 0.25;
       if (!isBoss && wave >= 2) {
-        const roll = Math.random();
-        if (roll < 0.16 && wave >= 3) { waveEvent = 'meteors'; meteorTimer = 1.2; }
-        else if (roll < 0.30 && wave >= 3) { waveEvent = 'golden'; }
-        else if (roll < 0.48 && wave >= 3) { waveEvent = 'mega_horde'; toSpawn = Math.round(toSpawn * 1.9); }
-        else if (roll < 0.60) { waveEvent = 'swarm'; toSpawn = Math.round(toSpawn * 1.35); }
-        else if (roll < 0.72 && wave >= 4) { waveEvent = 'bloodmoon'; }
-        else if (roll < 0.82 && wave >= 3) { waveEvent = 'ambush'; }
-        else if (roll < 0.90 && wave >= 4) { waveEvent = 'bounty'; }
-        else if (roll < 0.96 && wave >= 5) { waveEvent = 'void_eclipse'; }
-        else if (wave >= 6) { waveEvent = 'magma_surge'; }
+        // MODO TESTE FORÇADO (se ?eventos ou botão for usado)
+        const isEventTestMode = (typeof window !== 'undefined' && (window.__EVENT_TEST_MODE || (window.location && window.location.search && window.location.search.includes('eventos'))));
+        if (isEventTestMode) {
+          const MEGALO_EVENTS = ['noir', 'bloodmoon', 'void_eclipse', 'glacial', 'solar', 'psychedelic'];
+          waveEvent = MEGALO_EVENTS[(wave - 1) % MEGALO_EVENTS.length];
+        } else {
+          // ROTAÇÃO ALEATÓRIA DURANTE AS ONDAS (~65% de chance de evento na onda)
+          const roll = Math.random();
+          if (roll < 0.65) {
+            const possibleEvents = [];
+            // Eventos Megalomaníacos
+            possibleEvents.push('noir');
+            if (wave >= 2) possibleEvents.push('glacial');
+            if (wave >= 3) possibleEvents.push('bloodmoon', 'psychedelic');
+            if (wave >= 4) possibleEvents.push('solar', 'void_eclipse');
+            // Variações de Horda
+            if (wave >= 2) possibleEvents.push('swarm');
+            if (wave >= 3) possibleEvents.push('mega_horde', 'golden', 'ambush');
+            if (wave >= 4) possibleEvents.push('bounty');
+            if (wave >= 5) possibleEvents.push('magma_surge');
+
+            waveEvent = pick(possibleEvents);
+          }
+        }
+
+        if (waveEvent === 'solar' || waveEvent === 'meteors') meteorTimer = 1.1;
+        if (waveEvent === 'mega_horde') toSpawn = Math.round(toSpawn * 1.85);
+        else if (waveEvent === 'swarm') toSpawn = Math.round(toSpawn * 1.35);
+
+        // Aplica Mutações de Mapa & Shaders dos Eventos Megalomaníacos
+        if (typeof applyEventMapMutation === 'function') {
+          try { applyEventMapMutation(waveEvent); } catch (_) {}
+        }
+        // Ativa Trilha Sonora Procedural do Evento
+        if (typeof playEventMusic === 'function') {
+          if (['noir', 'bloodmoon', 'void_eclipse', 'glacial', 'solar', 'psychedelic', 'magma_surge'].includes(waveEvent)) {
+            playEventMusic(waveEvent);
+          } else if (typeof stopEventMusic === 'function') {
+            stopEventMusic();
+          }
+        }
       }
       if (stats.nukeNext) {
         stats.nukeNext = false;
@@ -75,17 +113,21 @@ function update(dt) {
         } else if (waveEvent === 'bounty') {
           spawnEnemy(pick(['golem', 'necromancer', 'bigworm', 'sniper']), spawnPos(300, 420, 40), { forceElite: true, bounty: true });
         }
-        const evSub = waveEvent === 'meteors' ? '☄ EVENTO: CHUVA DE METEOROS!'
+        const evSub = waveEvent === 'noir' ? '🎷 CIDADE NOIR: PRETO & BRANCO + JAZZ CLÁSSICO!'
+          : waveEvent === 'glacial' ? '❄ ERA GLACIAL: CONGELAMENTO ABSOLUTO & ESPÍCULAS DE GELO!'
+          : waveEvent === 'solar' ? '☀️ APOCALIPSE SOLAR: CALOR EXTREMO & METEOROS INCANDESCENTES!'
+          : waveEvent === 'psychedelic' ? '🌀 FEBRE SURREAL: DIMENSÃO ARCO-ÍRIS & FUNK CÓSMICO!'
+          : waveEvent === 'meteors' ? '☄ EVENTO: CHUVA DE METEOROS!'
           : waveEvent === 'golden' ? '✦ EVENTO: INVASÃO DOURADA!'
           : waveEvent === 'mega_horde' ? '🌊 MARÉ ABISSAL: ENXAME MASSIVO + 2x XP & ÍMÃ!'
           : waveEvent === 'swarm' ? '⚡ EVENTO: ENXAME FRENÉTICO!'
           : waveEvent === 'bloodmoon' ? '🩸 LUA DE SANGUE: INIMIGOS FEROZES + DOBRO DE RECOMPENSAS!'
           : waveEvent === 'ambush' ? '⚔ CERCO RELÂMPAGO: QUEBRE O CÍRCULO INIMIGO!'
           : waveEvent === 'bounty' ? '🎯 CAÇADA AO COMANDANTE: DERROTE O ALVO P/ +1 NÍVEL!'
-          : waveEvent === 'void_eclipse' ? '⚡ ECLIPSE DO VAZIO: TEMPESTADE CÓSMICA & HORDAS ASTRAIS!'
+          : waveEvent === 'void_eclipse' ? '⚡ ECLIPSE DO VAZIO: TEMPESTADE CÓSMICA & FENDAS ASTRAIS!'
           : waveEvent === 'magma_surge' ? '🌋 SURTO DE MAGMA: O CHÃO É LAVA & GIGANTES DE FOGO!'
           : (wave === 1 ? 'Sobreviva!' : 'Prepare-se!');
-        banner = { txt: 'ONDA ' + wave, sub: evSub, life: 2.6, max: 2.6, boss: waveEvent === 'meteors' || waveEvent === 'bloodmoon' };
+        banner = { txt: 'ONDA ' + wave, sub: evSub, life: 2.8, max: 2.8, boss: waveEvent === 'meteors' || waveEvent === 'bloodmoon' || waveEvent === 'solar' };
         SFX.wave();
       }
       if (wave > 1) p.hp = Math.min(stats.maxHp, p.hp + 1);
@@ -146,8 +188,42 @@ function update(dt) {
     }
   }
 
-  // ---------- CHUVA DE METEOROS (EVENTO DE ONDA) ----------
-  if (waveEvent === 'meteors' && (toSpawn > 0 || enemies.length > 0)) {
+  // ---------- CATACLISMO SÚBITO (Evento Megalomaníaco no Meio da Onda) ----------
+  if (wave >= 2 && !isBoss && !waveEvent && (toSpawn > 0 || enemies.length > 5)) {
+    p.midWaveCataclysmT = (p.midWaveCataclysmT || rand(14, 22)) - dt;
+    if (p.midWaveCataclysmT <= 0) {
+      p.midWaveCataclysmT = 9999; // Apenas um cataclismo surpresa por onda
+      if (Math.random() < 0.45) {
+        const cataclysms = ['noir', 'bloodmoon', 'void_eclipse', 'glacial', 'solar', 'psychedelic'];
+        waveEvent = pick(cataclysms);
+        if (waveEvent === 'solar') meteorTimer = 1.1;
+        if (typeof applyEventMapMutation === 'function') {
+          try { applyEventMapMutation(waveEvent); } catch (_) {}
+        }
+        if (typeof playEventMusic === 'function') {
+          playEventMusic(waveEvent);
+        }
+        if (typeof addTrauma === 'function') addTrauma(0.65);
+        shake = Math.max(shake, 16);
+        if (SFX.bossRoar) SFX.bossRoar();
+        const titles = {
+          noir: 'CIDADE NOIR', bloodmoon: 'LUA DE SANGUE',
+          void_eclipse: 'ECLIPSE DO VAZIO', glacial: 'ERA GLACIAL',
+          solar: 'APOCALIPSE SOLAR', psychedelic: 'FEBRE SURREAL'
+        };
+        banner = {
+          txt: '⚡ CATACLISMO SÚBITO!',
+          sub: (titles[waveEvent] || waveEvent.toUpperCase()) + ' ECLODIU NA ARENA!',
+          life: 3.4,
+          max: 3.4,
+          boss: true
+        };
+      }
+    }
+  }
+
+  // ---------- CHUVA DE METEOROS (EVENTO DE ONDA OU APOCALIPSE SOLAR) ----------
+  if ((waveEvent === 'meteors' || waveEvent === 'solar') && (toSpawn > 0 || enemies.length > 0)) {
     meteorTimer -= dt;
     if (meteorTimer <= 0) {
       meteorTimer = rand(1.1, 1.9);

@@ -247,8 +247,17 @@ void main(void) {
   } else if (uEvent > 2.5 && uEvent < 3.5) {
     edgeTint = vec3(0.28, 0.06, 0.01); // Surto de Magma
     finalDark = max(finalDark, 0.62);
-  } else if (uEvent > 3.5) {
+  } else if (uEvent > 3.5 && uEvent < 4.5) {
     edgeTint = vec3(0.04, 0.18, 0.24); // Mare Abissal
+  } else if (uEvent > 4.5 && uEvent < 5.5) {
+    edgeTint = vec3(0.02, 0.02, 0.02); // Noir profundo
+    finalDark = max(finalDark, 0.72);
+  } else if (uEvent > 5.5 && uEvent < 6.5) {
+    edgeTint = vec3(0.05, 0.25, 0.45); // Era Glacial
+    finalDark = max(finalDark, 0.64);
+  } else if (uEvent > 6.5 && uEvent < 7.5) {
+    edgeTint = vec3(0.42, 0.18, 0.02); // Apocalipse Solar
+    finalDark = max(finalDark, 0.66);
   }
 
   col = mix(col, edgeTint, clamp(edgeFactor * finalDark, 0.0, 0.78));
@@ -278,6 +287,51 @@ void main(void) {
     float luma = dot(col, vec3(0.299, 0.587, 0.114));
     col = mix(col, vec3(luma), lMask * uLowHp * 0.38);
     col = mix(col, vec3(0.75, 0.02, 0.08), lMask * uLowHp * 0.52);
+  }
+
+  // 8b. Eventos Megalomaníacos (Grade de Cor Total)
+  if (uEvent > 0.5 && uEvent < 1.5) {
+    // EVENTO LUA DE SANGUE: Dessatura verdes e transforma tudo em carmesim intenso
+    float luma = dot(col, vec3(0.299, 0.587, 0.114));
+    col = mix(col, vec3(luma * 1.45, luma * 0.22, luma * 0.24), 0.62);
+  } else if (uEvent > 1.5 && uEvent < 2.5) {
+    // EVENTO ECLIPSE DO VAZIO: Arena em violeta/índigo cósmico pulsante
+    float luma = dot(col, vec3(0.299, 0.587, 0.114));
+    float cosmic = 0.88 + 0.18 * sin(uTime * 3.0 + screenUV.y * 8.0);
+    col = mix(col, vec3(luma * 0.65, luma * 0.25, luma * 1.45) * cosmic, 0.58);
+  } else if (uEvent > 4.5 && uEvent < 5.5) {
+    // EVENTO NOIR: Monocromático de alto contraste estilo cinema noir
+    // Preserva apenas tons de sangue/vermelho brilhante
+    float redDominance = max(0.0, col.r - max(col.g, col.b) * 1.3);
+    float luma = dot(col, vec3(0.299, 0.587, 0.114));
+    // Contraste s-curve estilo filme analógico
+    float contrast = smoothstep(0.08, 0.92, luma);
+    vec3 noirCol = vec3(contrast);
+    // Linhas sutis de chuva analógica
+    float rain = sin(screenUV.x * 240.0 + screenUV.y * 360.0 + uTime * 35.0);
+    if (rain > 0.96) noirCol += 0.08;
+    // Realça vermelho puro (sangue/olhos de monstros)
+    col = mix(noirCol, vec3(col.r * 1.35, 0.05, 0.05), clamp(redDominance * 2.5, 0.0, 1.0));
+  } else if (uEvent > 5.5 && uEvent < 6.5) {
+    // EVENTO ERA GLACIAL: Gelo e frio extremo
+    float luma = dot(col, vec3(0.299, 0.587, 0.114));
+    vec3 iceTint = vec3(0.25, 0.75, 1.0);
+    col = mix(col, iceTint * luma * 1.35, 0.55);
+    float frostMask = smoothstep(0.35, 0.85, distance(screenUV, vec2(0.5)));
+    col = mix(col, vec3(0.85, 0.95, 1.0), frostMask * 0.32);
+  } else if (uEvent > 6.5 && uEvent < 7.5) {
+    // EVENTO APOCALIPSE SOLAR: Calor extremo e radiação âmbar
+    float heatWave = sin(screenUV.y * 60.0 - uTime * 8.0) * 0.02;
+    col += vec3(0.28, 0.12, 0.02) + vec3(heatWave * 0.5, heatWave * 0.2, 0.0);
+    col = mix(col, vec3(1.0, 0.65, 0.2), 0.25);
+  } else if (uEvent > 7.5 && uEvent < 8.5) {
+    // EVENTO FEBRE SURREAL / PSICODÉLICO: Rotação contínua de matiz + super saturação
+    float ang = uTime * 1.65 + screenUV.x * 1.8;
+    vec3 kAxis = vec3(0.57735);
+    float cosA = cos(ang), sinA = sin(ang);
+    vec3 rotated = col * cosA + cross(kAxis, col) * sinA + kAxis * dot(kAxis, col) * (1.0 - cosA);
+    float luma = dot(rotated, vec3(0.299, 0.587, 0.114));
+    col = clamp(mix(vec3(luma), rotated, 1.55), 0.0, 1.0);
   }
 
   // 9. Flash de Impacto (limitado WCAG em CPU)

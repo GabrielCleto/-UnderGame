@@ -247,6 +247,13 @@ function initPixiRenderer() {
     return false;
   }
 
+  if (typeof window !== 'undefined' && window.location && window.location.protocol === 'file:') {
+    glCanvas.style.display = 'none';
+    usePixi = false;
+    console.info('Modo arquivo local (file://): usando motor Canvas 2D Cinematográfico com filtros nativos.');
+    return false;
+  }
+
   if (pixiApp) {
     usePixi = true;
     applyPixiQuality();
@@ -270,6 +277,7 @@ function initPixiRenderer() {
 
     glCanvas.addEventListener('webglcontextlost', (ev) => {
       ev.preventDefault();
+      glCanvas.style.display = 'none';
       console.warn('Contexto WebGL perdido, revertendo com segurança para Canvas 2D.');
       usePixi = false;
     });
@@ -877,6 +885,131 @@ function renderPixiWorld() {
           spr.tint = 0xff8070;
           spr.zIndex = b.y;
         }
+      } else if (b.kind === 'pillar') {
+        const pTex = getPixiTexture('ruin_pillar');
+        if (pTex) {
+          const spr = pools.props.acquire(pTex);
+          spr.anchor.set(0.5, 42 / 48);
+          spr.position.set(b.x + sxB, b.y);
+          spr.width = 46; spr.height = 69;
+          spr.zIndex = b.y;
+        }
+      } else if (b.kind === 'statue') {
+        const sTex = getPixiTexture('hero_statue');
+        if (sTex) {
+          const spr = pools.props.acquire(sTex);
+          spr.anchor.set(0.5, 42 / 48);
+          spr.position.set(b.x + sxB, b.y);
+          spr.width = 48; spr.height = 72;
+          spr.zIndex = b.y;
+        }
+      } else if (b.kind === 'geode') {
+        const pulse = 0.45 + 0.3 * Math.sin(curTime * 6);
+        const gl = pools.vfxGlows.acquire(glowTex);
+        gl.position.set(b.x, b.y - 18);
+        gl.scale.set(1.3, 1.3);
+        gl.tint = 0x50d5ff;
+        gl.alpha = pulse;
+
+        const gTex = getPixiTexture('crystal_geode');
+        if (gTex) {
+          const spr = pools.props.acquire(gTex);
+          spr.anchor.set(0.5, 26 / 32);
+          spr.position.set(b.x + sxB, b.y);
+          spr.width = 46; spr.height = 46;
+          spr.zIndex = b.y;
+        }
+      } else if (b.kind === 'shroom') {
+        const pulse = 0.35 + 0.25 * Math.sin(curTime * 4 + (b.glow || 0) * 6);
+        const gl = pools.vfxGlows.acquire(glowTex);
+        gl.position.set(b.x, b.y - 12);
+        gl.scale.set(0.85, 0.85);
+        gl.tint = 0xba45ff;
+        gl.alpha = pulse;
+
+        const mTex = getPixiTexture('magic_mushroom');
+        if (mTex) {
+          const spr = pools.props.acquire(mTex);
+          spr.anchor.set(0.5, 20 / 24);
+          spr.position.set(b.x, b.y);
+          spr.width = 30; spr.height = 30;
+          spr.zIndex = b.y;
+        }
+      } else if (b.kind === 'noir_lamp') {
+        const gl = pools.vfxGlows.acquire(glowTex);
+        gl.position.set(b.x, b.y - 54);
+        gl.scale.set(1.75, 1.75);
+        gl.tint = 0xfff0cc;
+        gl.alpha = 0.42 + 0.1 * Math.sin(curTime * 5);
+
+        const nTex = getPixiTexture('noir_lamp');
+        if (nTex) {
+          const spr = pools.props.acquire(nTex);
+          spr.anchor.set(0.5, 43 / 48);
+          spr.position.set(b.x + sxB, b.y);
+          spr.width = 36; spr.height = 72;
+          spr.zIndex = b.y;
+        }
+      } else if (b.kind === 'blood_obelisk') {
+        const gl = pools.vfxGlows.acquire(glowTex);
+        gl.position.set(b.x, b.y - 32);
+        gl.scale.set(1.6, 1.9);
+        gl.tint = 0xff2244;
+        gl.alpha = 0.45 + 0.22 * Math.sin(curTime * 6);
+
+        const oTex = getPixiTexture('blood_obelisk');
+        if (oTex) {
+          const spr = pools.props.acquire(oTex);
+          spr.anchor.set(0.5, 43 / 48);
+          spr.position.set(b.x + sxB, b.y);
+          spr.width = 48; spr.height = 72;
+          spr.zIndex = b.y;
+        }
+      } else if (b.kind === 'ice_spire') {
+        const gl = pools.vfxGlows.acquire(glowTex);
+        gl.position.set(b.x, b.y - 28);
+        gl.scale.set(1.5, 1.7);
+        gl.tint = 0x7ef4ff;
+        gl.alpha = 0.45 + 0.2 * Math.sin(curTime * 5);
+
+        const iTex = getPixiTexture('ice_spire');
+        if (iTex) {
+          const spr = pools.props.acquire(iTex);
+          spr.anchor.set(0.5, 43 / 48);
+          spr.position.set(b.x + sxB, b.y);
+          spr.width = 48; spr.height = 72;
+          spr.zIndex = b.y;
+        }
+      } else if (b.kind === 'solar_monolith') {
+        const gl = pools.vfxGlows.acquire(glowTex);
+        gl.position.set(b.x, b.y - 46);
+        gl.scale.set(1.85, 1.85);
+        gl.tint = 0xffae28;
+        gl.alpha = 0.55 + 0.25 * Math.sin(curTime * 8);
+
+        const soTex = getPixiTexture('solar_monolith');
+        if (soTex) {
+          const spr = pools.props.acquire(soTex);
+          spr.anchor.set(0.5, 43 / 48);
+          spr.position.set(b.x + sxB, b.y);
+          spr.width = 48; spr.height = 72;
+          spr.zIndex = b.y;
+        }
+      } else if (b.kind === 'void_rift') {
+        const gl = pools.vfxGlows.acquire(glowTex);
+        gl.position.set(b.x, b.y - 28);
+        gl.scale.set(1.8, 2.1);
+        gl.tint = 0xc844ff;
+        gl.alpha = 0.5 + 0.25 * Math.sin(curTime * 7 + (b.phase || 0));
+
+        const vTex = getPixiTexture('void_rift');
+        if (vTex) {
+          const spr = pools.props.acquire(vTex);
+          spr.anchor.set(0.5, 0.85);
+          spr.position.set(b.x, b.y + Math.sin(curTime * 4 + (b.phase || 0)) * 3);
+          spr.width = 64; spr.height = 64;
+          spr.zIndex = b.y;
+        }
       } else {
         const bTex = getPixiTexture('barrel', 2, 10, 28, 38);
         if (bTex) {
@@ -1415,6 +1548,10 @@ function renderPixiWorld() {
       : waveEvent === 'void_eclipse' ? 2
       : waveEvent === 'magma_surge' ? 3
       : waveEvent === 'mega_horde' ? 4
+      : waveEvent === 'noir' ? 5
+      : waveEvent === 'glacial' ? 6
+      : waveEvent === 'solar' ? 7
+      : waveEvent === 'psychedelic' ? 8
       : 0;
     u.uChroma = typeof GPU_FX !== 'undefined' ? GPU_FX.chromaVal : 0;
     u.uDarkness = inPlay ? 0.56 : 0.42;
@@ -1614,6 +1751,9 @@ function drawPixiWorldOverlay2D() {
     g.addColorStop(1, waveEvent === 'bloodmoon' ? 'rgba(68,0,16,0.58)' : 'rgba(0,0,12,0.52)');
     ctx.fillStyle = g;
     ctx.fillRect(0, 0, W, H);
+  }
+  if (typeof drawEventCinematicOverlay2D === 'function') {
+    drawEventCinematicOverlay2D(true);
   }
 }
 

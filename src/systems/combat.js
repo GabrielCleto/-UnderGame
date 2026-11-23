@@ -667,11 +667,62 @@ function clampCam() {
 
 function hitBarrel(b) {
   if (b.dead) return;
-  b.hp--; b.hurt = 0.15;
+  if (b.kind === 'void_rift') return;
+  if (b.solid) {
+    b.hurt = 0.08;
+    play('clang', 0.2, 0.2);
+    burst(b.x, b.y - 22, '#a8a4b8', 5, 110);
+    return;
+  }
+  if (b.kind === 'shroom') {
+    b.hurt = 0.25;
+    burst(b.x, b.y - 12, '#d86bff', 8, 130);
+    if (player) player.frenzyT = Math.max(player.frenzyT || 0, 1.5);
+    return;
+  }
+  b.hp = (b.hp || 1) - 1; b.hurt = 0.15;
   SFX.barrel();
-  burst(b.x, b.y - 25, b.kind === 'tnt' ? '#ff5533' : b.kind === 'lucky' ? '#ffe042' : '#8a5a2b', 6, 160);
+  burst(b.x, b.y - 25, b.kind === 'tnt' ? '#ff5533' : b.kind === 'lucky' ? '#ffe042' : b.kind === 'blood_obelisk' ? '#ff2244' : b.kind === 'ice_spire' ? '#7ef4ff' : b.kind === 'solar_monolith' ? '#ffb82e' : '#8a5a2b', 6, 160);
   if (b.hp <= 0) {
     b.dead = true;
+    if (b.kind === 'blood_obelisk') {
+      SFX.explode();
+      fxRings.push({ kind: 'nova', x: b.x, y: b.y - 18, r: 12, maxR: 170, life: 0.4, max: 0.4, col: '#ff2244' });
+      burst(b.x, b.y - 18, '#ff2244', 28, 300);
+      for (const e of enemies) {
+        if (!e.dead && Math.hypot(e.x - b.x, e.y - b.y) < 170 + e.r) {
+          damageEnemy(e, 10 + wave * 2, b.x, b.y, 460, { color: '#ff2244' });
+        }
+      }
+      for (let i = 0; i < 2; i++) dropItem('ruby', b.x + rand(-15, 15), b.y + rand(-15, 15));
+      for (let i = 0; i < 5; i++) dropItem('coin', b.x, b.y);
+      texts.push({ x: b.x, y: b.y - 46, txt: '🩸 OBELISCO SANGRENTO QUEBRADO!', life: 1.4, color: '#ff4d6d', size: 11 });
+      score += 65;
+      return;
+    }
+    if (b.kind === 'ice_spire') {
+      SFX.crystalShatter();
+      fxRings.push({ kind: 'nova', x: b.x, y: b.y - 18, r: 12, maxR: 200, life: 0.42, max: 0.42, col: '#7ef4ff' });
+      burst(b.x, b.y - 18, '#7ef4ff', 28, 290);
+      for (const e of enemies) {
+        if (!e.dead && Math.hypot(e.x - b.x, e.y - b.y) < 200 + e.r) {
+          e.freezeT = Math.max(e.freezeT || 0, 3.0);
+          damageEnemy(e, 8 + wave * 2, b.x, b.y, 420, { color: '#7ef4ff' });
+        }
+      }
+      for (let i = 0; i < 3; i++) dropItem('gem', b.x + rand(-16, 16), b.y + rand(-16, 16));
+      texts.push({ x: b.x, y: b.y - 46, txt: '❄️ EXPLOSÃO GLACIAL!', life: 1.4, color: '#7ef4ff', size: 11 });
+      score += 60;
+      return;
+    }
+    if (b.kind === 'solar_monolith') {
+      triggerExplosion(b.x, b.y - 12, 165, 12 + wave * 2, true);
+      for (let i = 0; i < 4; i++) dropItem('coin', b.x, b.y);
+      dropItem('ruby', b.x, b.y);
+      texts.push({ x: b.x, y: b.y - 46, txt: '☀️ MONÓLITO SOLAR DETONADO!', life: 1.4, color: '#ffb82e', size: 11 });
+      score += 70;
+      return;
+    }
     if (b.kind === 'lucky') {
       SFX.luckyOpen();
       fxRings.push({ kind: 'nova', x: b.x, y: b.y - 16, r: 12, maxR: 130, life: 0.35, max: 0.35, col: '#ffe042' });
@@ -697,18 +748,20 @@ function hitBarrel(b) {
       score += 35;
       return;
     }
-    if (b.kind === 'crystal') {
+    if (b.kind === 'crystal' || b.kind === 'geode') {
       SFX.crystalShatter();
-      fxRings.push({ kind: 'nova', x: b.x, y: b.y - 14, r: 10, maxR: 165, life: 0.36, max: 0.36, col: '#62f6ff' });
-      burst(b.x, b.y - 16, '#8ef5ff', 20, 250);
+      fxRings.push({ kind: 'nova', x: b.x, y: b.y - 14, r: 10, maxR: 180, life: 0.38, max: 0.38, col: '#62f6ff' });
+      burst(b.x, b.y - 16, '#8ef5ff', 24, 280);
       for (const e of enemies) {
-        if (!e.dead && Math.hypot(e.x - b.x, e.y - b.y) < 165 + e.r) {
-          e.slow = Math.max(e.slow || 0, 2.5);
-          damageEnemy(e, 6 + wave, b.x, b.y, 420, { color: '#62f6ff' });
+        if (!e.dead && Math.hypot(e.x - b.x, e.y - b.y) < 180 + e.r) {
+          e.slow = Math.max(e.slow || 0, 3.0);
+          damageEnemy(e, 8 + wave * 2, b.x, b.y, 450, { color: '#62f6ff' });
         }
       }
-      texts.push({ x: b.x, y: b.y - 44, txt: 'NOVA CRISTALINA!', life: 1.0, color: '#62f6ff', size: 11 });
-      score += 45;
+      for (let i = 0; i < 3; i++) dropItem('gem', b.x + rand(-20, 20), b.y + rand(-20, 20));
+      if (Math.random() < 0.4) dropItem('ruby', b.x, b.y);
+      texts.push({ x: b.x, y: b.y - 44, txt: 'GEODO ARCANO EXPLODIU!', life: 1.2, color: '#62f6ff', size: 11 });
+      score += 50;
       return;
     }
     if (b.kind === 'totem') {

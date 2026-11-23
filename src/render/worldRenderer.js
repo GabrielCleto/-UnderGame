@@ -22,6 +22,17 @@ function drawRock(o) {
   if (o.stack) { ctx.drawImage(IMG.barrel, 64, 2, 48, 61, o.x - 36, o.y - 80, 72, 92); return; }
   ctx.drawImage(IMG.rock, 0, 0, 32, 32, o.x - 24, o.y - 40, 48, 48);
 }
+function drawSoftHalo(x, y, r, rgb, alpha) {
+  ctx.save();
+  ctx.globalCompositeOperation = 'lighter';
+  const g = ctx.createRadialGradient(x, y, 2, x, y, r);
+  g.addColorStop(0, `rgba(${rgb},${alpha})`);
+  g.addColorStop(1, `rgba(${rgb},0)`);
+  ctx.fillStyle = g;
+  ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill();
+  ctx.restore();
+}
+
 function drawBarrel(b) {
   const sx = b.hurt > 0 ? rand(-2, 2) : 0;
   shadow(b.x, b.y - 4, 17, 6, 0.3);
@@ -84,6 +95,104 @@ function drawBarrel(b) {
     ctx.fillRect(b.x - 16 + sx, b.y - 40, 32, 24);
     ctx.restore();
     txt('TNT', b.x + sx, b.y - 24, 7, '#ffe042');
+    return;
+  }
+  if (b.kind === 'pillar') {
+    if (IMG.ruin_pillar && IMG.ruin_pillar.complete) {
+      ctx.drawImage(IMG.ruin_pillar, b.x - 23 + sx, b.y - 62, 46, 69);
+    } else {
+      ctx.fillStyle = '#3a3644'; ctx.fillRect(b.x - 14 + sx, b.y - 56, 28, 56);
+      ctx.fillStyle = '#655f75'; ctx.fillRect(b.x - 10 + sx, b.y - 52, 20, 48);
+    }
+    return;
+  }
+  if (b.kind === 'statue') {
+    if (IMG.hero_statue && IMG.hero_statue.complete) {
+      ctx.drawImage(IMG.hero_statue, b.x - 24 + sx, b.y - 65, 48, 72);
+    } else {
+      ctx.fillStyle = '#484452'; ctx.fillRect(b.x - 16 + sx, b.y - 58, 32, 58);
+      ctx.fillStyle = '#8c869e'; ctx.fillRect(b.x - 12 + sx, b.y - 54, 24, 50);
+    }
+    return;
+  }
+  if (b.kind === 'geode') {
+    const pulse = 0.48 + 0.25 * Math.sin(time * 6);
+    drawSoftHalo(b.x, b.y - 18, 28, '80,213,255', pulse);
+    if (IMG.crystal_geode && IMG.crystal_geode.complete) {
+      ctx.drawImage(IMG.crystal_geode, b.x - 23 + sx, b.y - 40, 46, 46);
+    } else {
+      ctx.fillStyle = '#1a3045'; ctx.beginPath(); ctx.arc(b.x + sx, b.y - 18, 18, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#4fe3ff'; ctx.beginPath(); ctx.arc(b.x + sx, b.y - 18, 12, 0, Math.PI * 2); ctx.fill();
+    }
+    txt('GEODO', b.x + sx, b.y - 44, 6.5, '#62f6ff');
+    return;
+  }
+  if (b.kind === 'shroom') {
+    const pulse = 0.38 + 0.22 * Math.sin(time * 4 + (b.glow || 0) * 6);
+    drawSoftHalo(b.x, b.y - 12, 20, '186,69,255', pulse);
+    if (IMG.magic_mushroom && IMG.magic_mushroom.complete) {
+      ctx.drawImage(IMG.magic_mushroom, b.x - 15, b.y - 25, 30, 30);
+    } else {
+      ctx.fillStyle = '#b83bfa'; ctx.beginPath(); ctx.arc(b.x, b.y - 15, 12, Math.PI, 0); ctx.fill();
+      ctx.fillStyle = '#eae2f8'; ctx.fillRect(b.x - 3, b.y - 15, 6, 15);
+    }
+    return;
+  }
+  if (b.kind === 'noir_lamp') {
+    drawSoftHalo(b.x, b.y - 54, 42, '255,244,210', 0.34);
+    if (IMG.noir_lamp && IMG.noir_lamp.complete) {
+      ctx.drawImage(IMG.noir_lamp, b.x - 18 + sx, b.y - 66, 36, 72);
+    } else {
+      ctx.fillStyle = '#2c2e38'; ctx.fillRect(b.x - 3 + sx, b.y - 52, 6, 52);
+      ctx.fillStyle = '#fff5d6'; ctx.fillRect(b.x - 7 + sx, b.y - 62, 14, 12);
+    }
+    return;
+  }
+  if (b.kind === 'blood_obelisk') {
+    const pulse = 0.45 + 0.25 * Math.sin(time * 6);
+    drawSoftHalo(b.x, b.y - 30, 34, '255,34,68', pulse);
+    if (IMG.blood_obelisk && IMG.blood_obelisk.complete) {
+      ctx.drawImage(IMG.blood_obelisk, b.x - 24 + sx, b.y - 65, 48, 72);
+    } else {
+      ctx.fillStyle = '#2c1824'; ctx.fillRect(b.x - 11 + sx, b.y - 58, 22, 58);
+      ctx.fillStyle = '#ff2244'; ctx.fillRect(b.x - 3 + sx, b.y - 46, 6, 26);
+    }
+    txt('OBELISCO', b.x + sx, b.y - 70, 6.5, '#ff4d6d');
+    return;
+  }
+  if (b.kind === 'ice_spire') {
+    const pulse = 0.44 + 0.22 * Math.sin(time * 5);
+    drawSoftHalo(b.x, b.y - 28, 32, '126,244,255', pulse);
+    if (IMG.ice_spire && IMG.ice_spire.complete) {
+      ctx.drawImage(IMG.ice_spire, b.x - 24 + sx, b.y - 65, 48, 72);
+    } else {
+      ctx.fillStyle = '#70d8ff'; ctx.beginPath(); ctx.moveTo(b.x + sx, b.y - 64); ctx.lineTo(b.x + 14 + sx, b.y); ctx.lineTo(b.x - 14 + sx, b.y); ctx.closePath(); ctx.fill();
+    }
+    txt('GELO', b.x + sx, b.y - 70, 6.5, '#9beeff');
+    return;
+  }
+  if (b.kind === 'solar_monolith') {
+    const pulse = 0.5 + 0.25 * Math.sin(time * 8);
+    drawSoftHalo(b.x, b.y - 44, 36, '255,174,40', pulse);
+    if (IMG.solar_monolith && IMG.solar_monolith.complete) {
+      ctx.drawImage(IMG.solar_monolith, b.x - 24 + sx, b.y - 65, 48, 72);
+    } else {
+      ctx.fillStyle = '#c88c34'; ctx.fillRect(b.x - 10 + sx, b.y - 48, 20, 48);
+      ctx.fillStyle = '#ffb82e'; ctx.beginPath(); ctx.arc(b.x + sx, b.y - 52, 10, 0, Math.PI * 2); ctx.fill();
+    }
+    txt('SOLAR', b.x + sx, b.y - 70, 6.5, '#ffd34d');
+    return;
+  }
+  if (b.kind === 'void_rift') {
+    const bob = Math.sin(time * 4 + (b.phase || 0)) * 3;
+    const pulse = 0.5 + 0.25 * Math.sin(time * 7 + (b.phase || 0));
+    drawSoftHalo(b.x, b.y - 26, 36, '200,68,255', pulse);
+    if (IMG.void_rift && IMG.void_rift.complete) {
+      ctx.drawImage(IMG.void_rift, b.x - 32, b.y - 54 + bob, 64, 64);
+    } else {
+      ctx.fillStyle = '#c844ff'; ctx.beginPath(); ctx.ellipse(b.x, b.y - 28 + bob, 10, 26, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#ffffff'; ctx.beginPath(); ctx.ellipse(b.x, b.y - 28 + bob, 4, 18, 0, 0, Math.PI * 2); ctx.fill();
+    }
     return;
   }
   ctx.drawImage(IMG.barrel, 2, 10, 28, 38, b.x - 21 + sx, b.y - 52, 42, 57);
@@ -676,6 +785,226 @@ function drawAmbientAtmosphere() {
   ctx.restore();
 }
 
+function getEventCanvas2DFilter() {
+  if (typeof waveEvent === 'undefined' || !waveEvent) return 'none';
+  if (waveEvent === 'noir') return 'grayscale(100%) contrast(145%) brightness(0.92)';
+  if (waveEvent === 'bloodmoon') return 'sepia(55%) hue-rotate(-52deg) saturate(225%) contrast(118%) brightness(0.84)';
+  if (waveEvent === 'void_eclipse') return 'hue-rotate(235deg) saturate(190%) contrast(125%) brightness(0.82)';
+  if (waveEvent === 'glacial') return 'sepia(45%) hue-rotate(155deg) saturate(185%) contrast(112%) brightness(1.08)';
+  if (waveEvent === 'solar' || waveEvent === 'magma_surge') return 'sepia(72%) hue-rotate(-14deg) saturate(240%) contrast(124%) brightness(1.10)';
+  if (waveEvent === 'psychedelic') return `hue-rotate(${Math.floor((time * 95) % 360)}deg) saturate(240%) contrast(120%)`;
+  return 'none';
+}
+
+function drawEventCinematicOverlay2D(isWebGL = false) {
+  if (typeof waveEvent === 'undefined' || !waveEvent) return;
+  const z = (typeof getActiveCamZoom === 'function') ? getActiveCamZoom() : ((cam && cam.zoom) || getCamZoom());
+  const cx = cam ? cam.x : WORLD.w / 2;
+  const cy = cam ? cam.y : WORLD.h / 2;
+
+  ctx.save();
+  try {
+    if (waveEvent === 'noir') {
+      // 1. Acentos Vermelhos Sin City: olhos brilhantes & respingo carmesim em inimigos
+      if (typeof enemies !== 'undefined') {
+        for (let i = 0; i < enemies.length; i++) {
+          const e = enemies[i];
+          if (e.dead || e.burrowed) continue;
+          const sx = (e.x - cx) * z + W / 2;
+          const sy = (e.y - cy) * z + H / 2;
+          if (sx < -60 || sx > W + 60 || sy < -60 || sy > H + 60) continue;
+          const eyeY = sy - e.r * 0.9 * z;
+          ctx.save();
+          ctx.globalCompositeOperation = 'lighter';
+          ctx.fillStyle = 'rgba(255, 22, 38, 0.85)';
+          ctx.beginPath(); ctx.arc(sx - 4 * z, eyeY, 2.4 * z, 0, Math.PI * 2); ctx.fill();
+          ctx.beginPath(); ctx.arc(sx + 4 * z, eyeY, 2.4 * z, 0, Math.PI * 2); ctx.fill();
+          if (e.hit > 0) {
+            ctx.fillStyle = 'rgba(220, 15, 30, 0.55)';
+            ctx.beginPath(); ctx.arc(sx, sy - e.r * 0.4 * z, Math.max(8, e.r * 0.8 * z), 0, Math.PI * 2); ctx.fill();
+          }
+          ctx.restore();
+        }
+      }
+      // 2. Luz suave dos postes Noir
+      if (typeof props !== 'undefined') {
+        for (let i = 0; i < props.length; i++) {
+          const b = props[i];
+          if (b.kind !== 'noir_lamp') continue;
+          const lx = (b.x - cx) * z + W / 2;
+          const ly = (b.y - 54 - cy) * z + H / 2;
+          if (lx < -120 || lx > W + 120 || ly < -120 || ly > H + 120) continue;
+          const lg = ctx.createRadialGradient(lx, ly, 4, lx, ly, 86 * z);
+          lg.addColorStop(0, 'rgba(255, 250, 235, 0.22)');
+          lg.addColorStop(0.5, 'rgba(220, 225, 235, 0.08)');
+          lg.addColorStop(1, 'rgba(220, 225, 235, 0)');
+          ctx.fillStyle = lg;
+          ctx.beginPath(); ctx.arc(lx, ly, 86 * z, 0, Math.PI * 2); ctx.fill();
+        }
+      }
+      // 3. Chuva Noir inclinada + respingos
+      ctx.strokeStyle = 'rgba(235, 240, 250, 0.24)';
+      ctx.lineWidth = 1.25;
+      ctx.beginPath();
+      for (let i = 0; i < 130; i++) {
+        const rx = ((i * 97.3 + time * 190) % (W + 120)) - 60;
+        const ry = ((i * 53.7 + time * 720) % (H + 60)) - 30;
+        ctx.moveTo(rx, ry);
+        ctx.lineTo(rx - 5, ry + 18);
+      }
+      ctx.stroke();
+      // Respingos no chão
+      ctx.strokeStyle = 'rgba(220, 230, 245, 0.22)';
+      ctx.lineWidth = 1;
+      for (let i = 0; i < 12; i++) {
+        const tSplash = (time * 3 + i * 0.37) % 1;
+        if (tSplash < 0.45) {
+          const spx = ((i * 211.7 + Math.floor(time * 3 + i * 0.37) * 89) % W);
+          const spy = ((i * 157.3 + Math.floor(time * 3 + i * 0.37) * 67) % H);
+          ctx.beginPath();
+          ctx.ellipse(spx, spy, 3 + tSplash * 14, 1.5 + tSplash * 6, 0, 0, Math.PI * 2);
+          ctx.stroke();
+        }
+      }
+      // 4. Riscos de película analógica + leve flicker
+      if (Math.sin(time * 19) > 0.2) {
+        ctx.fillStyle = 'rgba(255,255,255,0.09)';
+        for (let i = 0; i < 3; i++) {
+          const fx = ((Math.sin(Math.floor(time * 12) * 43 + i * 71) * 0.5 + 0.5) * W);
+          ctx.fillRect(fx, 0, 1, H);
+        }
+      }
+      // Holofote dramático Noir sobre o jogador
+      if (player) {
+        const px = (player.x - cx) * z + W / 2;
+        const py = (player.y - 22 - cy) * z + H / 2;
+        const sg = ctx.createRadialGradient(px, py, Math.min(W, H) * 0.16, px, py, Math.max(W, H) * 0.65);
+        sg.addColorStop(0, 'rgba(0,0,0,0)');
+        sg.addColorStop(1, 'rgba(0,0,0,0.48)');
+        ctx.fillStyle = sg;
+        ctx.fillRect(0, 0, W, H);
+      }
+      // 5. Barras Cinemascope sutis (14px)
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.86)';
+      ctx.fillRect(0, 0, W, 14);
+      ctx.fillRect(0, H - 14, W, 14);
+    } else if (waveEvent === 'bloodmoon') {
+      // Lua de Sangue Gigante no canto superior direito
+      const mx = W * 0.83, my = H * 0.22;
+      const pulse = 1 + 0.05 * Math.sin(time * 4);
+      const mg = ctx.createRadialGradient(mx, my, 12, mx, my, 115 * pulse);
+      mg.addColorStop(0, 'rgba(255, 65, 85, 0.55)');
+      mg.addColorStop(0.45, 'rgba(200, 10, 35, 0.26)');
+      mg.addColorStop(1, 'rgba(120, 0, 20, 0)');
+      ctx.fillStyle = mg;
+      ctx.beginPath(); ctx.arc(mx, my, 115 * pulse, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = 'rgba(225, 25, 50, 0.42)';
+      ctx.beginPath(); ctx.arc(mx, my, 36, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = 'rgba(130, 5, 22, 0.48)';
+      ctx.beginPath(); ctx.arc(mx - 8, my - 6, 22, 0, Math.PI * 2); ctx.fill();
+      // Brasas e cinzas vermelhas
+      ctx.fillStyle = 'rgba(255, 75, 95, 0.55)';
+      for (let i = 0; i < 45; i++) {
+        const ax = ((i * 83.1 + Math.sin(time * 1.4 + i) * 28) % W + W) % W;
+        const ay = ((i * 49.7 + time * 95) % H);
+        ctx.fillRect(ax, ay, 2.5, 2.5);
+      }
+      if (Math.sin(time * 7.3) > 0.96) {
+        ctx.fillStyle = 'rgba(255, 30, 55, 0.14)';
+        ctx.fillRect(0, 0, W, H);
+      }
+    } else if (waveEvent === 'void_eclipse') {
+      // Anel de Eclipse Sombrio + Estrelas Cósmicas + Arcos Violeta
+      const ex = W * 0.5, ey = H * 0.19;
+      const eg = ctx.createRadialGradient(ex, ey, 28, ex, ey, 110);
+      eg.addColorStop(0, 'rgba(186, 69, 255, 0)');
+      eg.addColorStop(0.45, 'rgba(186, 69, 255, 0.34)');
+      eg.addColorStop(1, 'rgba(70, 10, 140, 0)');
+      ctx.fillStyle = eg;
+      ctx.beginPath(); ctx.arc(ex, ey, 110, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = 'rgba(215, 135, 255, 0.65)';
+      for (let i = 0; i < 48; i++) {
+        const sx2 = ((i * 113.7 + Math.sin(time * 0.8 + i) * 20) % W + W) % W;
+        const sy2 = ((i * 71.3 - time * 35) % H + H) % H;
+        const sz2 = 1.5 + (i % 3);
+        ctx.fillRect(sx2, sy2, sz2, sz2);
+      }
+      // Arcos elétricos roxos nas bordas
+      ctx.strokeStyle = 'rgba(205, 100, 255, 0.35)';
+      ctx.lineWidth = 2;
+      for (let i = 0; i < 4; i++) {
+        const bx = i < 2 ? 6 : W - 6;
+        const by = (i % 2 === 0) ? H * 0.28 : H * 0.72;
+        ctx.beginPath();
+        ctx.moveTo(bx, by - 45);
+        ctx.lineTo(bx + Math.sin(time * 24 + i) * 18, by);
+        ctx.lineTo(bx, by + 45);
+        ctx.stroke();
+      }
+    } else if (waveEvent === 'glacial') {
+      // Nevasca em 2 camadas + Borda de Gelo Cristalina
+      for (let layer = 0; layer < 2; layer++) {
+        const cnt = layer === 0 ? 90 : 60;
+        const spdY = layer === 0 ? 130 : 210;
+        const spdX = layer === 0 ? 55 : 95;
+        ctx.fillStyle = layer === 0 ? 'rgba(220, 245, 255, 0.52)' : 'rgba(255, 255, 255, 0.82)';
+        for (let i = 0; i < cnt; i++) {
+          const nx = ((i * 73.1 + time * spdX + Math.sin(time * 2 + i) * 16) % (W + 40) + (W + 40)) % (W + 40) - 20;
+          const ny = ((i * 41.9 + time * spdY) % (H + 40)) - 20;
+          const rad = layer === 0 ? 2 : 3.2;
+          ctx.beginPath(); ctx.arc(nx, ny, rad, 0, Math.PI * 2); ctx.fill();
+        }
+      }
+      const fg = ctx.createRadialGradient(W / 2, H / 2, Math.min(W, H) * 0.36, W / 2, H / 2, Math.max(W, H) * 0.74);
+      fg.addColorStop(0, 'rgba(180, 240, 255, 0)');
+      fg.addColorStop(1, 'rgba(190, 242, 255, 0.36)');
+      ctx.fillStyle = fg;
+      ctx.fillRect(0, 0, W, H);
+    } else if (waveEvent === 'solar' || waveEvent === 'magma_surge') {
+      // Raios Solares Diagonais (God Rays) + Brasas Incandescentes Subindo
+      ctx.save();
+      ctx.globalCompositeOperation = 'lighter';
+      const sgTop = ctx.createLinearGradient(0, 0, 0, H * 0.35);
+      sgTop.addColorStop(0, 'rgba(255, 195, 70, 0.28)');
+      sgTop.addColorStop(1, 'rgba(255, 140, 20, 0)');
+      ctx.fillStyle = sgTop;
+      ctx.fillRect(0, 0, W, H * 0.35);
+      for (let i = 0; i < 4; i++) {
+        const rx = W * (0.18 + i * 0.22) + Math.sin(time * 0.7 + i) * 28;
+        ctx.fillStyle = 'rgba(255, 210, 95, 0.09)';
+        ctx.beginPath();
+        ctx.moveTo(rx - 35, 0); ctx.lineTo(rx + 45, 0);
+        ctx.lineTo(rx - 140, H); ctx.lineTo(rx - 260, H);
+        ctx.closePath(); ctx.fill();
+      }
+      ctx.fillStyle = 'rgba(255, 205, 80, 0.68)';
+      for (let i = 0; i < 40; i++) {
+        const ex = ((i * 91.7 + Math.sin(time * 2.5 + i) * 22) % W + W) % W;
+        const ey = ((H - ((i * 57.3 + time * 125) % H)));
+        ctx.fillRect(ex, ey, 3, 3);
+      }
+      ctx.restore();
+    } else if (waveEvent === 'psychedelic') {
+      // Borda Prismática Rotativa + Partículas Multicoloridas
+      const hue = Math.floor((time * 120) % 360);
+      const pg = ctx.createRadialGradient(W / 2, H / 2, Math.min(W, H) * 0.32, W / 2, H / 2, Math.max(W, H) * 0.75);
+      pg.addColorStop(0, 'rgba(0,0,0,0)');
+      pg.addColorStop(1, `hsla(${hue}, 95%, 58%, 0.35)`);
+      ctx.fillStyle = pg;
+      ctx.fillRect(0, 0, W, H);
+      for (let i = 0; i < 42; i++) {
+        const ph = (hue + i * 24) % 360;
+        const px2 = ((i * 107.3 + Math.sin(time * 2 + i) * 35) % W + W) % W;
+        const py2 = ((i * 63.1 + Math.cos(time * 1.7 + i) * 35) % H + H) % H;
+        ctx.fillStyle = `hsla(${ph}, 100%, 65%, 0.75)`;
+        ctx.beginPath(); ctx.arc(px2, py2, 2.5 + (i % 3), 0, Math.PI * 2); ctx.fill();
+      }
+    }
+  } finally {
+    ctx.restore();
+  }
+}
+
 function drawWorld() {
   const sqTrauma = trauma * trauma;
   const shakeOffset = sqTrauma * 7;
@@ -684,6 +1013,7 @@ function drawWorld() {
   const z = (cam && cam.zoom) || getCamZoom();
   ctx.save();
   try {
+  ctx.filter = getEventCanvas2DFilter();
   ctx.translate(Math.round(W / 2 + sx), Math.round(H / 2 + sy));
   ctx.scale(z, z);
   ctx.translate(-Math.round(cam.x), -Math.round(cam.y));
@@ -820,7 +1150,7 @@ function drawWorld() {
     ctx.restore();
   }
   ctx.globalAlpha = 1;
-  } finally { ctx.restore(); }
+  } finally { ctx.filter = 'none'; ctx.restore(); }
 
   // --- ILUMINAÇÃO DINÂMICA V.2 (Luz de Tocha, Sombra de Calabouço & Aura de Bosses) ---
   if (player && (state === 'play' || state === 'pause')) {
@@ -837,6 +1167,10 @@ function drawWorld() {
     const darkEdge = waveEvent === 'bloodmoon' ? 'rgba(68, 0, 16, 0.68)'
       : waveEvent === 'void_eclipse' ? 'rgba(28, 4, 55, 0.72)'
       : waveEvent === 'magma_surge' ? 'rgba(62, 16, 2, 0.64)'
+      : waveEvent === 'noir' ? 'rgba(10, 10, 14, 0.78)'
+      : waveEvent === 'glacial' ? 'rgba(15, 45, 75, 0.68)'
+      : waveEvent === 'solar' ? 'rgba(85, 35, 5, 0.66)'
+      : waveEvent === 'psychedelic' ? 'rgba(42, 8, 56, 0.56)'
       : bTheme.edge;
     g.addColorStop(1, darkEdge);
     ctx.fillStyle = g;
@@ -865,6 +1199,7 @@ function drawWorld() {
     g.addColorStop(1, 'rgba(0,0,10,0.55)');
     ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
   }
+  drawEventCinematicOverlay2D(false);
     if (player && player.hp <= 2 && state === 'play') {
     // Low HP pulsing vignette
     const pulse = 0.12 + 0.08 * Math.sin(time * 8);

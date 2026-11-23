@@ -33,6 +33,15 @@ const IMAGE_LIST = {
   altar_pact: 'assets/sprites/world/altar_pact.png',
   altar_cursed: 'assets/sprites/world/altar_cursed.png',
   void_totem: 'assets/sprites/world/void_totem.png',
+  ruin_pillar: 'assets/sprites/world/ruin_pillar.png',
+  crystal_geode: 'assets/sprites/world/crystal_geode.png',
+  hero_statue: 'assets/sprites/world/hero_statue.png',
+  magic_mushroom: 'assets/sprites/world/magic_mushroom.png',
+  void_rift: 'assets/sprites/world/void_rift.png',
+  noir_lamp: 'assets/sprites/world/noir_lamp.png',
+  blood_obelisk: 'assets/sprites/world/blood_obelisk.png',
+  ice_spire: 'assets/sprites/world/ice_spire.png',
+  solar_monolith: 'assets/sprites/world/solar_monolith.png',
 };
 
 const MONSTER_SPRITES = [

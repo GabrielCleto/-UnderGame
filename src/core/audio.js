@@ -52,6 +52,301 @@ for (const cid in CHAR_MUSIC_FILES) {
 let activeCharMusic = null;
 let activeCharId = null;
 let musicOn = true;
+let eventSynthMusicActive = false;
+let eventSynthTimer = null;
+let actx = null;
+let musicGain = null;
+let audioUnlocked = false;
+let _noiseBuf = null;
+
+function ensureAudioCtx() {
+  try {
+    if (!actx) {
+      const AC = window.AudioContext || window.webkitAudioContext;
+      if (!AC) return null;
+      actx = new AC();
+      musicGain = actx.createGain();
+      musicGain.gain.value = 0.72;
+      musicGain.connect(actx.destination);
+    }
+    if (!musicGain && actx) {
+      musicGain = actx.createGain();
+      musicGain.gain.value = 0.72;
+      musicGain.connect(actx.destination);
+    }
+    return actx;
+  } catch (_) {
+    return null;
+  }
+}
+
+function unlockEventAudio() {
+  const ctxA = ensureAudioCtx();
+  if (!ctxA) return false;
+  if (ctxA.state === 'suspended') {
+    ctxA.resume().then(() => {
+      audioUnlocked = true;
+      if (typeof window !== 'undefined' && window.updateEventAudioBtnUI) window.updateEventAudioBtnUI();
+    }).catch(() => {});
+  } else if (ctxA.state === 'running') {
+    audioUnlocked = true;
+  }
+  if (typeof window !== 'undefined' && window.updateEventAudioBtnUI) window.updateEventAudioBtnUI();
+  return ctxA.state === 'running';
+}
+
+function synthNote(freq, dur, type = 'triangle', vol = 0.16, cutoff = 1800, slide = 0) {
+  if (!musicOn) return;
+  const ctxA = actx;
+  if (!ctxA || ctxA.state !== 'running') return;
+  try {
+    const now = ctxA.currentTime;
+    const o = ctxA.createOscillator();
+    const flt = ctxA.createBiquadFilter();
+    const g = ctxA.createGain();
+    o.type = type;
+    o.frequency.setValueAtTime(freq, now);
+    if (slide) o.frequency.exponentialRampToValueAtTime(Math.max(28, freq + slide), now + dur);
+    flt.type = 'lowpass';
+    flt.frequency.setValueAtTime(cutoff, now);
+    g.gain.setValueAtTime(0.001, now);
+    g.gain.linearRampToValueAtTime(vol, now + Math.min(0.025, dur * 0.2));
+    g.gain.exponentialRampToValueAtTime(0.0005, now + dur);
+    o.connect(flt).connect(g).connect(musicGain || ctxA.destination);
+    o.start(now);
+    o.stop(now + dur + 0.02);
+  } catch (_) {}
+}
+
+function synthKick(startF = 115, endF = 38, dur = 0.16, vol = 0.24) {
+  if (!musicOn || !actx || actx.state !== 'running') return;
+  try {
+    const now = actx.currentTime;
+    const o = actx.createOscillator();
+    const g = actx.createGain();
+    o.type = 'sine';
+    o.frequency.setValueAtTime(startF, now);
+    o.frequency.exponentialRampToValueAtTime(Math.max(25, endF), now + dur);
+    g.gain.setValueAtTime(vol, now);
+    g.gain.exponentialRampToValueAtTime(0.001, now + dur);
+    o.connect(g).connect(musicGain || actx.destination);
+    o.start(now);
+    o.stop(now + dur + 0.02);
+  } catch (_) {}
+}
+
+function synthPerc(dur = 0.06, vol = 0.08, highpass = 3500) {
+  if (!musicOn || !actx || actx.state !== 'running') return;
+  try {
+    if (!_noiseBuf) {
+      const len = Math.floor(actx.sampleRate * 0.5);
+      _noiseBuf = actx.createBuffer(1, len, actx.sampleRate);
+      const data = _noiseBuf.getChannelData(0);
+      for (let i = 0; i < len; i++) data[i] = Math.random() * 2 - 1;
+    }
+    const now = actx.currentTime;
+    const src = actx.createBufferSource();
+    src.buffer = _noiseBuf;
+    const flt = actx.createBiquadFilter();
+    flt.type = 'bandpass';
+    flt.frequency.setValueAtTime(highpass, now);
+    flt.Q.value = 1.2;
+    const g = actx.createGain();
+    g.gain.setValueAtTime(vol, now);
+    g.gain.exponentialRampToValueAtTime(0.001, now + dur);
+    src.connect(flt).connect(g).connect(musicGain || actx.destination);
+    src.start(now);
+    src.stop(now + dur + 0.02);
+  } catch (_) {}
+}
+
+// =====================================================================
+//  GERADOR DE TRILHA SONORA PROCEDURAL DOS EVENTOS MEGALOMANÍACOS
+//  WebAudio Synth: Jazz Noir, Marcha Carmesim, Vazio, Glacial, Solar, Surreal
+// =====================================================================
+const EVENT_THEMES = {
+  noir: {
+    name: '🎷 JAZZ NOIR',
+    tempo: 390,
+    bass: [110.0, 130.81, 146.83, 155.56, 146.83, 164.81, 196.0, 155.56], // Lam blues walking bass
+    chords: [
+      [220.0, 261.63, 329.63, 392.0], // Am7
+      [146.83, 261.63, 329.63, 440.0], // Dm9
+      [196.0, 246.94, 329.63, 392.0], // G13
+      [164.81, 207.65, 293.66, 392.0], // E7#9
+    ],
+    melody: [440.0, 0, 523.25, 587.33, 622.25, 587.33, 523.25, 392.0, 440.0, 0, 659.25, 587.33, 523.25, 493.88, 392.0, 329.63],
+    wave: 'triangle',
+    cutoff: 1250,
+    vinyl: true,
+  },
+  blood: {
+    name: '🩸 MARCHA DE SANGUE',
+    tempo: 280,
+    bass: [73.42, 73.42, 87.31, 73.42, 110.0, 98.0, 87.31, 69.3], // D menor sombrio
+    chords: [
+      [146.83, 174.61, 220.0],
+      [138.59, 174.61, 207.65],
+      [130.81, 164.81, 196.0],
+      [123.47, 155.56, 185.0]
+    ],
+    melody: [293.66, 349.23, 329.63, 293.66, 440.0, 415.30, 349.23, 277.18],
+    wave: 'sawtooth',
+    cutoff: 900,
+    kick: true,
+  },
+  void: {
+    name: '🌌 SINFONIA DO VAZIO',
+    tempo: 360,
+    bass: [65.41, 77.78, 65.41, 92.5, 65.41, 110.0, 103.83, 87.31],
+    chords: [
+      [196.0, 246.94, 311.13, 392.0],
+      [185.0, 233.08, 293.66, 369.99],
+    ],
+    melody: [523.25, 622.25, 783.99, 622.25, 523.25, 466.16, 392.0, 466.16],
+    wave: 'sine',
+    cutoff: 2200,
+  },
+  frost: {
+    name: '❄️ VALSA GLACIAL',
+    tempo: 340,
+    bass: [130.81, 164.81, 196.0, 246.94],
+    chords: [
+      [523.25, 659.25, 783.99, 1046.5],
+      [440.0, 523.25, 659.25, 880.0]
+    ],
+    melody: [1046.5, 987.77, 783.99, 659.25, 880.0, 783.99, 659.25, 523.25],
+    wave: 'sine',
+    cutoff: 3600,
+    wind: true,
+  },
+  solar: {
+    name: '☀️ MARCHA SOLAR',
+    tempo: 250,
+    bass: [82.41, 123.47, 82.41, 146.83, 164.81, 123.47],
+    chords: [
+      [329.63, 415.3, 493.88, 659.25],
+      [293.66, 369.99, 440.0, 587.33]
+    ],
+    melody: [329.63, 415.30, 493.88, 659.25, 587.33, 493.88, 440.0, 392.0],
+    wave: 'sawtooth',
+    cutoff: 1700,
+    kick: true,
+  },
+  psychedelic: {
+    name: '🌀 FEBRE SURREAL',
+    tempo: 260,
+    bass: [98.0, 146.83, 116.54, 98.0, 174.61, 146.83, 130.81, 196.0],
+    chords: [
+      [293.66, 369.99, 440.0, 554.37],
+      [261.63, 329.63, 392.0, 493.88],
+    ],
+    melody: [587.33, 739.99, 880.0, 659.25, 783.99, 1046.5, 880.0, 587.33],
+    wave: 'sawtooth',
+    sweep: true,
+    kick: true,
+  }
+};
+
+let eventBeatIdx = 0;
+let currentEventTheme = null;
+
+function resolveEventThemeKey(key) {
+  if (key === 'bloodmoon') return 'blood';
+  if (key === 'void_eclipse') return 'void';
+  if (key === 'glacial') return 'frost';
+  if (key === 'magma_surge') return 'solar';
+  return EVENT_THEMES[key] ? key : 'noir';
+}
+
+function playEventMusic(themeKey) {
+  const k = resolveEventThemeKey(themeKey);
+  currentEventTheme = EVENT_THEMES[k];
+  eventSynthMusicActive = true;
+  eventBeatIdx = 0;
+
+  // Pausa qualquer música normal que esteja tocando
+  if (activeCharMusic && !activeCharMusic.paused) {
+    try { activeCharMusic.pause(); } catch (_) {}
+  }
+  if (typeof bossMusic !== 'undefined' && !bossMusic.paused) {
+    try { bossMusic.pause(); } catch (_) {}
+  }
+
+  if (eventSynthTimer) clearInterval(eventSynthTimer);
+  eventSynthTimer = setInterval(() => {
+    if (!musicOn || !eventSynthMusicActive || !currentEventTheme) return;
+    if (!actx || actx.state !== 'running') return;
+    const t = currentEventTheme;
+    const step = eventBeatIdx;
+    const durS = (t.tempo / 1000) * 0.9;
+    const sweepCut = t.sweep ? (700 + Math.abs(Math.sin(step * 0.45)) * 2200) : (t.cutoff || 1600);
+
+    // 1. Baixo marcante
+    const bNote = t.bass[step % t.bass.length];
+    synthNote(bNote, durS, t.wave, 0.17, sweepCut);
+
+    // 2. Acordes harmônicos
+    if (step % 2 === 0) {
+      const chord = t.chords[Math.floor(step / 2) % t.chords.length];
+      chord.forEach((f, ci) => {
+        setTimeout(() => {
+          synthNote(f, durS * 1.75, 'triangle', 0.065, 1900);
+        }, ci * 18);
+      });
+    }
+
+    // 3. Melodia principal / solo (sax noir, sino glacial, órgão de sangue, acid synth)
+    if (t.melody && (t.melody[step % t.melody.length] > 0)) {
+      const mNote = t.melody[step % t.melody.length];
+      synthNote(mNote, durS * 0.95, t.vinyl ? 'sine' : (t.wind ? 'sine' : 'triangle'), 0.11, sweepCut + 800, t.vinyl ? 4 : 0);
+    }
+
+    // 4. Texturas e percussão por tema
+    if (t.vinyl) {
+      // Prato escovado estilo jazz swing + estalo sutil de vinil
+      synthPerc(step % 2 === 0 ? 0.055 : 0.035, step % 2 === 0 ? 0.06 : 0.035, 5200);
+      if (Math.random() < 0.45) synthPerc(0.015, 0.025, 2400);
+    }
+    if (t.kick && step % 2 === 0) {
+      synthKick(115, 38, 0.15, 0.22);
+    }
+    if (t.wind && step % 3 === 0) {
+      synthPerc(0.28, 0.045, 1100);
+    }
+
+    eventBeatIdx++;
+  }, currentEventTheme.tempo);
+
+  if (typeof window !== 'undefined' && window.updateEventAudioBtnUI) window.updateEventAudioBtnUI();
+}
+
+function stopEventMusic(resumeHero = false) {
+  eventSynthMusicActive = false;
+  if (eventSynthTimer) {
+    clearInterval(eventSynthTimer);
+    eventSynthTimer = null;
+  }
+  currentEventTheme = null;
+  if (resumeHero && musicOn && typeof state !== 'undefined' && state === 'play') {
+    startMusic();
+  }
+  if (typeof window !== 'undefined' && window.updateEventAudioBtnUI) window.updateEventAudioBtnUI();
+}
+
+function toggleEventMusicMute() {
+  unlockEventAudio();
+  if (!musicOn) {
+    musicOn = true;
+    if (typeof waveEvent !== 'undefined' && waveEvent) {
+      playEventMusic(waveEvent);
+    }
+  } else {
+    musicOn = false;
+    if (activeCharMusic && !activeCharMusic.paused) try { activeCharMusic.pause(); } catch (_) {}
+  }
+  if (typeof window !== 'undefined' && window.updateEventAudioBtnUI) window.updateEventAudioBtnUI();
+}
 
 const bossMusic = new Audio('assets/audio/music/boss_battle.mp3');
 bossMusic.loop = true;
@@ -162,6 +457,12 @@ const music = {
 
 function startMusic() {
   if (!musicOn) return;
+  if (eventSynthMusicActive && currentEventTheme) {
+    if (activeCharMusic && !activeCharMusic.paused) {
+      try { activeCharMusic.pause(); } catch (_) {}
+    }
+    return;
+  }
   if (bossMusicActive && typeof state !== 'undefined' && (state === 'play' || state === 'levelup')) {
     if (bossMusic.paused) {
       bossMusic.volume = 0.35;
@@ -177,11 +478,10 @@ function startMusic() {
   }
 }
 
-let actx = null;
 function beep(freq = 440, dur = 0.1, type = 'square', vol = 0.05, slide = 0) {
   if (!sfxOn) return;
+  if (!actx || actx.state !== 'running') return;
   try {
-    if (!actx) actx = new (window.AudioContext || window.webkitAudioContext)();
     const o = actx.createOscillator(), g = actx.createGain();
     o.type = type;
     o.frequency.setValueAtTime(freq, actx.currentTime);

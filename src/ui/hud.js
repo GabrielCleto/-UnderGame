@@ -516,6 +516,10 @@ function drawWaveBanner(s, left) {
   const cloth = waveEvent === 'bloodmoon' ? '#4d1010'
     : waveEvent === 'void_eclipse' ? '#3d1656'
     : waveEvent === 'golden' ? '#785614'
+    : waveEvent === 'noir' ? '#1e1f24'
+    : waveEvent === 'glacial' ? '#143c5e'
+    : waveEvent === 'solar' ? '#7a3b0c'
+    : waveEvent === 'psychedelic' ? '#5c146e'
     : '#701919';
 
   // Contorno externo preto
@@ -560,7 +564,21 @@ function drawWaveBanner(s, left) {
   let label;
   if (toSpawn === 0 && left === 0) label = 'HORDA VENCIDA!';
   else if (waveEvent) {
-    const ev = { bloodmoon: 'LUA DE SANGUE', void_eclipse: 'ECLIPSE DO VAZIO', magma_surge: 'FÚRIA DE MAGMA', swarm: 'ENXAME', meteors: 'CHUVA DE METEOROS', golden: 'ONDA DOURADA', ambush: 'EMBOSCADA' };
+    const ev = {
+      noir: 'CIDADE NOIR',
+      bloodmoon: 'LUA DE SANGUE',
+      void_eclipse: 'ECLIPSE DO VAZIO',
+      glacial: 'ERA GLACIAL',
+      solar: 'APOCALIPSE SOLAR',
+      psychedelic: 'FEBRE SURREAL',
+      magma_surge: 'FÚRIA DE MAGMA',
+      swarm: 'ENXAME',
+      meteors: 'CHUVA DE METEOROS',
+      golden: 'ONDA DOURADA',
+      ambush: 'EMBOSCADA',
+      mega_horde: 'MARÉ ABISSAL',
+      bounty: 'CAÇADA AO ALVO'
+    };
     label = ev[waveEvent] || waveEvent.toUpperCase();
   } else label = 'INIMIGOS: ' + left;
 

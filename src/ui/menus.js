@@ -604,8 +604,12 @@ function startWithSelectedCharacter() {
   setTimeout(() => {
     reset();
     state = 'play';
-    startMusic();
-    music.volume = 0.3;
+    if (typeof playEventMusic === 'function' && waveEvent) {
+      playEventMusic(waveEvent);
+    } else {
+      startMusic();
+      music.volume = 0.3;
+    }
     if (ov) {
       ov.classList.remove('is-starting');
       ov.classList.add('is-hidden');
