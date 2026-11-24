@@ -1212,7 +1212,32 @@ function drawWorld() {
     ctx.fillRect(0, 0, W, H);
   }
   if (player && player.inv > stats.invTime - 0.3 && !player.dash && !player.ult && player.hp < stats.maxHp && state === 'play') {
-    ctx.fillStyle = `rgba(255,0,0,${(player.inv - (stats.invTime - 0.3)) * 0.8})`; ctx.fillRect(0, 0, W, H);
+    const hitK = clamp((player.inv - (stats.invTime - 0.3)) / 0.3, 0, 1);
+    ctx.fillStyle = `rgba(255,0,0,${hitK * 0.26})`; ctx.fillRect(0, 0, W, H);
+  }
+  // Efeito de Distorção & Aberração Cromática ao Tomar Dano (Fallback Canvas 2D)
+  if (typeof GPU_FX !== 'undefined' && GPU_FX.chromaVal > 0.001) {
+    const cAmt = clamp(GPU_FX.chromaVal * 420, 1.5, 14);
+    ctx.save();
+    ctx.globalCompositeOperation = 'screen';
+    ctx.strokeStyle = `rgba(255, 30, 60, ${clamp(GPU_FX.chromaVal * 26, 0.15, 0.62)})`;
+    ctx.lineWidth = cAmt * 1.4;
+    ctx.strokeRect(cAmt, 0, W - cAmt * 2, H);
+    ctx.strokeStyle = `rgba(30, 235, 255, ${clamp(GPU_FX.chromaVal * 22, 0.12, 0.52)})`;
+    ctx.strokeRect(-cAmt * 0.5, 0, W + cAmt, H);
+    if (player) {
+      const z2 = typeof getActiveCamZoom === 'function' ? getActiveCamZoom() : ((cam && cam.zoom) || 1);
+      const px = (player.x - cam.x) * z2 + W / 2;
+      const py = (player.y - 28 - cam.y) * z2 + H / 2;
+      const ringR = Math.max(24, (1 - clamp(GPU_FX.chromaVal / 0.026, 0, 1)) * 220 + 30);
+      ctx.strokeStyle = `rgba(255, 80, 110, ${clamp(GPU_FX.chromaVal * 30, 0, 0.7)})`;
+      ctx.lineWidth = 4;
+      ctx.beginPath(); ctx.arc(px, py, ringR, 0, Math.PI * 2); ctx.stroke();
+      ctx.strokeStyle = `rgba(90, 240, 255, ${clamp(GPU_FX.chromaVal * 24, 0, 0.55)})`;
+      ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.arc(px + cAmt * 0.6, py, ringR * 0.92, 0, Math.PI * 2); ctx.stroke();
+    }
+    ctx.restore();
   }
 }
 

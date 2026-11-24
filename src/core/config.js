@@ -33,9 +33,10 @@ function getCamZoom() {
   }
   if (H <= 620) {
     // Telas médias
-    return clamp(H / 660, 0.80, 0.92);
+    return clamp(H / 740, 0.74, 0.84);
   }
-  return 1.0;
+  // Desktop: câmera tática ampla (estilo arena panorâmica)
+  return 0.82;
 }
 
 function resize() {
