@@ -214,18 +214,37 @@ canvas:focus-visible {
   align-items: center;
   gap: 11px;
   padding: 9px 14px;
-  border-radius: 4px;
-  background: rgba(14, 12, 20, 0.9);
-  border: 1px solid rgba(217, 164, 65, 0.32);
-  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 232, 175, 0.1);
+  border-radius: 6px;
+  background: linear-gradient(180deg, rgba(22, 19, 32, 0.88) 0%, rgba(12, 10, 18, 0.94) 100%);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(217, 164, 65, 0.34);
+  box-shadow:
+    0 10px 26px rgba(0, 0, 0, 0.62),
+    inset 0 1px 0 rgba(255, 236, 185, 0.16),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.5);
   color: #f6ead4;
   text-align: left;
-  transition: transform 160ms cubic-bezier(0.22, 1, 0.36, 1), border-color 160ms ease, background 160ms ease;
+  transition:
+    transform 170ms cubic-bezier(0.22, 1, 0.36, 1),
+    border-color 170ms ease,
+    box-shadow 170ms ease,
+    background 170ms ease;
+}
+.glass-pill:active {
+  transform: translateY(0) scale(0.97);
+}
+.glass-pill:focus-visible,
+.btn-press-start:focus-visible,
+.mode-tag:focus-visible {
+  outline: 2px solid #f7d67e;
+  outline-offset: 3px;
 }
 .bestiary-btn:hover {
   transform: translateY(-2px);
-  border-color: rgba(245, 194, 73, 0.78);
-  background: rgba(22, 18, 30, 0.94);
+  border-color: rgba(245, 194, 73, 0.82);
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.7), 0 0 16px rgba(245, 194, 73, 0.18), inset 0 1px 0 rgba(255, 236, 185, 0.24);
+  background: linear-gradient(180deg, rgba(32, 24, 38, 0.94) 0%, rgba(16, 12, 22, 0.96) 100%);
 }
 .pill-icon {
   display: grid;
@@ -283,52 +302,81 @@ canvas:focus-visible {
 }
 .game-title {
   margin: 0;
-  font-family: Georgia, 'Times New Roman', serif;
-  font-size: clamp(26px, 3.6vw, 44px);
+  font-family: 'Cinzel', Georgia, 'Times New Roman', serif;
+  font-size: clamp(28px, 3.8vw, 48px);
   font-weight: 900;
-  letter-spacing: 0.12em;
-  line-height: 1.04;
-  color: #f7d67e;
-  text-shadow: 0 3px 0 #3a1f07, 0 8px 20px rgba(0, 0, 0, 0.88);
+  letter-spacing: 0.14em;
+  line-height: 1.02;
+  background: linear-gradient(180deg, #fff5cf 0%, #f5cb62 48%, #bd7d1f 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  filter: drop-shadow(0 3px 0 #3a1f07) drop-shadow(0 10px 22px rgba(0, 0, 0, 0.9));
 }
 .game-subtitle {
-  margin: 5px 0 0;
+  margin: 6px 0 0;
   font-size: 10.5px;
   font-weight: 700;
-  letter-spacing: 0.28em;
-  color: #cfc3af;
-  text-shadow: 0 2px 6px rgba(0, 0, 0, 0.92);
+  letter-spacing: 0.30em;
+  color: #d8ccb8;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.95);
 }
 
 .menu-dock {
   position: absolute;
-  top: calc(39vh + 88px);
+  top: calc(39vh + 86px);
   left: 50%;
   transform: translateX(-50%);
   width: min(440px, 92vw);
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 12px;
+  gap: 13px;
 }
 
 .btn-press-start {
   pointer-events: auto;
-  background: transparent;
-  border: none;
+  background: linear-gradient(180deg, rgba(36, 26, 16, 0.86) 0%, rgba(18, 13, 12, 0.94) 100%);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(245, 194, 73, 0.55);
+  border-radius: 6px;
+  box-shadow:
+    0 12px 30px rgba(0, 0, 0, 0.72),
+    0 0 24px rgba(245, 194, 73, 0.16),
+    inset 0 1px 0 rgba(255, 240, 190, 0.28),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.6);
   outline: none;
   cursor: pointer;
-  padding: 10px 24px;
+  padding: 13px 32px;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   gap: 5px;
   position: relative;
+  overflow: hidden;
   text-decoration: none;
   user-select: none;
-  animation: pressStartBreathe 2.5s ease-in-out infinite;
-  transition: transform 180ms ease, filter 180ms ease;
+  animation: pressStartBreathe 2.8s ease-in-out infinite;
+  transition:
+    transform 180ms cubic-bezier(0.22, 1, 0.36, 1),
+    border-color 180ms ease,
+    box-shadow 180ms ease;
+}
+.btn-press-start::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -120%;
+  width: 70%;
+  height: 100%;
+  background: linear-gradient(105deg, transparent 20%, rgba(255, 238, 175, 0.22) 50%, transparent 80%);
+  transition: left 520ms cubic-bezier(0.22, 1, 0.36, 1);
+  pointer-events: none;
+}
+.btn-press-start:hover::before {
+  left: 140%;
 }
 
 .press-start-ornament {
@@ -337,12 +385,12 @@ canvas:focus-visible {
   justify-content: center;
   gap: 8px;
   width: 140px;
-  opacity: 0.65;
+  opacity: 0.75;
 }
 .press-start-ornament span {
   flex: 1;
   height: 1px;
-  background: linear-gradient(90deg, transparent, rgba(245, 200, 100, 0.8), transparent);
+  background: linear-gradient(90deg, transparent, rgba(245, 200, 100, 0.85), transparent);
 }
 .press-start-ornament i {
   font-style: normal;
@@ -352,41 +400,45 @@ canvas:focus-visible {
 
 .press-start-main {
   font-family: 'Cinzel', 'Georgia', serif;
-  font-size: 19px;
+  font-size: 18px;
   font-weight: 800;
   letter-spacing: 0.16em;
   color: #fce8a6;
   text-shadow:
-    0 0 16px rgba(245, 194, 73, 0.5),
+    0 0 16px rgba(245, 194, 73, 0.45),
     0 2px 8px rgba(0, 0, 0, 0.95);
   transition: color 180ms ease, text-shadow 180ms ease;
 }
 
 .press-start-sub {
   font-family: inherit;
-  font-size: 10px;
+  font-size: 9.5px;
   font-weight: 600;
-  letter-spacing: 0.22em;
-  color: rgba(220, 200, 160, 0.72);
+  letter-spacing: 0.24em;
+  color: rgba(226, 208, 172, 0.78);
   text-shadow: 0 1px 4px rgba(0, 0, 0, 0.9);
 }
 
 .btn-press-start:hover {
   animation: none;
-  transform: scale(1.06);
+  transform: translateY(-2px) scale(1.035);
+  border-color: rgba(255, 224, 128, 0.92);
+  box-shadow:
+    0 16px 36px rgba(0, 0, 0, 0.78),
+    0 0 32px rgba(245, 194, 73, 0.34),
+    inset 0 1px 0 rgba(255, 245, 205, 0.42);
 }
 .btn-press-start:hover .press-start-main {
   color: #ffffff;
   text-shadow:
-    0 0 24px rgba(255, 220, 110, 0.95),
-    0 0 8px rgba(255, 255, 255, 0.95),
+    0 0 22px rgba(255, 220, 110, 0.9),
     0 2px 8px rgba(0, 0, 0, 1);
 }
 .btn-press-start:hover .press-start-sub {
   color: #ffd875;
 }
 .btn-press-start:active {
-  transform: scale(0.98);
+  transform: translateY(0) scale(0.97);
 }
 
 @keyframes pressStartBreathe {
@@ -448,13 +500,16 @@ canvas:focus-visible {
   align-items: center;
   gap: 16px;
   flex-wrap: wrap;
-  padding: 6px 16px;
+  padding: 7px 18px;
   margin: 0 auto;
-  border-radius: 4px;
-  background: rgba(12, 10, 18, 0.82);
-  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: 6px;
+  background: rgba(12, 10, 18, 0.84);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(217, 164, 65, 0.22);
+  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.55), inset 0 1px 0 rgba(255, 236, 185, 0.08);
   font-size: 11px;
-  color: #bfb5a4;
+  color: #c8beac;
 }
 .menu-footer span {
   display: inline-flex;
