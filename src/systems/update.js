@@ -39,29 +39,22 @@ function update(dt) {
       if (!isBoss) toSpawn = Math.round(toSpawn * (1 + ((DIFFICULTY_MODES[difficultyIdx] || DIFFICULTY_MODES[0]).spawnMul - 1) * 0.5));
       spawnTimer = 0.25;
       if (!isBoss && wave >= 2) {
-        // MODO TESTE FORÇADO (se ?eventos ou botão for usado)
-        const isEventTestMode = (typeof window !== 'undefined' && (window.__EVENT_TEST_MODE || (window.location && window.location.search && window.location.search.includes('eventos'))));
-        if (isEventTestMode) {
-          const MEGALO_EVENTS = ['noir', 'bloodmoon', 'void_eclipse', 'glacial', 'solar', 'psychedelic'];
-          waveEvent = MEGALO_EVENTS[(wave - 1) % MEGALO_EVENTS.length];
-        } else {
-          // ROTAÇÃO ALEATÓRIA DURANTE AS ONDAS (~65% de chance de evento na onda)
-          const roll = Math.random();
-          if (roll < 0.65) {
-            const possibleEvents = [];
-            // Eventos Megalomaníacos
-            possibleEvents.push('noir');
-            if (wave >= 2) possibleEvents.push('glacial');
-            if (wave >= 3) possibleEvents.push('bloodmoon', 'psychedelic');
-            if (wave >= 4) possibleEvents.push('solar', 'void_eclipse');
-            // Variações de Horda
-            if (wave >= 2) possibleEvents.push('swarm');
-            if (wave >= 3) possibleEvents.push('mega_horde', 'golden', 'ambush');
-            if (wave >= 4) possibleEvents.push('bounty');
-            if (wave >= 5) possibleEvents.push('magma_surge');
+        // ROTAÇÃO ALEATÓRIA DURANTE AS ONDAS (~65% de chance de evento na onda)
+        const roll = Math.random();
+        if (roll < 0.65) {
+          const possibleEvents = [];
+          // Eventos Megalomaníacos
+          possibleEvents.push('noir');
+          if (wave >= 2) possibleEvents.push('glacial');
+          if (wave >= 3) possibleEvents.push('bloodmoon', 'psychedelic');
+          if (wave >= 4) possibleEvents.push('solar', 'void_eclipse');
+          // Variações de Horda
+          if (wave >= 2) possibleEvents.push('swarm');
+          if (wave >= 3) possibleEvents.push('mega_horde', 'golden', 'ambush');
+          if (wave >= 4) possibleEvents.push('bounty');
+          if (wave >= 5) possibleEvents.push('magma_surge');
 
-            waveEvent = pick(possibleEvents);
-          }
+          waveEvent = pick(possibleEvents);
         }
 
         if (waveEvent === 'solar' || waveEvent === 'meteors') meteorTimer = 1.1;

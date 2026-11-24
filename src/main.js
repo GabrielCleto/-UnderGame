@@ -150,15 +150,6 @@ function loop(now) {
     } else if (state === 'play') {
       if (anyPressed('p', 'escape')) state = 'pause';
       else if (anyPressed('tab')) { enterCharacterSelect(); }
-      else if (anyPressed('1')) { window.triggerMegaloEvent('noir'); }
-      else if (anyPressed('2')) { window.triggerMegaloEvent('bloodmoon'); }
-      else if (anyPressed('3')) { window.triggerMegaloEvent('void_eclipse'); }
-      else if (anyPressed('4')) { window.triggerMegaloEvent('glacial'); }
-      else if (anyPressed('5')) { window.triggerMegaloEvent('solar'); }
-      else if (anyPressed('6')) { window.triggerMegaloEvent('psychedelic'); }
-      else if (anyPressed('k')) {
-        if (typeof clearMegalomaniacEvent === 'function') clearMegalomaniacEvent();
-      }
       else if (freeze > 0) { freeze -= realDt; shake = Math.max(0, shake - realDt * 50); }
       else {
         const simDt = realDt * (typeof GPU_FX !== 'undefined' && GPU_FX.slowMoT > 0 ? GPU_FX.slowMoScale : 1);
@@ -354,60 +345,6 @@ try {
     }
   });
 } catch (_) {}
-
-window.clearMegalomaniacEvent = function() {
-  waveEvent = null;
-  meteorTimer = 0;
-  if (typeof applyEventMapMutation === 'function') {
-    try { applyEventMapMutation(null); } catch (_) {}
-  }
-  if (typeof stopEventMusic === 'function') {
-    try { stopEventMusic(); } catch (_) {}
-  }
-  const glCanvas = document.getElementById('webgl-canvas');
-  if (glCanvas) glCanvas.style.filter = 'none';
-  banner = { txt: 'EVENTO ENCERRADO', sub: 'O mapa retornou ao equilíbrio.', life: 1.8, maxT: 1.8 };
-};
-
-window.triggerMegaloEvent = function(name) {
-  if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
-  if (typeof unlockEventAudio === 'function') unlockEventAudio();
-  if (state !== 'play') state = 'play';
-  waveEvent = name;
-  meteorTimer = name === 'solar' ? 0.9 : 0;
-  if (typeof addTrauma === 'function') addTrauma(0.5);
-  shake = 14;
-  if (typeof applyEventMapMutation === 'function') {
-    try { applyEventMapMutation(name); } catch (_) {}
-  }
-  const titles = {
-    noir: '🎬 CIDADE NOIR',
-    bloodmoon: '🩸 LUA DE SANGUE',
-    void_eclipse: '🌌 ECLIPSE DO VAZIO',
-    glacial: '❄️ ERA GLACIAL',
-    solar: '☀️ APOCALIPSE SOLAR',
-    psychedelic: '🌀 FEBRE SURREAL'
-  };
-  const subs = {
-    noir: 'PRETO & BRANCO + JAZZ BLUES',
-    bloodmoon: 'CARMESIM + MARCHA DE SANGUE',
-    void_eclipse: 'FENDAS ASTRAIS + SINFONIA DO VAZIO',
-    glacial: 'NEVASCA + ESPÍCULAS DE GELO',
-    solar: 'METEOROS + CALOR SOLAR',
-    psychedelic: 'DIMENSÃO ARCO-ÍRIS + FUNK CÓSMICO'
-  };
-  banner = {
-    txt: titles[name] || ('EVENTO: ' + name.toUpperCase()),
-    sub: subs[name] || 'MAPA MUTADO & SHADER SINCRONIZADO',
-    life: 3.5,
-    maxT: 3.5,
-    boss: true
-  };
-  if (typeof playEventMusic === 'function') {
-    playEventMusic(name);
-  }
-  if (typeof SFX !== 'undefined' && SFX.bossAwake) SFX.bossAwake();
-};
 
 function _handleFirstAudioUnlock() {
   if (typeof unlockEventAudio === 'function') unlockEventAudio();
