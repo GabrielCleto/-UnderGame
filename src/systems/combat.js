@@ -893,9 +893,10 @@ function hurtPlayer(dmg, fx, fy, sourceName) {
   p.combo = 0; p.bestStreakMilestone = 0; p.feverTier = 0; p.multiKillCnt = 0;
   shake = 7; freeze = 0.05; addTrauma(0.5);
   if (typeof GPU_FX !== 'undefined') {
-    GPU_FX.chroma(0.016);
-    GPU_FX.zoomPunch(-0.04);
-    GPU_FX.flash(1, 0.12, 0.15, 0.24);
+    GPU_FX.shockwave(p.x, p.y - 28, 300, 0.055, 0.44);
+    GPU_FX.chroma(0.026);
+    GPU_FX.zoomPunch(-0.055);
+    GPU_FX.flash(1, 0.10, 0.14, 0.28);
   }
   SFX.hurt();
   gamepadRumble(0.45, 0.75, 230);
