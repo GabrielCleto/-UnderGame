@@ -16,8 +16,8 @@ function update(dt) {
         waveTimer = 1.2;
         return;
       }
-      if (typeof clearEventMutations === 'function') {
-        try { clearEventMutations(); } catch (_) {}
+      if (typeof applyEventMapMutation === 'function') {
+        try { applyEventMapMutation(null); } catch (_) {}
       }
       if (typeof stopEventMusic === 'function') {
         try { stopEventMusic(); } catch (_) {}
@@ -189,7 +189,7 @@ function update(dt) {
   }
 
   // ---------- CATACLISMO SÚBITO (Evento Megalomaníaco no Meio da Onda) ----------
-  if (wave >= 2 && !isBoss && !waveEvent && (toSpawn > 0 || enemies.length > 5)) {
+  if (wave >= 2 && (wave % 5 !== 0) && !waveEvent && (toSpawn > 0 || enemies.length > 5)) {
     p.midWaveCataclysmT = (p.midWaveCataclysmT || rand(14, 22)) - dt;
     if (p.midWaveCataclysmT <= 0) {
       p.midWaveCataclysmT = 9999; // Apenas um cataclismo surpresa por onda

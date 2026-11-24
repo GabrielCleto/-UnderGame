@@ -1008,15 +1008,17 @@ function drawEventCinematicOverlay2D(isWebGL = false) {
 function drawWorld() {
   const sqTrauma = trauma * trauma;
   const shakeOffset = sqTrauma * 7;
-  const sx = shakeOffset > 0.05 ? Math.sin(time * 38) * shakeOffset : (shake ? rand(-shake, shake) * 0.35 : 0);
-  const sy = shakeOffset > 0.05 ? Math.cos(time * 32) * shakeOffset * 0.7 : (shake ? rand(-shake, shake) * 0.35 : 0);
-  const z = (cam && cam.zoom) || getCamZoom();
+  const sx = typeof GPU_FX !== 'undefined' ? GPU_FX.shakeX : (shakeOffset > 0.05 ? Math.sin(time * 38) * shakeOffset : (shake ? rand(-shake, shake) * 0.35 : 0));
+  const sy = typeof GPU_FX !== 'undefined' ? GPU_FX.shakeY : (shakeOffset > 0.05 ? Math.cos(time * 32) * shakeOffset * 0.7 : (shake ? rand(-shake, shake) * 0.35 : 0));
+  const roll = typeof GPU_FX !== 'undefined' ? GPU_FX.shakeRoll : 0;
+  const z = typeof getActiveCamZoom === 'function' ? getActiveCamZoom() : ((cam && cam.zoom) || getCamZoom());
   ctx.save();
   try {
   ctx.filter = getEventCanvas2DFilter();
-  ctx.translate(Math.round(W / 2 + sx), Math.round(H / 2 + sy));
+  ctx.translate(W / 2 + sx, H / 2 + sy);
+  if (roll) ctx.rotate(roll);
   ctx.scale(z, z);
-  ctx.translate(-Math.round(cam.x), -Math.round(cam.y));
+  ctx.translate(-cam.x, -cam.y);
   ctx.fillStyle = '#1d4220';
   ctx.fillRect(-2000, -2000, WORLD.w + 4000, WORLD.h + 4000);
   ctx.drawImage(ground, 0, 0);
