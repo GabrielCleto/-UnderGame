@@ -1743,9 +1743,15 @@ function drawPixiWorldOverlay2D() {
     ctx.restore();
   }
 
-  // Fallback leve de vinheta quando o shader pós-processamento está desligado (modo LEVE)
+  // Fallback de filtro visual quando o shader GLSL pós-processamento está desligado (modo LEVE ou falha de shader)
   const budget = typeof getGfxBudget === 'function' ? getGfxBudget() : { useShader: true };
-  if (!pixiPostFilter || !budget.useShader) {
+  const hasActiveShader = !!(pixiPostFilter && budget.useShader);
+  const glEl = document.getElementById('webgl-canvas');
+  if (glEl) {
+    const wantedFilter = (!hasActiveShader && typeof getEventCanvas2DFilter === 'function') ? getEventCanvas2DFilter() : 'none';
+    if (glEl.style.filter !== wantedFilter) glEl.style.filter = wantedFilter;
+  }
+  if (!hasActiveShader) {
     const g = ctx.createRadialGradient(W / 2, H / 2, Math.min(W, H) * 0.38, W / 2, H / 2, Math.max(W, H) * 0.82);
     g.addColorStop(0, 'rgba(0,0,0,0)');
     g.addColorStop(1, waveEvent === 'bloodmoon' ? 'rgba(68,0,16,0.58)' : 'rgba(0,0,12,0.52)');
@@ -1753,7 +1759,7 @@ function drawPixiWorldOverlay2D() {
     ctx.fillRect(0, 0, W, H);
   }
   if (typeof drawEventCinematicOverlay2D === 'function') {
-    drawEventCinematicOverlay2D(true);
+    drawEventCinematicOverlay2D(hasActiveShader);
   }
 }
 

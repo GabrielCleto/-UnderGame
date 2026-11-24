@@ -358,15 +358,14 @@ try {
 window.clearMegalomaniacEvent = function() {
   waveEvent = null;
   meteorTimer = 0;
-  if (typeof clearEventMutations === 'function') {
-    try { clearEventMutations(); } catch (_) {}
+  if (typeof applyEventMapMutation === 'function') {
+    try { applyEventMapMutation(null); } catch (_) {}
   }
   if (typeof stopEventMusic === 'function') {
     try { stopEventMusic(); } catch (_) {}
   }
-  if (typeof pixiRenderer !== 'undefined' && pixiRenderer && pixiRenderer.setEventShader) {
-    pixiRenderer.setEventShader(null);
-  }
+  const glCanvas = document.getElementById('webgl-canvas');
+  if (glCanvas) glCanvas.style.filter = 'none';
   banner = { txt: 'EVENTO ENCERRADO', sub: 'O mapa retornou ao equilíbrio.', life: 1.8, maxT: 1.8 };
 };
 
