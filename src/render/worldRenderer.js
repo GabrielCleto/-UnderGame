@@ -463,6 +463,10 @@ function drawEnemy(e) {
 function playerFrame() {
   const p = player;
   const an = p.char.anim;
+  if (state === 'over' && an.death && an.death.length) {
+    const idx = Math.min(an.death.length - 1, Math.floor(time * 4));
+    return { f: an.death[idx], flip: p.flip, bobY: 0, tilt: 0 };
+  }
   if (p.dash) {
     const fr = an.spin;
     const prog = clamp(p.dash.t / Math.max(0.01, p.dash.dur), 0, 0.999);
@@ -475,6 +479,14 @@ function playerFrame() {
     };
   }
   if (p.ult) {
+    if (an.ult && an.ult.length) {
+      return {
+        f: an.ult[Math.floor(p.ult.t * 10) % an.ult.length],
+        flip: p.flip,
+        bobY: -Math.sin(p.ult.t * 14) * 2 - 2,
+        tilt: 0
+      };
+    }
     const fr = p.char.id === 'manguinha' ? an.spin : an.attack;
     return {
       f: fr[Math.floor(p.ult.t * 20) % fr.length],
@@ -557,13 +569,44 @@ function drawPlayer() {
   if (!(p.inv > 0 && !p.dash && !p.ult && Math.floor(p.inv * 15) % 2 === 0)) {
     const { f, flip, bobY, tilt } = playerFrame();
     let sqX = 1, sqY = 1;
-    if (p.dash) { sqX = 1.15; sqY = 0.88; }
+    if (p.dash) { sqX = 1.18; sqY = 0.85; }
     else if (p.attack) {
       const ak = clamp(p.attack.t / p.attack.dur, 0, 1);
-      if (ak > 0.15 && ak < 0.5) { sqX = 1.12; sqY = 0.91; }
+      if (ak < 0.16) { sqX = 0.91; sqY = 1.09; }
+      else if (ak < 0.56) { sqX = 1.18; sqY = 0.86; }
+      else { const rk = (ak - 0.56) / 0.44; sqX = 1 + (1 - rk) * 0.06; sqY = 1 - (1 - rk) * 0.04; }
     }
+    else if (p.hurtAnimT > 0) { sqX = 1.20; sqY = 0.80; }
     else if (p.inv > stats.invTime - 0.14) { sqX = 1.16; sqY = 0.84; }
     drawCharacterFrame(p.char, f, p.x, p.y, flip, p.inv > stats.invTime - 0.12 ? 0.8 : 0, { bobY, tilt, squashX: sqX, squashY: sqY });
+
+    // Sabre de Luz 360° seguindo a mira (Canvas 2D)
+    if (p.char.weaponType === 'saber' && !p.dash) {
+      const sCol = SABER_COLORS[saberColorIndex];
+      let swingOff = 0;
+      if (p.attack) {
+        const ak = clamp(p.attack.t / p.attack.dur, 0, 1);
+        const dirSign = (p.comboSwing || 0) % 2 === 0 ? 1 : -1;
+        if (ak < 0.18) swingOff = -1.35 * dirSign * (ak / 0.18);
+        else if (ak < 0.62) swingOff = (-1.35 + 2.85 * ((ak - 0.18) / 0.44)) * dirSign;
+        else swingOff = 1.50 * dirSign * (1 - (ak - 0.62) / 0.38);
+      }
+      const sa = (p.aim || 0) + swingOff;
+      const hx = p.x + Math.cos(sa) * 16, hy = p.y - 34 + Math.sin(sa) * 12;
+      const bLen = (p.attack ? 58 : 42) * Math.min(1.45, 0.85 + stats.range * 0.15);
+      const tx = hx + Math.cos(sa) * bLen, ty = hy + Math.sin(sa) * bLen;
+      ctx.save();
+      ctx.lineCap = 'round';
+      ctx.globalCompositeOperation = 'lighter';
+      ctx.strokeStyle = sCol.glow + (p.attack ? '0.52)' : '0.35)');
+      ctx.lineWidth = p.attack ? 12 : 8;
+      ctx.beginPath(); ctx.moveTo(hx, hy); ctx.lineTo(tx, ty); ctx.stroke();
+      ctx.strokeStyle = sCol.blade; ctx.lineWidth = p.attack ? 5.5 : 4;
+      ctx.beginPath(); ctx.moveTo(hx, hy); ctx.lineTo(tx, ty); ctx.stroke();
+      ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.moveTo(hx, hy); ctx.lineTo(tx, ty); ctx.stroke();
+      ctx.restore();
+    }
   }
   if (p.shields > 0) {
     ctx.save(); ctx.globalCompositeOperation = 'lighter';

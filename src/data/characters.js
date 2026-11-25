@@ -3,7 +3,7 @@
 // =====================================================================
 function makeGridAnim(cw, ch, ay, counts) {
   const mk = (row, n) => Array.from({ length: n }, (_, i) => ({ x: i * cw, y: row * ch, w: cw, h: ch, ax: cw / 2, ay }));
-  return {
+  const anim = {
     idle:     mk(0, counts.idle),
     idleSide: mk(1, counts.idleSide),
     idleUp:   mk(2, counts.idleUp),
@@ -12,12 +12,19 @@ function makeGridAnim(cw, ch, ay, counts) {
     walkUp:   mk(5, counts.walkUp),
     spin:     mk(6, counts.spin),
     attack:   mk(7, counts.attack),
-    hurt:     mk(8, counts.hurt),
   };
+  if (counts.ult) {
+    anim.ult   = mk(8, counts.ult);
+    anim.hurt  = mk(9, counts.hurt);
+    anim.death = mk(10, counts.death);
+  } else {
+    anim.hurt  = mk(8, counts.hurt);
+  }
+  return anim;
 }
 
-// 1. MANGUINHA (Full-HD 96x96 • 9 animações completas)
-const ANIM_MANGUINHA = makeGridAnim(96, 96, 88, { idle: 9, idleSide: 4, idleUp: 4, walkDown: 10, walkSide: 12, walkUp: 12, spin: 8, attack: 6, hurt: 3 });
+// 1. MANGUINHA V2 (Full-HD 128x128 • 11 animações completas: Walk costas, Dash ciano, Combo Sabre, Fúria, Dano & Morte)
+const ANIM_MANGUINHA = makeGridAnim(128, 128, 114, { idle: 9, idleSide: 4, idleUp: 4, walkDown: 10, walkSide: 12, walkUp: 6, spin: 6, attack: 6, ult: 3, hurt: 2, death: 3 });
 
 // 2. AMXRAL (Full-HD 96x112 • 9 animações completas)
 const ANIM_AMXRAL = makeGridAnim(96, 112, 104, { idle: 7, idleSide: 4, idleUp: 4, walkDown: 6, walkSide: 11, walkUp: 6, spin: 6, attack: 6, hurt: 3 });

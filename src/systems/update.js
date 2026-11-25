@@ -515,9 +515,15 @@ function update(dt) {
     }
     p.stepT -= dt;
     if (p.stepT <= 0) {
-      p.stepT = 0.18;
+      p.stepT = 0.15;
       if (SFX.footstep) SFX.footstep();
-      particles.push({ x: p.x + rand(-8, 8), y: p.y, vx: rand(-20, 20), vy: -10, life: 0.4, max: 0.4, color: 'rgba(200,180,140,0.6)', size: 4 });
+      for (let d = 0; d < 2; d++) {
+        particles.push({
+          x: p.x + rand(-10, 10), y: p.y + rand(-2, 2),
+          vx: -mx * rand(22, 48) + rand(-16, 16), vy: -my * rand(15, 32) - rand(8, 22),
+          life: rand(0.28, 0.45), max: 0.45, color: 'rgba(218,204,172,0.72)', size: rand(3.5, 5.5), kind: 'smoke'
+        });
+      }
     }
   } else {
     p.idleT += dt;

@@ -586,6 +586,7 @@ function startAttack(fromMouse, fromTouch) {
   const rateMul = stats.atkRate * (1 + berserkBonus + feverAtkBonus) * (p.frenzyT > 0 ? 1.55 : 1) * prefSpd;
   const dur = (p.char.weaponType === 'saber' ? 0.32 : 0.25) / rateMul;
   p.attack = { t: 0, dur, hit: new Set() };
+  p.comboSwing = ((p.comboSwing || 0) + 1) % 2;
 
   const shotCount = 1 + (stats.multi || 0);
 

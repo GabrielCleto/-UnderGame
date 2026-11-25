@@ -1070,12 +1070,55 @@ function renderPixiWorld() {
       const pTex = getPixiTexture(p.char.imgKey, f.x, f.y, f.w, f.h);
 
       let sqX = 1, sqY = 1;
-      if (p.dash) { sqX = 1.15; sqY = 0.88; }
+      if (p.dash) { sqX = 1.18; sqY = 0.85; }
       else if (p.attack) {
         const ak = clamp(p.attack.t / p.attack.dur, 0, 1);
-        if (ak > 0.15 && ak < 0.55) { sqX = 1.14; sqY = 0.90; }
+        if (ak < 0.16) { sqX = 0.91; sqY = 1.09; } // Antecipação (wind-up)
+        else if (ak < 0.56) { sqX = 1.18; sqY = 0.86; } // Impacto / Lunge
+        else { const rk = (ak - 0.56) / 0.44; sqX = 1 + (1 - rk) * 0.06; sqY = 1 - (1 - rk) * 0.04; }
       }
+      else if (p.hurtAnimT > 0) { sqX = 1.20; sqY = 0.80; }
       else if (typeof stats !== 'undefined' && p.inv > stats.invTime - 0.14) { sqX = 1.16; sqY = 0.84; }
+
+      // Sabre de Luz 360° seguindo a mira em tempo real (Manguinha)
+      if (p.char.weaponType === 'saber' && !p.dash) {
+        const sCol = typeof SABER_COLORS !== 'undefined' ? SABER_COLORS[saberColorIndex] : { hex: '#3aa2ff', blade: '#bfe8ff' };
+        const sHex = cssColorToInt(sCol.hex);
+        const bHex = cssColorToInt(sCol.blade);
+        let swingOff = 0;
+        if (p.attack) {
+          const ak = clamp(p.attack.t / p.attack.dur, 0, 1);
+          const dirSign = (p.comboSwing || 0) % 2 === 0 ? 1 : -1;
+          if (ak < 0.18) swingOff = -1.35 * dirSign * (ak / 0.18);
+          else if (ak < 0.62) swingOff = (-1.35 + 2.85 * ((ak - 0.18) / 0.44)) * dirSign;
+          else swingOff = 1.50 * dirSign * (1 - (ak - 0.62) / 0.38);
+        }
+        const sa = (p.aim || 0) + swingOff;
+        const handX = p.x + Math.cos(sa) * 16;
+        const handY = p.y - 34 + Math.sin(sa) * 12;
+        const bladeLen = (p.attack ? 58 : 42) * (typeof stats !== 'undefined' ? Math.min(1.45, 0.85 + stats.range * 0.15) : 1);
+        const tipX = handX + Math.cos(sa) * bladeLen;
+        const tipY = handY + Math.sin(sa) * bladeLen;
+        // Halo externo + lâmina plasma + núcleo branco
+        slashGraphics.lineStyle(p.attack ? 12 : 8, sHex, p.attack ? 0.48 : 0.32);
+        slashGraphics.moveTo(handX, handY); slashGraphics.lineTo(tipX, tipY);
+        slashGraphics.lineStyle(p.attack ? 6 : 4.5, bHex, 0.92);
+        slashGraphics.moveTo(handX, handY); slashGraphics.lineTo(tipX, tipY);
+        slashGraphics.lineStyle(2.2, 0xffffff, 1.0);
+        slashGraphics.moveTo(handX, handY); slashGraphics.lineTo(tipX, tipY);
+        // Punho metálico
+        slashGraphics.lineStyle(4.5, 0x2b303a, 1.0);
+        slashGraphics.moveTo(handX - Math.cos(sa) * 7, handY - Math.sin(sa) * 7);
+        slashGraphics.lineTo(handX + Math.cos(sa) * 3, handY + Math.sin(sa) * 3);
+        slashGraphics.lineStyle(0);
+        const tipGlow = pools.vfxGlows.acquire(glowTex);
+        if (tipGlow) {
+          tipGlow.position.set(tipX, tipY);
+          tipGlow.scale.set(p.attack ? 0.65 : 0.38, p.attack ? 0.65 : 0.38);
+          tipGlow.tint = sHex;
+          tipGlow.alpha = p.attack ? 0.85 : 0.52;
+        }
+      }
 
       if (pTex) {
         pixiPlayerSprite.texture = pTex;

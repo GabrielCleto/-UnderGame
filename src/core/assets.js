@@ -4,7 +4,7 @@
 const IMG = {}, WHITE = {};
 const IMAGE_LIST = {
   // Personagens & Retratos
-  player_manguinha: 'assets/sprites/characters/personagem_transparente.png?v=2.9.0',
+  player_manguinha: 'assets/sprites/characters/personagem_transparente.png?v=3.0.0',
   player_amxral: 'assets/sprites/characters/amxral_transparente.png?v=2.9.0',
   player_tuiuba: 'assets/sprites/characters/tuiuba_transparente.png?v=2.9.0',
   player_nyx: 'assets/sprites/characters/nyx_transparente.png?v=2.9.0',
