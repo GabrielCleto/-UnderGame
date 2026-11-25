@@ -1,25 +1,29 @@
 // =====================================================================
-//  DEFINIÇÃO E ANIMAÇÃO DOS PERSONAGENS (Grade Uniforme 64x64 • LibreSprite)
+//  DEFINIÇÃO E ANIMAÇÃO DOS PERSONAGENS (Full-HD Original • Grade Alinhada LibreSprite)
 // =====================================================================
-function makeUnifiedHeroAnim() {
-  const rowFrames = (rowIdx, count = 6) =>
-    Array.from({ length: count }, (_, i) => ({ x: i * 64, y: rowIdx * 64, w: 64, h: 64, ax: 32, ay: 60 }));
+function makeGridAnim(cw, ch, ay, counts) {
+  const mk = (row, n) => Array.from({ length: n }, (_, i) => ({ x: i * cw, y: row * ch, w: cw, h: ch, ax: cw / 2, ay }));
   return {
-    idle:     rowFrames(0, 6),
-    idleSide: rowFrames(1, 6),
-    idleUp:   rowFrames(2, 6),
-    walkDown: rowFrames(3, 6),
-    walkSide: rowFrames(4, 6),
-    walkUp:   rowFrames(5, 6),
-    spin:     rowFrames(6, 6),
-    attack:   rowFrames(7, 6),
+    idle:     mk(0, counts.idle),
+    idleSide: mk(1, counts.idleSide),
+    idleUp:   mk(2, counts.idleUp),
+    walkDown: mk(3, counts.walkDown),
+    walkSide: mk(4, counts.walkSide),
+    walkUp:   mk(5, counts.walkUp),
+    spin:     mk(6, counts.spin),
+    attack:   mk(7, counts.attack),
+    hurt:     mk(8, counts.hurt),
   };
 }
 
-// 1. MANGUINHA • 2. AMXRAL • 3. TUIUBA (Todos padronizados em 64x64 • 48 frames fluidos)
-const ANIM_MANGUINHA = makeUnifiedHeroAnim();
-const ANIM_AMXRAL    = makeUnifiedHeroAnim();
-const ANIM_TUIUBA    = makeUnifiedHeroAnim();
+// 1. MANGUINHA (Full-HD 96x96 • 9 animações completas)
+const ANIM_MANGUINHA = makeGridAnim(96, 96, 88, { idle: 9, idleSide: 4, idleUp: 4, walkDown: 10, walkSide: 12, walkUp: 12, spin: 8, attack: 6, hurt: 3 });
+
+// 2. AMXRAL (Full-HD 96x112 • 9 animações completas)
+const ANIM_AMXRAL = makeGridAnim(96, 112, 104, { idle: 7, idleSide: 4, idleUp: 4, walkDown: 6, walkSide: 11, walkUp: 6, spin: 6, attack: 6, hurt: 3 });
+
+// 3. TUIUBA (Full-HD 96x112 • 9 animações completas)
+const ANIM_TUIUBA = makeGridAnim(96, 112, 104, { idle: 8, idleSide: 4, idleUp: 4, walkDown: 10, walkSide: 9, walkUp: 6, spin: 7, attack: 8, hurt: 3 });
 
 // 4. NYX (Sombra Arcana — Pixel Art 12-Color Palette / LibreSprite Ready)
 const ANIM_NYX = {
@@ -78,7 +82,7 @@ const CHARACTERS = [
     imgKey: 'player_manguinha',
     portraitKey: 'portrait_manguinha',
     anim: ANIM_MANGUINHA,
-    scale: 1.55,
+    scale: 1.50,
   },
   {
     id: 'amxral',
@@ -94,7 +98,7 @@ const CHARACTERS = [
     imgKey: 'player_amxral',
     portraitKey: 'portrait_amxral',
     anim: ANIM_AMXRAL,
-    scale: 1.55,
+    scale: 0.98,
   },
   {
     id: 'tuiuba',
@@ -110,7 +114,7 @@ const CHARACTERS = [
     imgKey: 'player_tuiuba',
     portraitKey: 'portrait_tuiuba',
     anim: ANIM_TUIUBA,
-    scale: 1.55,
+    scale: 1.05,
   },
   {
     id: 'nyx',

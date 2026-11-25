@@ -905,6 +905,7 @@ function hurtPlayer(dmg, fx, fy, sourceName) {
   if (dmg > 1 && stats.armor && Math.random() < stats.armor * 0.25) dmg = Math.max(1, dmg - 1);
   p.hp -= dmg;
   p.inv = stats.invTime;
+  p.hurtAnimT = 0.28;
   p.combo = 0; p.bestStreakMilestone = 0; p.feverTier = 0; p.multiKillCnt = 0;
   shake = 7; freeze = 0.05; addTrauma(0.5);
   if (typeof GPU_FX !== 'undefined') {

@@ -465,64 +465,72 @@ function playerFrame() {
   const an = p.char.anim;
   if (p.dash) {
     const fr = an.spin;
+    const prog = clamp(p.dash.t / Math.max(0.01, p.dash.dur), 0, 0.999);
+    const idx = Math.floor(prog * fr.length);
     return {
-      f: fr[Math.floor(p.dash.t * 22) % fr.length],
+      f: fr[idx],
       flip: p.flip,
-      bobY: -2,
-      tilt: p.flip ? -0.06 : 0.06
+      bobY: 0,
+      tilt: p.flip ? -0.05 : 0.05
     };
   }
   if (p.ult) {
-    const fr = an.spin;
+    const fr = p.char.id === 'manguinha' ? an.spin : an.attack;
     return {
-      f: fr[Math.floor(p.ult.t * 24) % fr.length],
-      flip: Math.floor(p.ult.t * 8) % 2 === 1,
+      f: fr[Math.floor(p.ult.t * 20) % fr.length],
+      flip: Math.floor(p.ult.t * 6) % 2 === 1,
       bobY: -3,
       tilt: 0
     };
+  }
+  if (p.hurtAnimT > 0 && an.hurt && an.hurt.length) {
+    const prog = clamp(1 - p.hurtAnimT / 0.28, 0, 0.999);
+    const idx = Math.floor(prog * an.hurt.length);
+    return { f: an.hurt[idx], flip: p.flip, bobY: 0, tilt: p.flip ? 0.08 : -0.08 };
   }
   if (p.attack) {
     const fr = an.attack;
     const prog = clamp(p.attack.t / p.attack.dur, 0, 0.999);
     const idx = Math.floor(prog * fr.length);
-    const lungeTilt = (prog > 0.16 && prog < 0.58) ? (p.flip ? -0.08 : 0.08) : 0;
+    const lungeTilt = (prog > 0.2 && prog < 0.65) ? (p.flip ? -0.05 : 0.05) : 0;
     return { f: fr[idx], flip: p.flip, bobY: 0, tilt: lungeTilt };
   }
   if (!p.moving) {
     if (p.dir === 'down' || p.idleT > 1.4) {
-      return { f: an.idle[Math.floor(p.animT * 6) % an.idle.length], flip: p.flip, bobY: 0, tilt: 0 };
+      return { f: an.idle[Math.floor(p.animT * 7) % an.idle.length], flip: p.flip, bobY: 0, tilt: 0 };
     }
     if (p.dir === 'up') {
       const frU = an.idleUp;
-      return { f: frU[Math.floor(p.animT * 5) % frU.length], flip: false, bobY: 0, tilt: 0 };
+      return { f: frU[Math.floor(p.animT * 4.5) % frU.length], flip: false, bobY: 0, tilt: 0 };
     }
     const frS = an.idleSide;
-    return { f: frS[Math.floor(p.animT * 5) % frS.length], flip: p.dir === 'left', bobY: 0, tilt: 0 };
+    return { f: frS[Math.floor(p.animT * 4.5) % frS.length], flip: p.dir === 'left', bobY: 0, tilt: 0 };
   }
   const spd = clamp((stats.speed * (p.frenzyT > 0 ? 1.25 : 1)) / 220, 0.85, 1.75);
-  const walkFps = 11;
-  const runBob = -Math.abs(Math.sin(p.animT * walkFps * spd)) * 1.4;
   if (p.dir === 'down') {
+    const fps = an.walkDown.length >= 10 ? 14 : 10;
     return {
-      f: an.walkDown[Math.floor(p.animT * walkFps * spd) % an.walkDown.length],
+      f: an.walkDown[Math.floor(p.animT * fps * spd) % an.walkDown.length],
       flip: p.flip,
-      bobY: runBob,
+      bobY: -Math.abs(Math.sin(p.animT * 10 * spd)) * 1.2,
       tilt: 0
     };
   }
   if (p.dir === 'up') {
+    const fps = an.walkUp.length >= 10 ? 15 : 10;
     return {
-      f: an.walkUp[Math.floor(p.animT * walkFps * spd) % an.walkUp.length],
+      f: an.walkUp[Math.floor(p.animT * fps * spd) % an.walkUp.length],
       flip: false,
-      bobY: runBob,
-      tilt: Math.sin(p.animT * walkFps * spd) * 0.02
+      bobY: -Math.abs(Math.sin(p.animT * 10 * spd)) * 1.4,
+      tilt: Math.sin(p.animT * 10 * spd) * 0.018
     };
   }
+  const sideFps = an.walkSide.length >= 11 ? 15 : 13;
   return {
-    f: an.walkSide[Math.floor(p.animT * walkFps * spd) % an.walkSide.length],
+    f: an.walkSide[Math.floor(p.animT * sideFps * spd) % an.walkSide.length],
     flip: p.dir === 'left',
-    bobY: runBob,
-    tilt: p.dir === 'left' ? -0.035 : 0.035
+    bobY: -Math.abs(Math.sin(p.animT * 11 * spd)) * 1.1,
+    tilt: p.dir === 'left' ? -0.025 : 0.025
   };
 }
 

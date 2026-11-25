@@ -370,6 +370,7 @@ function update(dt) {
   }
 
   p.inv = Math.max(0, p.inv - dt);
+  p.hurtAnimT = Math.max(0, (p.hurtAnimT || 0) - dt);
   p.attackCd = Math.max(0, p.attackCd - dt);
   p.dashCd = Math.max(0, p.dashCd - dt);
   p.frenzyT = Math.max(0, p.frenzyT - dt);
