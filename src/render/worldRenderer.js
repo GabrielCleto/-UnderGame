@@ -463,67 +463,66 @@ function drawEnemy(e) {
 function playerFrame() {
   const p = player;
   const an = p.char.anim;
-  const cid = p.char.id;
   if (p.dash) {
     const fr = an.spin;
-    const fps = cid === 'manguinha' ? 28 : 16;
     return {
-      f: fr[Math.floor(p.dash.t * fps) % fr.length],
+      f: fr[Math.floor(p.dash.t * 22) % fr.length],
       flip: p.flip,
-      bobY: cid === 'amxral' ? -5 : 0,
-      tilt: 0
+      bobY: -2,
+      tilt: p.flip ? -0.06 : 0.06
     };
   }
   if (p.ult) {
-    if (cid === 'manguinha') {
-      const fr = an.spin;
-      return { f: fr[Math.floor(p.ult.t * 24) % fr.length], flip: false, bobY: 0, tilt: 0 };
-    }
-    const fr = an.attack;
-    return { f: fr[Math.floor(p.ult.t * 18) % fr.length], flip: Math.floor(p.ult.t * 5) % 2 === 1, bobY: -3, tilt: 0 };
+    const fr = an.spin;
+    return {
+      f: fr[Math.floor(p.ult.t * 24) % fr.length],
+      flip: Math.floor(p.ult.t * 8) % 2 === 1,
+      bobY: -3,
+      tilt: 0
+    };
   }
   if (p.attack) {
     const fr = an.attack;
-    const idx = Math.min(fr.length - 1, Math.floor((p.attack.t / p.attack.dur) * fr.length));
-    return { f: fr[idx], flip: p.flip, bobY: 0, tilt: 0 };
+    const prog = clamp(p.attack.t / p.attack.dur, 0, 0.999);
+    const idx = Math.floor(prog * fr.length);
+    const lungeTilt = (prog > 0.16 && prog < 0.58) ? (p.flip ? -0.08 : 0.08) : 0;
+    return { f: fr[idx], flip: p.flip, bobY: 0, tilt: lungeTilt };
   }
   if (!p.moving) {
-    if (p.dir === 'down' || p.idleT > 1.2) {
-      return { f: an.idle[Math.floor(p.animT * 7) % an.idle.length], flip: p.flip, bobY: 0, tilt: 0 };
+    if (p.dir === 'down' || p.idleT > 1.4) {
+      return { f: an.idle[Math.floor(p.animT * 6) % an.idle.length], flip: p.flip, bobY: 0, tilt: 0 };
     }
     if (p.dir === 'up') {
-      return { f: an.idleUp[0], flip: cid === 'amxral' ? false : p.flip, bobY: Math.sin(p.animT * 4) * 1, tilt: 0 };
+      const frU = an.idleUp;
+      return { f: frU[Math.floor(p.animT * 5) % frU.length], flip: false, bobY: 0, tilt: 0 };
     }
-    return { f: an.idleSide[0], flip: p.dir === 'left', bobY: Math.sin(p.animT * 4) * 1, tilt: 0 };
+    const frS = an.idleSide;
+    return { f: frS[Math.floor(p.animT * 5) % frS.length], flip: p.dir === 'left', bobY: 0, tilt: 0 };
   }
   const spd = clamp((stats.speed * (p.frenzyT > 0 ? 1.25 : 1)) / 220, 0.85, 1.75);
+  const walkFps = 11;
+  const runBob = -Math.abs(Math.sin(p.animT * walkFps * spd)) * 1.4;
   if (p.dir === 'down') {
-    const fps = cid === 'tuiuba' ? 15 : cid === 'manguinha' ? 13 : 11;
-    const bob = cid === 'amxral' ? -Math.abs(Math.sin(p.animT * 11 * spd)) * 1.5 : 0;
     return {
-      f: an.walkDown[Math.floor(p.animT * fps * spd) % an.walkDown.length],
+      f: an.walkDown[Math.floor(p.animT * walkFps * spd) % an.walkDown.length],
       flip: p.flip,
-      bobY: bob,
+      bobY: runBob,
       tilt: 0
     };
   }
   if (p.dir === 'up') {
-    const fps = cid === 'manguinha' ? 17 : cid === 'tuiuba' ? 9 : 8;
-    const bob = cid === 'amxral' ? -Math.abs(Math.sin(p.animT * 12 * spd)) * 3 : cid === 'tuiuba' ? -Math.abs(Math.sin(p.animT * 12 * spd)) * 2 : 0;
-    const tilt = cid === 'manguinha' ? 0 : Math.sin(p.animT * 12 * spd) * 0.026;
     return {
-      f: an.walkUp[Math.floor(p.animT * fps * spd) % an.walkUp.length],
-      flip: cid === 'amxral' ? false : p.flip,
-      bobY: bob,
-      tilt
+      f: an.walkUp[Math.floor(p.animT * walkFps * spd) % an.walkUp.length],
+      flip: false,
+      bobY: runBob,
+      tilt: Math.sin(p.animT * walkFps * spd) * 0.02
     };
   }
-  const sideFps = cid === 'manguinha' ? 17 : cid === 'amxral' ? 15 : 14;
   return {
-    f: an.walkSide[Math.floor(p.animT * sideFps * spd) % an.walkSide.length],
+    f: an.walkSide[Math.floor(p.animT * walkFps * spd) % an.walkSide.length],
     flip: p.dir === 'left',
-    bobY: 0,
-    tilt: 0
+    bobY: runBob,
+    tilt: p.dir === 'left' ? -0.035 : 0.035
   };
 }
 
@@ -550,7 +549,11 @@ function drawPlayer() {
   if (!(p.inv > 0 && !p.dash && !p.ult && Math.floor(p.inv * 15) % 2 === 0)) {
     const { f, flip, bobY, tilt } = playerFrame();
     let sqX = 1, sqY = 1;
-    if (p.dash) { sqX = 1.14; sqY = 0.90; }
+    if (p.dash) { sqX = 1.15; sqY = 0.88; }
+    else if (p.attack) {
+      const ak = clamp(p.attack.t / p.attack.dur, 0, 1);
+      if (ak > 0.15 && ak < 0.5) { sqX = 1.12; sqY = 0.91; }
+    }
     else if (p.inv > stats.invTime - 0.14) { sqX = 1.16; sqY = 0.84; }
     drawCharacterFrame(p.char, f, p.x, p.y, flip, p.inv > stats.invTime - 0.12 ? 0.8 : 0, { bobY, tilt, squashX: sqX, squashY: sqY });
   }
