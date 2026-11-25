@@ -1070,7 +1070,11 @@ function renderPixiWorld() {
       const pTex = getPixiTexture(p.char.imgKey, f.x, f.y, f.w, f.h);
 
       let sqX = 1, sqY = 1;
-      if (p.dash) { sqX = 1.14; sqY = 0.90; }
+      if (p.dash) { sqX = 1.15; sqY = 0.88; }
+      else if (p.attack) {
+        const ak = clamp(p.attack.t / p.attack.dur, 0, 1);
+        if (ak > 0.15 && ak < 0.55) { sqX = 1.14; sqY = 0.90; }
+      }
       else if (typeof stats !== 'undefined' && p.inv > stats.invTime - 0.14) { sqX = 1.16; sqY = 0.84; }
 
       if (pTex) {
