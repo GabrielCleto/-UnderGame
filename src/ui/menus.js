@@ -502,7 +502,7 @@ function drawCharacterSelect() {
 
   // Cabeçalho do Lutador no Pergaminho (contraste aperfeiçoado)
   const padS = Math.round(14 * s);
-  const titleColor = curCh.weaponType === 'saber' ? '#8c2d08' : (curCh.weaponType === 'star' ? '#18548c' : '#a34200');
+  const titleColor = curCh.weaponType === 'saber' ? '#8c2d08' : (curCh.weaponType === 'star' ? '#18548c' : (curCh.weaponType === 'void_blade' ? '#5a1d8c' : '#a34200'));
   inkTxt('✦ ' + curCh.name.toUpperCase() + ' ✦', scrollX + scrollW / 2, scrollY + Math.round(19 * s), Math.round(12.5 * s), titleColor);
   inkTxt('« ' + curCh.title + ' »', scrollX + scrollW / 2, scrollY + Math.round(31 * s), Math.round(7.5 * s), '#5c3d1e');
 
@@ -516,6 +516,7 @@ function drawCharacterSelect() {
   let wIcon = hudImg('i_S_Dagger03');
   if (curCh.weaponType === 'star') wIcon = hudImg('terraria_star') || hudImg('i_S_Light04');
   else if (curCh.weaponType === 'orange') wIcon = hudImg('orange_ball') || hudImg('i_P_Red01');
+  else if (curCh.weaponType === 'void_blade') wIcon = hudImg('i_S_Magic04') || hudImg('i_S_Dagger03');
 
   if (wIcon) ctx.drawImage(wIcon, scrollX + padS + 4, infoY, iconSz, iconSz);
 

@@ -449,7 +449,7 @@ function update(dt) {
   if (p.dash) {
     p.dash.t += dt;
     p.x += p.dash.dx * 650 * dt; p.y += p.dash.dy * 650 * dt;
-    const dashCol = p.char.weaponType === 'orange' ? '#ff7e14' : p.char.weaponType === 'star' ? '#ffe042' : SABER_COLORS[saberColorIndex].blade;
+    const dashCol = p.char.weaponType === 'orange' ? '#ff7e14' : p.char.weaponType === 'star' ? '#ffe042' : p.char.weaponType === 'void_blade' ? '#4fe3ff' : SABER_COLORS[saberColorIndex].blade;
     particles.push({ x: p.x + rand(-12, 12), y: p.y - rand(0, 14), vx: 0, vy: -20, life: 0.32, max: 0.32, color: dashCol, size: 5 });
 
     // Rastro Fantasma (Afterimage)
@@ -593,6 +593,16 @@ function update(dt) {
           });
         }
         SFX.orangeThrow();
+      } else if (p.char.weaponType === 'void_blade') {
+        const baseA = time * 6;
+        for (let i = 0; i < 6; i++) {
+          const a = baseA + (i * Math.PI * 2) / 6;
+          pshots.push({
+            kind: 'dagger', x: p.x, y: p.y - 30, vx: Math.cos(a) * 700, vy: Math.sin(a) * 700,
+            r: 18 * stats.range, dmg: stats.dmg + 2, pierce: 5, life: 0.9, rot: a, hit: new Set()
+          });
+        }
+        if (Math.random() < 0.5) SFX.slash();
       } else {
         slashes.push({ a: rand(0, Math.PI * 2), life: 0.22, max: 0.22, r: rand(60, R), follow: true, big: true });
         for (const e of enemies) if (!e.dead && Math.hypot(e.x - p.x, e.y - p.y) < R + e.r) damageEnemy(e, stats.dmg, p.x, p.y, 250, { silent: true, noFreeze: true });

@@ -37,6 +37,48 @@ const ANIM_TUIUBA = {
   attack: [{x:320, y:321, w:50, h:83, ax:28.2, ay:83}, {x:385, y:322, w:51, h:83, ax:29.3, ay:83}, {x:438, y:325, w:55, h:83, ax:33.8, ay:83}, {x:502, y:328, w:50, h:78, ax:27.5, ay:78}, {x:563, y:332, w:68, h:75, ax:31.9, ay:75}],
 };
 
+// 4. NYX (Sombra Arcana — Pixel Art 12-Color Palette / LibreSprite Ready)
+const ANIM_NYX = {
+  idle: [
+    {x:0, y:0, w:64, h:64, ax:32, ay:60},
+    {x:64, y:0, w:64, h:64, ax:32, ay:60},
+    {x:128, y:0, w:64, h:64, ax:32, ay:60},
+    {x:192, y:0, w:64, h:64, ax:32, ay:60},
+  ],
+  idleSide: [{x:0, y:128, w:64, h:64, ax:32, ay:60}],
+  idleUp: [{x:0, y:192, w:64, h:64, ax:32, ay:60}],
+  walkDown: [
+    {x:0, y:64, w:64, h:64, ax:32, ay:60},
+    {x:64, y:64, w:64, h:64, ax:32, ay:60},
+    {x:128, y:64, w:64, h:64, ax:32, ay:60},
+    {x:192, y:64, w:64, h:64, ax:32, ay:60},
+  ],
+  walkSide: [
+    {x:0, y:128, w:64, h:64, ax:32, ay:60},
+    {x:64, y:128, w:64, h:64, ax:32, ay:60},
+    {x:128, y:128, w:64, h:64, ax:32, ay:60},
+    {x:192, y:128, w:64, h:64, ax:32, ay:60},
+  ],
+  walkUp: [
+    {x:0, y:192, w:64, h:64, ax:32, ay:60},
+    {x:64, y:192, w:64, h:64, ax:32, ay:60},
+    {x:128, y:192, w:64, h:64, ax:32, ay:60},
+    {x:192, y:192, w:64, h:64, ax:32, ay:60},
+  ],
+  spin: [
+    {x:0, y:256, w:64, h:64, ax:32, ay:60},
+    {x:64, y:256, w:64, h:64, ax:32, ay:60},
+    {x:128, y:256, w:64, h:64, ax:32, ay:60},
+    {x:192, y:256, w:64, h:64, ax:32, ay:60},
+  ],
+  attack: [
+    {x:0, y:320, w:64, h:64, ax:32, ay:60},
+    {x:64, y:320, w:64, h:64, ax:32, ay:60},
+    {x:128, y:320, w:64, h:64, ax:32, ay:60},
+    {x:192, y:320, w:64, h:64, ax:32, ay:60},
+  ],
+};
+
 const CHARACTERS = [
   {
     id: 'manguinha',
@@ -85,6 +127,22 @@ const CHARACTERS = [
     portraitKey: 'portrait_tuiuba',
     anim: ANIM_TUIUBA,
     scale: 1.18,
+  },
+  {
+    id: 'nyx',
+    name: 'Nyx',
+    title: 'Sombra Arcana',
+    weaponType: 'void_blade',
+    attackName: 'Lâmina Espectral',
+    ultName: 'Tempestade do Vazio',
+    desc: 'Assassina arcana ultra-veloz! Dispara lâminas espectrais perfurantes que rasgam hordas inteiras.',
+    speedMod: 1.15,
+    hpMod: 5,
+    dmgMod: 1.25,
+    imgKey: 'player_nyx',
+    portraitKey: 'portrait_nyx',
+    anim: ANIM_NYX,
+    scale: 1.55,
   }
 ];
 

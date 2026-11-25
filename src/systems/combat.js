@@ -616,6 +616,21 @@ function startAttack(fromMouse, fromTouch) {
         hit: new Set()
       });
     }
+  } else if (p.char.weaponType === 'void_blade') {
+    // Nyx: Lâminas Espectrais Perfurantes em Leque Rápido
+    SFX.slash();
+    const bladeSpeed = 680 * Math.min(1.5, 0.88 + stats.range * 0.15);
+    const bladeCount = Math.max(2, shotCount + 1);
+    for (const an of spreadAngles(a, bladeCount, 0.14)) {
+      pshots.push({
+        kind: 'dagger', x: p.x + Math.cos(an) * 22, y: p.y - 34 + Math.sin(an) * 22,
+        vx: Math.cos(an) * bladeSpeed, vy: Math.sin(an) * bladeSpeed,
+        r: 15 * stats.range, dmg: Math.max(1, Math.round((stats.dmg + 1) * 1.1)),
+        pierce: 4, life: 0.95, rot: an,
+        hit: new Set()
+      });
+    }
+    burst(p.x + c * 20, p.y - 34 + s * 20, '#4fe3ff', 6, 160, 'spark');
   } else {
     // Manguinha: Golpe de Sabre Melee (+ Cortes Duplos/Cruzados com Ataque Múltiplo)
     slashes.push({ a, life: 0.2, max: 0.2, r: 72 * stats.range * prefSize, follow: true });

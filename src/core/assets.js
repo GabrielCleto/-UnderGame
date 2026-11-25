@@ -7,9 +7,11 @@ const IMAGE_LIST = {
   player_manguinha: 'assets/sprites/characters/personagem_transparente.png',
   player_amxral: 'assets/sprites/characters/amxral_transparente.png',
   player_tuiuba: 'assets/sprites/characters/tuiuba_transparente.png',
+  player_nyx: 'assets/sprites/characters/nyx_transparente.png',
   portrait_manguinha: 'assets/sprites/characters/manguinha_portrait.png',
   portrait_amxral: 'assets/sprites/characters/amxral_portrait.png',
   portrait_tuiuba: 'assets/sprites/characters/tuiuba_portrait.png',
+  portrait_nyx: 'assets/sprites/characters/nyx_portrait.png',
   manguinha_atk: 'assets/sprites/characters/manguinha_attack_strip.png',
 
   // Projéteis Especiais
