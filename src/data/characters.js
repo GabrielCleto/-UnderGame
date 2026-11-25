@@ -26,11 +26,11 @@ function makeGridAnim(cw, ch, ay, counts) {
 // 1. MANGUINHA V2 (Full-HD 128x128 • 11 animações completas: Walk costas, Dash ciano, Combo Sabre, Fúria, Dano & Morte)
 const ANIM_MANGUINHA = makeGridAnim(128, 128, 114, { idle: 9, idleSide: 4, idleUp: 4, walkDown: 10, walkSide: 12, walkUp: 6, spin: 6, attack: 6, ult: 3, hurt: 2, death: 3 });
 
-// 2. AMXRAL (Full-HD 96x112 • 9 animações completas)
-const ANIM_AMXRAL = makeGridAnim(96, 112, 104, { idle: 7, idleSide: 4, idleUp: 4, walkDown: 6, walkSide: 11, walkUp: 6, spin: 6, attack: 6, hurt: 3 });
+// 2. AMXRAL V2 (Full-HD 160x160 • 11 animações completas: Walk frente, Dash estrela, Ataque smear dourado, Chuva Estelar, Dano & Morte)
+const ANIM_AMXRAL = makeGridAnim(160, 160, 144, { idle: 7, idleSide: 4, idleUp: 4, walkDown: 7, walkSide: 11, walkUp: 6, spin: 6, attack: 6, ult: 3, hurt: 2, death: 3 });
 
-// 3. TUIUBA (Full-HD 96x112 • 9 animações completas)
-const ANIM_TUIUBA = makeGridAnim(96, 112, 104, { idle: 8, idleSide: 4, idleUp: 4, walkDown: 10, walkSide: 9, walkUp: 6, spin: 7, attack: 8, hurt: 3 });
+// 3. TUIUBA V2 (Full-HD 160x160 • 11 animações completas: Walk frente, Dash ígneo, Arremesso explosivo, Explosão Cítrica, Dano & Morte)
+const ANIM_TUIUBA = makeGridAnim(160, 160, 144, { idle: 8, idleSide: 4, idleUp: 4, walkDown: 8, walkSide: 9, walkUp: 6, spin: 6, attack: 6, ult: 4, hurt: 2, death: 3 });
 
 // 4. NYX (Sombra Arcana — Pixel Art 12-Color Palette / LibreSprite Ready)
 const ANIM_NYX = {
