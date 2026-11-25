@@ -21,6 +21,7 @@ let pixiGroundSprite = null;
 let pixiGroundBaseTex = null;
 let pixiPlayerSprite = null;
 let pixiPlayerFlashSprite = null;
+let pixiSwordSprite = null;
 
 // Pools reutilizáveis (Zero alocações / Zero .destroy() por frame)
 let pixiPools = null;
@@ -809,7 +810,7 @@ function renderPixiWorld() {
         spr.alpha = (g.life / g.max) * 0.48;
         spr.tint = g.char.weaponType === 'orange' ? 0xffaa44
           : g.char.weaponType === 'star' ? 0xffe066
-          : cssColorToInt(SABER_COLORS[saberColorIndex].hex);
+          : (g.char.weaponType === 'saber' ? 0xffe08a : cssColorToInt(SABER_COLORS[saberColorIndex].hex));
       }
     }
   }
@@ -1043,7 +1044,7 @@ function renderPixiWorld() {
       const R = 195 * stats.range;
       const ultCol = p.char.weaponType === 'orange' ? 0xff8c14
         : p.char.weaponType === 'star' ? 0xffdc3c
-        : cssColorToInt(SABER_COLORS[saberColorIndex].hex);
+        : 0xffe08a;
       const gl = pools.vfxGlows.acquire(glowTex);
       gl.position.set(p.x, p.y - 30);
       const ur = (R * 2.1) / 60;
@@ -1080,44 +1081,26 @@ function renderPixiWorld() {
       else if (p.hurtAnimT > 0) { sqX = 1.20; sqY = 0.80; }
       else if (typeof stats !== 'undefined' && p.inv > stats.invTime - 0.14) { sqX = 1.16; sqY = 0.84; }
 
-      // Sabre de Luz 360° seguindo a mira em tempo real (Manguinha)
-      if (p.char.weaponType === 'saber' && !p.dash) {
-        const sCol = typeof SABER_COLORS !== 'undefined' ? SABER_COLORS[saberColorIndex] : { hex: '#3aa2ff', blade: '#bfe8ff' };
-        const sHex = cssColorToInt(sCol.hex);
-        const bHex = cssColorToInt(sCol.blade);
-        let swingOff = 0;
-        if (p.attack) {
-          const ak = clamp(p.attack.t / p.attack.dur, 0, 1);
-          const dirSign = (p.comboSwing || 0) % 2 === 0 ? 1 : -1;
-          if (ak < 0.18) swingOff = -1.35 * dirSign * (ak / 0.18);
-          else if (ak < 0.62) swingOff = (-1.35 + 2.85 * ((ak - 0.18) / 0.44)) * dirSign;
-          else swingOff = 1.50 * dirSign * (1 - (ak - 0.62) / 0.38);
+      // Espada Medieval de Cavaleiro empunhada em tempo real durante a partida (idle/walk)
+      const showSword = p.char.weaponType === 'saber' && !p.dash && !p.ult && !p.attack && typeof state !== 'undefined' && state !== 'select_char';
+      const swTex = showSword ? getPixiTexture('knight_sword') : null;
+      if (showSword && swTex) {
+        if (!pixiSwordSprite) {
+          pixiSwordSprite = new PIXI.Sprite(swTex);
+          entityLayer.addChild(pixiSwordSprite);
         }
-        const sa = (p.aim || 0) + swingOff;
-        const handX = p.x + Math.cos(sa) * 16;
-        const handY = p.y - 34 + Math.sin(sa) * 12;
-        const bladeLen = (p.attack ? 58 : 42) * (typeof stats !== 'undefined' ? Math.min(1.45, 0.85 + stats.range * 0.15) : 1);
-        const tipX = handX + Math.cos(sa) * bladeLen;
-        const tipY = handY + Math.sin(sa) * bladeLen;
-        // Halo externo + lâmina plasma + núcleo branco
-        slashGraphics.lineStyle(p.attack ? 12 : 8, sHex, p.attack ? 0.48 : 0.32);
-        slashGraphics.moveTo(handX, handY); slashGraphics.lineTo(tipX, tipY);
-        slashGraphics.lineStyle(p.attack ? 6 : 4.5, bHex, 0.92);
-        slashGraphics.moveTo(handX, handY); slashGraphics.lineTo(tipX, tipY);
-        slashGraphics.lineStyle(2.2, 0xffffff, 1.0);
-        slashGraphics.moveTo(handX, handY); slashGraphics.lineTo(tipX, tipY);
-        // Punho metálico
-        slashGraphics.lineStyle(4.5, 0x2b303a, 1.0);
-        slashGraphics.moveTo(handX - Math.cos(sa) * 7, handY - Math.sin(sa) * 7);
-        slashGraphics.lineTo(handX + Math.cos(sa) * 3, handY + Math.sin(sa) * 3);
-        slashGraphics.lineStyle(0);
-        const tipGlow = pools.vfxGlows.acquire(glowTex);
-        if (tipGlow) {
-          tipGlow.position.set(tipX, tipY);
-          tipGlow.scale.set(p.attack ? 0.65 : 0.38, p.attack ? 0.65 : 0.38);
-          tipGlow.tint = sHex;
-          tipGlow.alpha = p.attack ? 0.85 : 0.52;
-        }
+        const sa = p.aim || 0;
+        const sway = p.moving ? Math.sin(p.animT * 11) * 0.14 : Math.sin(p.animT * 3.2) * 0.05;
+        const swSc = 0.62 * (typeof stats !== 'undefined' ? Math.min(1.3, 0.9 + stats.range * 0.1) : 1);
+        pixiSwordSprite.texture = swTex;
+        pixiSwordSprite.visible = true;
+        pixiSwordSprite.anchor.set(0.23, 0.50);
+        pixiSwordSprite.position.set(p.x + Math.cos(sa) * 12, p.y - 30 + Math.sin(sa) * 8 + (pf.bobY || 0));
+        pixiSwordSprite.rotation = sa + sway;
+        pixiSwordSprite.scale.set(swSc, Math.cos(sa) < 0 ? -swSc : swSc);
+        pixiSwordSprite.zIndex = p.y + (Math.sin(sa) < -0.25 ? -1 : 2);
+      } else if (pixiSwordSprite) {
+        pixiSwordSprite.visible = false;
       }
 
       if (pTex) {
@@ -1153,6 +1136,7 @@ function renderPixiWorld() {
     } else {
       if (pixiPlayerSprite) pixiPlayerSprite.visible = false;
       if (pixiPlayerFlashSprite) pixiPlayerFlashSprite.visible = false;
+      if (pixiSwordSprite) pixiSwordSprite.visible = false;
     }
 
     // Escudos Orbitais do Jogador
@@ -1195,6 +1179,7 @@ function renderPixiWorld() {
   } else {
     if (pixiPlayerSprite) pixiPlayerSprite.visible = false;
     if (pixiPlayerFlashSprite) pixiPlayerFlashSprite.visible = false;
+    if (pixiSwordSprite) pixiSwordSprite.visible = false;
   }
 
   // 8. INIMIGOS (Todos os 27+ tipos via d.img, com animação, flip, hit-flash, auras, escudos)
@@ -1342,7 +1327,7 @@ function renderPixiWorld() {
 
   entityLayer.sortChildren();
 
-  // 9. CORTES DE SABRE NEON + ONDAS CÓSMICAS + RAIOS + ANÉIS `fxRings` (BLEND_MODES.ADD)
+  // 9. CORTES DE AÇO MEDIEVAL + ONDAS CÓSMICAS + RAIOS + ANÉIS `fxRings` (BLEND_MODES.ADD)
   const saberObj = typeof SABER_COLORS !== 'undefined' ? SABER_COLORS[saberColorIndex] : { hex: '#3aa2ff' };
   const saberHexInt = cssColorToInt(saberObj.hex);
 
@@ -1350,30 +1335,32 @@ function renderPixiWorld() {
     for (let i = 0; i < slashes.length; i++) {
       const s = slashes[i];
       const k = 1 - s.life / s.max;
+      const rev = (s.combo || 0) % 2 === 1;
       const sx0 = player.x, sy0 = player.y - 38;
-      const start = s.a - 1.35 + k * 0.5;
-      const end = start + 2.7 * Math.min(1, k * 2.8);
+      const sweepSpan = 2.7 * Math.min(1, k * 2.8);
+      const start = rev ? (s.a + 1.35 - k * 0.5) : (s.a - 1.35 + k * 0.5);
+      const end = rev ? (start - sweepSpan) : (start + sweepSpan);
       const R = s.r;
-      const widths = [20, 10, 3.5];
-      const cols = [saberHexInt, saberHexInt, 0xffffff];
-      const alphas = [0.42, 0.82, 0.95];
+      const widths = [20, 10, 3.8];
+      const cols = [0xffdc7a, 0xc8e4ff, 0xffffff];
+      const alphas = [0.42, 0.85, 0.95];
       const mult = (1 - k * 0.58) * (s.big ? 1.3 : 1);
       const stX = sx0 + Math.cos(start) * R, stY = sy0 + Math.sin(start) * R;
 
       for (let pass = 0; pass < 3; pass++) {
         slashGraphics.lineStyle(widths[pass] * mult, cols[pass], alphas[pass]);
         slashGraphics.moveTo(stX, stY);
-        slashGraphics.arc(sx0, sy0, R, start, end);
+        slashGraphics.arc(sx0, sy0, R, start, end, rev);
       }
       slashGraphics.lineStyle(0);
 
-      // Bloom na ponta do sabre
+      // Brilho metálico dourado na ponta da lâmina
       const tipX = sx0 + Math.cos(end) * R, tipY = sy0 + Math.sin(end) * R;
       const bgl = pools.bloomGlows.acquire(glowTex);
       bgl.position.set(tipX, tipY);
       bgl.scale.set(1.1, 1.1);
-      bgl.tint = saberHexInt;
-      bgl.alpha = 0.7 * (1 - k);
+      bgl.tint = 0xffe08a;
+      bgl.alpha = 0.72 * (1 - k);
     }
   }
 

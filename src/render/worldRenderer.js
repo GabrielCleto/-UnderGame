@@ -501,11 +501,17 @@ function playerFrame() {
     return { f: an.hurt[idx], flip: p.flip, bobY: 0, tilt: p.flip ? 0.08 : -0.08 };
   }
   if (p.attack) {
-    const fr = an.attack;
+    const atkDir = p.attack.dir || p.dir;
+    const fr = (atkDir === 'down' && an.attackDown) ? an.attackDown
+      : (atkDir === 'up' && an.attackUp) ? an.attackUp
+      : an.attack;
+    const atkFlip = (atkDir === 'left') ? true
+      : (atkDir === 'right') ? false
+      : Boolean(p.attack.flip);
     const prog = clamp(p.attack.t / p.attack.dur, 0, 0.999);
     const idx = Math.floor(prog * fr.length);
-    const lungeTilt = (prog > 0.2 && prog < 0.65) ? (p.flip ? -0.05 : 0.05) : 0;
-    return { f: fr[idx], flip: p.flip, bobY: 0, tilt: lungeTilt };
+    const lungeTilt = (prog > 0.2 && prog < 0.65) ? (atkFlip ? -0.05 : 0.05) : 0;
+    return { f: fr[idx], flip: atkFlip, bobY: 0, tilt: lungeTilt };
   }
   if (!p.moving) {
     if (p.dir === 'down' || p.idleT > 1.4) {
@@ -520,7 +526,7 @@ function playerFrame() {
   }
   const spd = clamp((stats.speed * (p.frenzyT > 0 ? 1.25 : 1)) / 220, 0.85, 1.75);
   if (p.dir === 'down') {
-    const fps = an.walkDown.length >= 10 ? 14 : 10;
+    const fps = an.walkDown.length >= 10 ? 13 : 11;
     return {
       f: an.walkDown[Math.floor(p.animT * fps * spd) % an.walkDown.length],
       flip: p.flip,
@@ -529,7 +535,7 @@ function playerFrame() {
     };
   }
   if (p.dir === 'up') {
-    const fps = an.walkUp.length >= 10 ? 15 : 10;
+    const fps = an.walkUp.length >= 10 ? 14 : 11;
     return {
       f: an.walkUp[Math.floor(p.animT * fps * spd) % an.walkUp.length],
       flip: false,
@@ -537,13 +543,31 @@ function playerFrame() {
       tilt: Math.sin(p.animT * 10 * spd) * 0.018
     };
   }
-  const sideFps = an.walkSide.length >= 11 ? 15 : 13;
+  const sideFps = an.walkSide.length >= 11 ? 14 : 12;
   return {
     f: an.walkSide[Math.floor(p.animT * sideFps * spd) % an.walkSide.length],
     flip: p.dir === 'left',
     bobY: -Math.abs(Math.sin(p.animT * 11 * spd)) * 1.1,
     tilt: p.dir === 'left' ? -0.025 : 0.025
   };
+}
+
+function drawMedievalKnightSword2D(p, bobY) {
+  if (!p || p.char.weaponType !== 'saber' || p.dash || p.ult || p.attack || state === 'select_char') return;
+  const swImg = IMG.knight_sword;
+  if (!swImg || !swImg.complete || !swImg.naturalWidth) return;
+  const sa = p.aim || 0;
+  const sway = p.moving ? Math.sin(p.animT * 11) * 0.14 : Math.sin(p.animT * 3.2) * 0.05;
+  const hx = p.x + Math.cos(sa) * 12;
+  const hy = p.y - 30 + Math.sin(sa) * 8 + (bobY || 0);
+  const sc = 0.62 * Math.min(1.3, 0.9 + stats.range * 0.1);
+  const w = swImg.naturalWidth * sc, h = swImg.naturalHeight * sc;
+  ctx.save();
+  ctx.translate(hx, hy);
+  ctx.rotate(sa + sway);
+  if (Math.cos(sa) < 0) ctx.scale(1, -1);
+  ctx.drawImage(swImg, -w * 0.23, -h * 0.50, w, h);
+  ctx.restore();
 }
 
 function drawPlayer() {
@@ -560,7 +584,7 @@ function drawPlayer() {
     const R = 195 * stats.range;
     ctx.save(); ctx.globalCompositeOperation = 'lighter';
     const g = ctx.createRadialGradient(p.x, p.y - 30, 10, p.x, p.y - 30, R);
-    const colGlow = p.char.weaponType === 'orange' ? 'rgba(255,140,20,' : p.char.weaponType === 'star' ? 'rgba(255,220,60,' : SABER_COLORS[saberColorIndex].glow;
+    const colGlow = p.char.weaponType === 'orange' ? 'rgba(255,140,20,' : p.char.weaponType === 'star' ? 'rgba(255,220,60,' : 'rgba(255,220,130,';
     g.addColorStop(0, colGlow + '0.45)');
     g.addColorStop(1, 'rgba(0,0,0,0)');
     ctx.fillStyle = g; ctx.beginPath(); ctx.arc(p.x, p.y - 30, R, 0, Math.PI * 2); ctx.fill();
@@ -578,35 +602,10 @@ function drawPlayer() {
     }
     else if (p.hurtAnimT > 0) { sqX = 1.20; sqY = 0.80; }
     else if (p.inv > stats.invTime - 0.14) { sqX = 1.16; sqY = 0.84; }
+    const swordBehind = Math.sin(p.aim || 0) < -0.25;
+    if (swordBehind) drawMedievalKnightSword2D(p, bobY);
     drawCharacterFrame(p.char, f, p.x, p.y, flip, p.inv > stats.invTime - 0.12 ? 0.8 : 0, { bobY, tilt, squashX: sqX, squashY: sqY });
-
-    // Sabre de Luz 360° seguindo a mira (Canvas 2D)
-    if (p.char.weaponType === 'saber' && !p.dash) {
-      const sCol = SABER_COLORS[saberColorIndex];
-      let swingOff = 0;
-      if (p.attack) {
-        const ak = clamp(p.attack.t / p.attack.dur, 0, 1);
-        const dirSign = (p.comboSwing || 0) % 2 === 0 ? 1 : -1;
-        if (ak < 0.18) swingOff = -1.35 * dirSign * (ak / 0.18);
-        else if (ak < 0.62) swingOff = (-1.35 + 2.85 * ((ak - 0.18) / 0.44)) * dirSign;
-        else swingOff = 1.50 * dirSign * (1 - (ak - 0.62) / 0.38);
-      }
-      const sa = (p.aim || 0) + swingOff;
-      const hx = p.x + Math.cos(sa) * 16, hy = p.y - 34 + Math.sin(sa) * 12;
-      const bLen = (p.attack ? 58 : 42) * Math.min(1.45, 0.85 + stats.range * 0.15);
-      const tx = hx + Math.cos(sa) * bLen, ty = hy + Math.sin(sa) * bLen;
-      ctx.save();
-      ctx.lineCap = 'round';
-      ctx.globalCompositeOperation = 'lighter';
-      ctx.strokeStyle = sCol.glow + (p.attack ? '0.52)' : '0.35)');
-      ctx.lineWidth = p.attack ? 12 : 8;
-      ctx.beginPath(); ctx.moveTo(hx, hy); ctx.lineTo(tx, ty); ctx.stroke();
-      ctx.strokeStyle = sCol.blade; ctx.lineWidth = p.attack ? 5.5 : 4;
-      ctx.beginPath(); ctx.moveTo(hx, hy); ctx.lineTo(tx, ty); ctx.stroke();
-      ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 2;
-      ctx.beginPath(); ctx.moveTo(hx, hy); ctx.lineTo(tx, ty); ctx.stroke();
-      ctx.restore();
-    }
+    if (!swordBehind) drawMedievalKnightSword2D(p, bobY);
   }
   if (p.shields > 0) {
     ctx.save(); ctx.globalCompositeOperation = 'lighter';
@@ -645,16 +644,18 @@ function drawFireballs() {
 function drawSlash(s) {
   const p = player;
   const k = 1 - s.life / s.max;
-  const colorObj = SABER_COLORS[saberColorIndex];
+  const rev = (s.combo || 0) % 2 === 1;
   ctx.save();
   ctx.translate(p.x, p.y - 38);
   ctx.rotate(s.a);
+  if (rev) ctx.scale(1, -1);
   ctx.globalCompositeOperation = 'lighter';
   const start = -1.35 + k * 0.5, end = start + 2.7 * Math.min(1, k * 2.8);
   const R = s.r;
+  const slashCols = ['rgba(255,215,110,0.42)', 'rgba(200,228,255,0.85)', '#ffffff'];
   for (let i = 0; i < 3; i++) {
-    ctx.strokeStyle = [colorObj.glow + '0.45)', colorObj.glow + '0.8)', '#ffffff'][i];
-    ctx.lineWidth = [22, 11, 4][i] * (1 - k * 0.6) * (s.big ? 1.3 : 1);
+    ctx.strokeStyle = slashCols[i];
+    ctx.lineWidth = [20, 10, 3.8][i] * (1 - k * 0.6) * (s.big ? 1.3 : 1);
     ctx.beginPath(); ctx.arc(0, 0, R, start, end); ctx.stroke();
   }
   ctx.restore();

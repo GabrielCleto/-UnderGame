@@ -13,7 +13,13 @@ function makeGridAnim(cw, ch, ay, counts) {
     spin:     mk(6, counts.spin),
     attack:   mk(7, counts.attack),
   };
-  if (counts.ult) {
+  if (counts.attackDown) {
+    anim.attackDown = mk(8, counts.attackDown);
+    anim.attackUp   = mk(9, counts.attackUp);
+    anim.ult        = mk(10, counts.ult);
+    anim.hurt       = mk(11, counts.hurt);
+    anim.death      = mk(12, counts.death);
+  } else if (counts.ult) {
     anim.ult   = mk(8, counts.ult);
     anim.hurt  = mk(9, counts.hurt);
     anim.death = mk(10, counts.death);
@@ -23,14 +29,14 @@ function makeGridAnim(cw, ch, ay, counts) {
   return anim;
 }
 
-// 1. MANGUINHA V2 (Full-HD 128x128 • 11 animações completas: Walk costas, Dash ciano, Combo Sabre, Fúria, Dano & Morte)
-const ANIM_MANGUINHA = makeGridAnim(128, 128, 114, { idle: 9, idleSide: 4, idleUp: 4, walkDown: 10, walkSide: 12, walkUp: 6, spin: 6, attack: 6, ult: 3, hurt: 2, death: 3 });
+// 1. MANGUINHA V3 (Full-HD 160x160 • 13 animações: V2 unificado, Espada Medieval, 4 direções, Dash, Fúria, Dano & Morte)
+const ANIM_MANGUINHA = makeGridAnim(160, 160, 144, { idle: 6, idleSide: 4, idleUp: 4, walkDown: 6, walkSide: 8, walkUp: 7, spin: 6, attack: 6, attackDown: 6, attackUp: 6, ult: 4, hurt: 2, death: 3 });
 
-// 2. AMXRAL V2 (Full-HD 160x160 • 11 animações completas: Walk frente, Dash estrela, Ataque smear dourado, Chuva Estelar, Dano & Morte)
-const ANIM_AMXRAL = makeGridAnim(160, 160, 144, { idle: 7, idleSide: 4, idleUp: 4, walkDown: 7, walkSide: 11, walkUp: 6, spin: 6, attack: 6, ult: 3, hurt: 2, death: 3 });
+// 2. AMXRAL V3 (Full-HD 160x160 • 13 animações: Walk lateral articulado, Walk costas, Ataque 4 direções, Dash, Chuva Estelar, Dano & Morte)
+const ANIM_AMXRAL = makeGridAnim(160, 160, 144, { idle: 7, idleSide: 4, idleUp: 4, walkDown: 7, walkSide: 8, walkUp: 6, spin: 6, attack: 6, attackDown: 6, attackUp: 6, ult: 3, hurt: 2, death: 3 });
 
-// 3. TUIUBA V2 (Full-HD 160x160 • 11 animações completas: Walk frente, Dash ígneo, Arremesso explosivo, Explosão Cítrica, Dano & Morte)
-const ANIM_TUIUBA = makeGridAnim(160, 160, 144, { idle: 8, idleSide: 4, idleUp: 4, walkDown: 8, walkSide: 9, walkUp: 6, spin: 6, attack: 6, ult: 4, hurt: 2, death: 3 });
+// 3. TUIUBA V3 (Full-HD 160x160 • 13 animações: Walk lateral/costas com passos reais, Ataque 4 direções, Dash, Explosão Cítrica, Dano & Morte)
+const ANIM_TUIUBA = makeGridAnim(160, 160, 144, { idle: 8, idleSide: 4, idleUp: 4, walkDown: 8, walkSide: 8, walkUp: 6, spin: 6, attack: 6, attackDown: 6, attackUp: 6, ult: 4, hurt: 2, death: 3 });
 
 // 4. NYX (Sombra Arcana — Pixel Art 12-Color Palette / LibreSprite Ready)
 const ANIM_NYX = {
@@ -78,18 +84,18 @@ const CHARACTERS = [
   {
     id: 'manguinha',
     name: 'Manguinha',
-    title: 'Garoto Comum',
+    title: 'Cavaleiro do Subsolo',
     weaponType: 'saber',
-    attackName: 'Corte de Sabre',
-    ultName: 'Fúria do Sabre',
-    desc: 'Equilibrado e letal a curta distância. Seu sabre de luz corta inimigos e rebate projéteis com precisão!',
+    attackName: 'Corte de Cavaleiro',
+    ultName: 'Fúria da Lâmina',
+    desc: 'Equilibrado e letal a curta distância. Sua espada medieval de cavaleiro corta inimigos e rebate projéteis com precisão!',
     speedMod: 1.0,
     hpMod: 6,
     dmgMod: 1,
     imgKey: 'player_manguinha',
     portraitKey: 'portrait_manguinha',
     anim: ANIM_MANGUINHA,
-    scale: 1.50,
+    scale: 1.00,
   },
   {
     id: 'amxral',

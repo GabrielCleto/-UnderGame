@@ -585,8 +585,8 @@ function startAttack(fromMouse, fromTouch) {
   const prefSize = pPrefix ? pPrefix.sizeMul : 1;
   const rateMul = stats.atkRate * (1 + berserkBonus + feverAtkBonus) * (p.frenzyT > 0 ? 1.55 : 1) * prefSpd;
   const dur = (p.char.weaponType === 'saber' ? 0.32 : 0.25) / rateMul;
-  p.attack = { t: 0, dur, hit: new Set() };
-  p.comboSwing = ((p.comboSwing || 0) + 1) % 2;
+  p.comboSwing = ((p.comboSwing || 0) + 1) % 3;
+  p.attack = { t: 0, dur, hit: new Set(), dir: p.dir, flip: c < 0, combo: p.comboSwing };
 
   const shotCount = 1 + (stats.multi || 0);
 
@@ -633,11 +633,13 @@ function startAttack(fromMouse, fromTouch) {
     }
     burst(p.x + c * 20, p.y - 34 + s * 20, '#4fe3ff', 6, 160, 'spark');
   } else {
-    // Manguinha: Golpe de Sabre Melee (+ Cortes Duplos/Cruzados com Ataque Múltiplo)
-    slashes.push({ a, life: 0.2, max: 0.2, r: 72 * stats.range * prefSize, follow: true });
-    if (stats.multi >= 1) slashes.push({ a: a + 0.45, life: 0.22, max: 0.22, r: 82 * stats.range, follow: true });
-    if (stats.multi >= 2) slashes.push({ a: a - 0.45, life: 0.22, max: 0.22, r: 82 * stats.range, follow: true });
-    if (stats.multi >= 3) slashes.push({ a: a + Math.PI, life: 0.22, max: 0.22, r: 74 * stats.range, follow: true });
+    // Manguinha: Golpe de Espada Medieval de Cavaleiro (+ Combo 3 hits & Cortes Cruzados com Ataque Múltiplo)
+    const heavyThird = p.comboSwing === 2;
+    slashes.push({ a, life: 0.21, max: 0.21, r: (heavyThird ? 82 : 72) * stats.range * prefSize, follow: true, combo: p.comboSwing, big: heavyThird });
+    if (heavyThird) burst(p.x + c * 28, p.y - 34 + s * 28, '#ffe08a', 6, 170, 'spark');
+    if (stats.multi >= 1) slashes.push({ a: a + 0.45, life: 0.22, max: 0.22, r: 82 * stats.range, follow: true, combo: p.comboSwing });
+    if (stats.multi >= 2) slashes.push({ a: a - 0.45, life: 0.22, max: 0.22, r: 82 * stats.range, follow: true, combo: p.comboSwing });
+    if (stats.multi >= 3) slashes.push({ a: a + Math.PI, life: 0.22, max: 0.22, r: 74 * stats.range, follow: true, combo: p.comboSwing });
     SFX.slash();
   }
 

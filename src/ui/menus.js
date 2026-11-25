@@ -513,7 +513,7 @@ function drawCharacterSelect() {
   // Ícones de Armas e Habilidades
   const iconSz = Math.round(26 * s);
   const infoY = scrollY + Math.round(44 * s);
-  let wIcon = hudImg('i_S_Dagger03');
+  let wIcon = hudImg('knight_sword') || hudImg('i_S_Dagger03');
   if (curCh.weaponType === 'star') wIcon = hudImg('terraria_star') || hudImg('i_S_Light04');
   else if (curCh.weaponType === 'orange') wIcon = hudImg('orange_ball') || hudImg('i_P_Red01');
   else if (curCh.weaponType === 'void_blade') wIcon = hudImg('i_S_Magic04') || hudImg('i_S_Dagger03');
