@@ -19,6 +19,10 @@ function makeGridAnim(cw, ch, ay, counts) {
     anim.ult        = mk(10, counts.ult);
     anim.hurt       = mk(11, counts.hurt);
     anim.death      = mk(12, counts.death);
+    if (counts.selIdle) {
+      anim.selIdle = mk(13, counts.selIdle);
+      anim.selWalk = mk(14, counts.selWalk);
+    }
   } else if (counts.ult) {
     anim.ult   = mk(8, counts.ult);
     anim.hurt  = mk(9, counts.hurt);
@@ -30,7 +34,7 @@ function makeGridAnim(cw, ch, ay, counts) {
 }
 
 // 1. MANGUINHA V3 (Full-HD 160x160 • 13 animações: V2 unificado, Espada Medieval, 4 direções, Dash, Fúria, Dano & Morte)
-const ANIM_MANGUINHA = makeGridAnim(160, 160, 144, { idle: 6, idleSide: 4, idleUp: 4, walkDown: 6, walkSide: 8, walkUp: 7, spin: 6, attack: 6, attackDown: 6, attackUp: 6, ult: 4, hurt: 2, death: 3 });
+const ANIM_MANGUINHA = makeGridAnim(160, 160, 144, { idle: 6, idleSide: 4, idleUp: 4, walkDown: 6, walkSide: 8, walkUp: 7, spin: 6, attack: 6, attackDown: 6, attackUp: 6, ult: 4, hurt: 2, death: 3, selIdle: 6, selWalk: 6 });
 
 // 2. AMXRAL V3 (Full-HD 160x160 • 13 animações: Walk lateral articulado, Walk costas, Ataque 4 direções, Dash, Chuva Estelar, Dano & Morte)
 const ANIM_AMXRAL = makeGridAnim(160, 160, 144, { idle: 7, idleSide: 4, idleUp: 4, walkDown: 7, walkSide: 8, walkUp: 6, spin: 6, attack: 6, attackDown: 6, attackUp: 6, ult: 3, hurt: 2, death: 3 });

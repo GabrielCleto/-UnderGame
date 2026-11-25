@@ -439,7 +439,7 @@ function drawCharacterSelect() {
 
     // Sprite do Personagem
     const previewWalk = isSelected && (Math.floor(t / 2.2) % 2 === 1);
-    const animArr = previewWalk ? chData.anim.walkDown : chData.anim.idle;
+    const animArr = previewWalk ? (chData.anim.selWalk || chData.anim.walkDown) : (chData.anim.selIdle || chData.anim.idle);
     const fr = animArr[Math.floor(t * (previewWalk ? 11 : 7)) % animArr.length];
 
     ctx.save();

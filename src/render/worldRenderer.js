@@ -552,24 +552,6 @@ function playerFrame() {
   };
 }
 
-function drawMedievalKnightSword2D(p, bobY) {
-  if (!p || p.char.weaponType !== 'saber' || p.dash || p.ult || p.attack || state === 'select_char') return;
-  const swImg = IMG.knight_sword;
-  if (!swImg || !swImg.complete || !swImg.naturalWidth) return;
-  const sa = p.aim || 0;
-  const sway = p.moving ? Math.sin(p.animT * 11) * 0.14 : Math.sin(p.animT * 3.2) * 0.05;
-  const hx = p.x + Math.cos(sa) * 12;
-  const hy = p.y - 30 + Math.sin(sa) * 8 + (bobY || 0);
-  const sc = 0.62 * Math.min(1.3, 0.9 + stats.range * 0.1);
-  const w = swImg.naturalWidth * sc, h = swImg.naturalHeight * sc;
-  ctx.save();
-  ctx.translate(hx, hy);
-  ctx.rotate(sa + sway);
-  if (Math.cos(sa) < 0) ctx.scale(1, -1);
-  ctx.drawImage(swImg, -w * 0.23, -h * 0.50, w, h);
-  ctx.restore();
-}
-
 function drawPlayer() {
   const p = player;
   shadow(p.x, p.y, 20, 7, 0.35);
@@ -602,10 +584,7 @@ function drawPlayer() {
     }
     else if (p.hurtAnimT > 0) { sqX = 1.20; sqY = 0.80; }
     else if (p.inv > stats.invTime - 0.14) { sqX = 1.16; sqY = 0.84; }
-    const swordBehind = Math.sin(p.aim || 0) < -0.25;
-    if (swordBehind) drawMedievalKnightSword2D(p, bobY);
     drawCharacterFrame(p.char, f, p.x, p.y, flip, p.inv > stats.invTime - 0.12 ? 0.8 : 0, { bobY, tilt, squashX: sqX, squashY: sqY });
-    if (!swordBehind) drawMedievalKnightSword2D(p, bobY);
   }
   if (p.shields > 0) {
     ctx.save(); ctx.globalCompositeOperation = 'lighter';

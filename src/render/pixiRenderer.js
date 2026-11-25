@@ -1081,27 +1081,7 @@ function renderPixiWorld() {
       else if (p.hurtAnimT > 0) { sqX = 1.20; sqY = 0.80; }
       else if (typeof stats !== 'undefined' && p.inv > stats.invTime - 0.14) { sqX = 1.16; sqY = 0.84; }
 
-      // Espada Medieval de Cavaleiro empunhada em tempo real durante a partida (idle/walk)
-      const showSword = p.char.weaponType === 'saber' && !p.dash && !p.ult && !p.attack && typeof state !== 'undefined' && state !== 'select_char';
-      const swTex = showSword ? getPixiTexture('knight_sword') : null;
-      if (showSword && swTex) {
-        if (!pixiSwordSprite) {
-          pixiSwordSprite = new PIXI.Sprite(swTex);
-          entityLayer.addChild(pixiSwordSprite);
-        }
-        const sa = p.aim || 0;
-        const sway = p.moving ? Math.sin(p.animT * 11) * 0.14 : Math.sin(p.animT * 3.2) * 0.05;
-        const swSc = 0.62 * (typeof stats !== 'undefined' ? Math.min(1.3, 0.9 + stats.range * 0.1) : 1);
-        pixiSwordSprite.texture = swTex;
-        pixiSwordSprite.visible = true;
-        pixiSwordSprite.anchor.set(0.23, 0.50);
-        pixiSwordSprite.position.set(p.x + Math.cos(sa) * 12, p.y - 30 + Math.sin(sa) * 8 + (pf.bobY || 0));
-        pixiSwordSprite.rotation = sa + sway;
-        pixiSwordSprite.scale.set(swSc, Math.cos(sa) < 0 ? -swSc : swSc);
-        pixiSwordSprite.zIndex = p.y + (Math.sin(sa) < -0.25 ? -1 : 2);
-      } else if (pixiSwordSprite) {
-        pixiSwordSprite.visible = false;
-      }
+      // Espada de cavaleiro agora vem desenhada dentro dos próprios sprites (sem peça flutuante)
 
       if (pTex) {
         pixiPlayerSprite.texture = pTex;

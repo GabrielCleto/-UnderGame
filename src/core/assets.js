@@ -4,10 +4,10 @@
 const IMG = {}, WHITE = {};
 const IMAGE_LIST = {
   // Personagens & Retratos
-  player_manguinha: 'assets/sprites/characters/personagem_transparente.png?v=3.2.0',
-  player_amxral: 'assets/sprites/characters/amxral_transparente.png?v=3.2.0',
-  player_tuiuba: 'assets/sprites/characters/tuiuba_transparente.png?v=3.2.0',
-  knight_sword: 'assets/sprites/characters/knight_sword.png?v=3.2.0',
+  player_manguinha: 'assets/sprites/characters/personagem_transparente.png?v=3.3.0',
+  player_amxral: 'assets/sprites/characters/amxral_transparente.png?v=3.3.0',
+  player_tuiuba: 'assets/sprites/characters/tuiuba_transparente.png?v=3.3.0',
+  knight_sword: 'assets/sprites/characters/knight_sword.png?v=3.3.0',
   player_nyx: 'assets/sprites/characters/nyx_transparente.png?v=2.9.0',
   portrait_manguinha: 'assets/sprites/characters/manguinha_portrait.png',
   portrait_amxral: 'assets/sprites/characters/amxral_portrait.png',
